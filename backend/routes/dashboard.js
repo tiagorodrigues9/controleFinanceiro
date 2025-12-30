@@ -21,30 +21,35 @@ router.get('/', async (req, res) => {
 
     const totalContasPagar = await Conta.countDocuments({
       usuario: req.user._id,
-      status: { $in: ['Pendente', 'Vencida'] }
+      status: { $in: ['Pendente', 'Vencida'] },
+      ativo: { $ne: false }
     });
 
     const totalContasPagas = await Conta.countDocuments({
       usuario: req.user._id,
       status: 'Pago',
+      ativo: { $ne: false },
       dataPagamento: { $gte: startDate, $lte: endDate }
     });
 
     const totalContasVencidas = await Conta.countDocuments({
       usuario: req.user._id,
       status: 'Vencida',
+      ativo: { $ne: false },
       dataVencimento: { $gte: startDate, $lte: endDate }
     });
 
     // Quantidade total de contas registradas no mês
     const totalContasMes = await Conta.countDocuments({
       usuario: req.user._id,
+      ativo: { $ne: false },
       dataVencimento: { $gte: startDate, $lte: endDate }
     });
 
     // Valor total de contas pagas no mês
     const contasPagas = await Conta.find({
       usuario: req.user._id,
+      ativo: { $ne: false },
       status: 'Pago',
       dataPagamento: { $gte: startDate, $lte: endDate }
     });
@@ -53,9 +58,30 @@ router.get('/', async (req, res) => {
     // Valor total de contas pendentes
     const contasPendentes = await Conta.find({
       usuario: req.user._id,
+      ativo: { $ne: false },
       status: { $in: ['Pendente', 'Vencida'] }
     });
     const totalValorContasPendentes = contasPendentes.reduce((acc, conta) => acc + conta.valor, 0);
+
+    // Valor total de contas vencidas (todas as vencidas do usuário)
+    const contasVencidasArr = await Conta.find({
+      usuario: req.user._id,
+      ativo: { $ne: false },
+      status: 'Vencida'
+    });
+    const totalValorContasVencidas = contasVencidasArr.reduce((acc, conta) => acc + conta.valor, 0);
+
+    // Total de contas a pagar no próximo mês (quantidade e valor)
+    const nextMonthStart = new Date(anoAtual, mesAtual, 1);
+    const nextMonthEnd = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
+    const contasNextMonth = await Conta.find({
+      usuario: req.user._id,
+      ativo: { $ne: false },
+      status: { $in: ['Pendente'] },
+      dataVencimento: { $gte: nextMonthStart, $lte: nextMonthEnd }
+    });
+    const totalContasNextMonth = contasNextMonth.length;
+    const totalValorContasNextMonth = contasNextMonth.reduce((acc, conta) => acc + conta.valor, 0);
 
     // Gráfico de comparação de meses
     const mesesComparacao = [];
@@ -97,28 +123,36 @@ router.get('/', async (req, res) => {
 
     // Evolução do saldo por conta bancária
     const contasBancarias = await ContaBancaria.find({ usuario: req.user._id });
+    // Build monthly points for the last 6 months (including current)
+    const monthsRange = [];
+    for (let i = 5; i >= 0; i--) {
+      const ref = new Date(anoAtual, mesAtual - 1 - i, 1);
+      const refEnd = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
+      monthsRange.push(refEnd);
+    }
+
     const evolucaoSaldo = await Promise.all(
       contasBancarias.map(async (conta) => {
-        const extratos = await Extrato.find({
-          contaBancaria: conta._id,
-          usuario: req.user._id,
-          estornado: false,
-          data: { $lte: endDate }
-        }).sort({ data: 1 });
+        const saldos = await Promise.all(
+          monthsRange.map(async (monthEnd) => {
+            const extratos = await Extrato.find({
+              contaBancaria: conta._id,
+              usuario: req.user._id,
+              estornado: false,
+              data: { $lte: monthEnd }
+            });
 
-        const saldos = [];
-        let saldoAtual = 0;
-        extratos.forEach(extrato => {
-          if (extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial') {
-            saldoAtual += extrato.valor;
-          } else {
-            saldoAtual -= extrato.valor;
-          }
-          saldos.push({
-            data: extrato.data,
-            saldo: saldoAtual
-          });
-        });
+            const saldo = extratos.reduce((acc, ext) => {
+              if (ext.tipo === 'Entrada' || ext.tipo === 'Saldo Inicial') return acc + ext.valor;
+              return acc - ext.valor;
+            }, 0);
+
+            return {
+              data: monthEnd,
+              saldo
+            };
+          })
+        );
 
         return {
           conta: conta.nome,
@@ -153,6 +187,9 @@ router.get('/', async (req, res) => {
       totalContasPagar,
       totalContasPagas,
       totalContasVencidas,
+      totalValorContasVencidas,
+      totalContasNextMonth,
+      totalValorContasNextMonth,
       totalContasMes,
       totalValorContasPagas,
       totalValorContasPendentes,

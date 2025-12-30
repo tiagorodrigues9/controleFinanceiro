@@ -4,6 +4,8 @@ const path = require('path');
 const { body, validationResult } = require('express-validator');
 const Conta = require('../models/Conta');
 const Extrato = require('../models/Extrato');
+const ContaBancaria = require('../models/ContaBancaria');
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -28,24 +30,47 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const { mes, ano } = req.query;
+    const { mes, ano, ativo, status, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, valor: { $ne: null } };
 
-    console.log('Buscando contas para usuário:', req.user._id);
-    console.log('Filtros (mes, ano):', mes, ano);
-
+    // filtro por mês/ano (dataVencimento)
     if (mes && ano) {
       const startDate = new Date(ano, mes - 1, 1);
       const endDate = new Date(ano, mes, 0, 23, 59, 59);
       query.dataVencimento = { $gte: startDate, $lte: endDate };
     }
 
+    // filtro ativo: 'ativas' | 'inativas' | 'todas'
+    if (ativo === 'ativas') query.ativo = { $ne: false };
+    if (ativo === 'inativas') query.ativo = false;
+
+    // filtro status: 'pendentes' | 'pagas' | 'todos'
+    if (status === 'pendentes') query.status = { $in: ['Pendente', 'Vencida'] };
+    if (status === 'pagas') query.status = 'Pago';
+
+    // filtro por intervalo arbitrário
+    if (dataInicio) {
+      const inicio = new Date(dataInicio);
+      query.dataVencimento = query.dataVencimento || {};
+      query.dataVencimento.$gte = inicio;
+    }
+    if (dataFim) {
+      const fim = new Date(dataFim);
+      fim.setHours(23,59,59,999);
+      query.dataVencimento = query.dataVencimento || {};
+      query.dataVencimento.$lte = fim;
+    }
+
+    console.log('Buscando contas para usuário:', req.user._id);
+    console.log('Query built:', query);
+
     // Atualizar status de contas vencidas
     await Conta.updateMany(
       {
         usuario: req.user._id,
         status: 'Pendente',
-        dataVencimento: { $lt: new Date() }
+        dataVencimento: { $lt: new Date() },
+        ativo: { $ne: false }
       },
       { status: 'Vencida' }
     );
@@ -207,7 +232,8 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
   try {
     const conta = await Conta.findOne({
       _id: req.params.id,
-      usuario: req.user._id
+      usuario: req.user._id,
+      ativo: { $ne: false }
     });
 
     if (!conta) {
@@ -250,13 +276,31 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Conta não encontrada' });
     }
 
+    // Soft inactivate: set ativo=false and status to 'Cancelada' for clarity
+    conta.ativo = false;
     conta.status = 'Cancelada';
     await conta.save();
 
-    res.json({ message: 'Conta cancelada com sucesso' });
+    res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao cancelar conta' });
+  }
+});
+
+// @route   DELETE /api/contas/:id/hard
+// @desc    Excluir conta fisicamente (apenas usuário dono)
+// @access  Private
+router.delete('/:id/hard', async (req, res) => {
+  try {
+    const conta = await Conta.findOne({ _id: req.params.id, usuario: req.user._id });
+    if (!conta) return res.status(404).json({ message: 'Conta não encontrada' });
+
+    await Conta.deleteOne({ _id: conta._id });
+    res.json({ message: 'Conta excluída com sucesso' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao excluir conta' });
   }
 });
 
@@ -275,7 +319,8 @@ router.post('/:id/pagar', [
 
     const conta = await Conta.findOne({
       _id: req.params.id,
-      usuario: req.user._id
+      usuario: req.user._id,
+      ativo: { $ne: false }
     }).populate('fornecedor');
 
     if (!conta) {
@@ -291,32 +336,48 @@ router.post('/:id/pagar', [
     }
 
     const { formaPagamento, contaBancaria, juros } = req.body;
-
-    conta.status = 'Pago';
-    conta.dataPagamento = new Date();
-    conta.formaPagamento = formaPagamento;
-    conta.contaBancaria = contaBancaria;
-    if (juros) {
-      conta.jurosPago = parseFloat(juros);
+    // Verificar se conta bancária informada existe e está ativa
+    const contaBancariaObj = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: { $ne: false } });
+    if (!contaBancariaObj) {
+      return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
     }
-    await conta.save();
 
-    // Criar registro no extrato
-    const valorPago = conta.valor + (conta.jurosPago || 0);
-    await Extrato.create({
-      contaBancaria,
-      tipo: 'Saída',
-      valor: valorPago,
-      data: new Date(),
-      motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor.nome}${juros ? ` (juros: R$ ${juros})` : ''}`,
-      referencia: {
-        tipo: 'Conta',
-        id: conta._id
-      },
-      usuario: req.user._id
-    });
+    // Usar transação para garantir consistência (pagar conta + criar extrato atomicamente)
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      conta.status = 'Pago';
+      conta.dataPagamento = new Date();
+      conta.formaPagamento = formaPagamento;
+      conta.contaBancaria = contaBancaria;
+      if (juros) {
+        conta.jurosPago = parseFloat(juros);
+      }
+      await conta.save({ session });
 
-    res.json(conta);
+      // Criar registro no extrato
+      const valorPago = conta.valor + (conta.jurosPago || 0);
+      await Extrato.create([{
+        contaBancaria,
+        tipo: 'Saída',
+        valor: valorPago,
+        data: new Date(),
+        motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor.nome}${juros ? ` (juros: R$ ${juros})` : ''}`,
+        referencia: {
+          tipo: 'Conta',
+          id: conta._id
+        },
+        usuario: req.user._id
+      }], { session });
+
+      await session.commitTransaction();
+      res.json(conta);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao pagar conta' });

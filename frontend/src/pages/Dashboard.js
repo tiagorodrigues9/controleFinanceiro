@@ -36,6 +36,8 @@ const Dashboard = () => {
     }
   };
 
+  const safeNum = (v) => (typeof v === 'number' ? v : Number(v) || 0);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -56,60 +58,72 @@ const Dashboard = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pendentes
               </Typography>
               <Typography variant="h4">
-                {data?.totalContasPagar || 0}
+                {safeNum(data?.totalContasPagar)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pagas (Mês)
               </Typography>
               <Typography variant="h4" color="success.main">
-                {data?.totalContasPagas || 0}
+                {safeNum(data?.totalContasPagas)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Vencidas (Mês)
               </Typography>
               <Typography variant="h4" color="error.main">
-                {data?.totalContasVencidas || 0}
+                {safeNum(data?.totalContasVencidas)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Total de Contas (Mês)
               </Typography>
               <Typography variant="h4">
-                {data?.totalContasMes || 0}
+                {safeNum(data?.totalContasMes)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Valor Contas Pagas (Mês)
               </Typography>
               <Typography variant="h4" color="success.main">
-                R$ {(data?.totalValorContasPagas || 0).toFixed(2).replace('.', ',')}
+                R$ {safeNum(data?.totalValorContasPagas).toFixed(2).replace('.', ',')}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Valor Contas Pendentes
+              </Typography>
+              <Typography variant="h4" color="warning.main">
+                R$ {safeNum(data?.totalValorContasPendentes).toFixed(2).replace('.', ',')}
               </Typography>
             </CardContent>
           </Card>
@@ -118,11 +132,26 @@ const Dashboard = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Valor Contas Pendentes
+                Valor Contas Vencidas
               </Typography>
-              <Typography variant="h4" color="warning.main">
-                R$ {(data?.totalValorContasPendentes || 0).toFixed(2).replace('.', ',')}
+              <Typography variant="h4" color="error.main">
+                R$ {(data?.totalValorContasVencidas || 0).toFixed(2).replace('.', ',')}
               </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Próximo Mês — Contas
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                <Typography variant="h4">{safeNum(data?.totalContasNextMonth)}</Typography>
+                <Typography color="textSecondary" variant="subtitle2" sx={{ whiteSpace: 'nowrap' }}>
+                  R$ {safeNum(data?.totalValorContasNextMonth).toFixed(2).replace('.', ',')}
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

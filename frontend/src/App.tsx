@@ -48,7 +48,7 @@ const App: React.FC = () => {
                 <PrivateRoute>
                   <MainLayout>
                     <Routes>
-                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/" element={<DashboardCompleto />} />
                       <Route path="/dashboard" element={<DashboardCompleto />} />
                       <Route path="/contas-pagar" element={<ContasPagar />} />
                       <Route path="/fornecedores" element={<Fornecedores />} />

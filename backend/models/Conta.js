@@ -67,6 +67,11 @@ const contaSchema = new mongoose.Schema({
     type: String,
     trim: true
   }
+  ,
+  ativo: {
+    type: Boolean,
+    default: true
+  }
 }, {
   timestamps: true
 });

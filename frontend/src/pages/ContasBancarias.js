@@ -20,9 +20,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  IconButton,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
 const ContasBancarias = () => {
@@ -36,6 +38,21 @@ const ContasBancarias = () => {
     agencia: '',
   });
   const [error, setError] = useState('');
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [idToInactivate, setIdToInactivate] = useState(null);
+
+  const isActive = (item) => {
+    const v = item?.ativo;
+    if (v === undefined || v === null) return true;
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') {
+      const s = v.toLowerCase().trim();
+      if (s === 'false' || s === '0' || s === 'no' || s === 'n') return false;
+      return true;
+    }
+    if (typeof v === 'number') return v !== 0;
+    return Boolean(v);
+  };
 
   useEffect(() => {
     fetchContas();
@@ -49,6 +66,24 @@ const ContasBancarias = () => {
       setError('Erro ao carregar contas bancárias');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cancelInactivate = () => {
+    setOpenConfirm(false);
+    setIdToInactivate(null);
+  };
+
+  const confirmInactivate = async () => {
+    if (!idToInactivate) return;
+    try {
+      await api.delete(`/contas-bancarias/${idToInactivate}`);
+      fetchContas();
+    } catch (err) {
+      setError('Erro ao inativar conta bancária');
+    } finally {
+      setOpenConfirm(false);
+      setIdToInactivate(null);
     }
   };
 
@@ -109,6 +144,7 @@ const ContasBancarias = () => {
               <TableCell>Agência</TableCell>
               <TableCell>Conta</TableCell>
               <TableCell>Saldo</TableCell>
+              <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -121,11 +157,31 @@ const ContasBancarias = () => {
                 <TableCell>
                   R$ {conta.saldo?.toFixed(2).replace('.', ',') || '0,00'}
                 </TableCell>
+                <TableCell>
+                  {isActive(conta) ? (
+                    <IconButton size="small" color="error" onClick={() => { setIdToInactivate(conta._id); setOpenConfirm(true); }}>
+                      <DeleteIcon />
+                    </IconButton>
+                  ) : (
+                    <Typography variant="caption" color="textSecondary">Inativa</Typography>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog open={openConfirm} onClose={cancelInactivate}>
+        <DialogTitle>Confirmar Inativação</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja inativar esta conta bancária? Ela não poderá mais ser usada.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelInactivate}>Não</Button>
+          <Button onClick={confirmInactivate} variant="contained" color="error">Sim, Inativar</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>

@@ -22,10 +22,12 @@ import {
   InputLabel,
   Select,
   Grid,
+  IconButton,
   Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -214,11 +216,13 @@ const Extrato = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
+            <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Conta Bancária</InputLabel>
               <Select
                 value={filtros.contaBancaria}
                 onChange={(e) => setFiltros({ ...filtros, contaBancaria: e.target.value })}
+                label="Conta Bancária"
+                size="small"
               >
                 <MenuItem value="">Todas</MenuItem>
                 {contasBancarias.map((conta) => (
@@ -230,11 +234,13 @@ const Extrato = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
+            <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Tipo de Despesa</InputLabel>
               <Select
                 value={filtros.tipoDespesa}
                 onChange={(e) => setFiltros({ ...filtros, tipoDespesa: e.target.value })}
+                label="Tipo de Despesa"
+                size="small"
               >
                 <MenuItem value="">Todos</MenuItem>
                 {grupos.map((grupo) => (
@@ -307,13 +313,13 @@ const Extrato = () => {
                 </TableCell>
                 <TableCell>
                   {!extrato.estornado && (
-                    <Button
+                    <IconButton
                       size="small"
                       color="error"
                       onClick={() => handleEstornar(extrato._id)}
                     >
-                      Estornar
-                    </Button>
+                      <DeleteIcon />
+                    </IconButton>
                   )}
                 </TableCell>
               </TableRow>
@@ -406,13 +412,15 @@ const Extrato = () => {
         <form onSubmit={handleSubmitSaldoInicial}>
           <DialogTitle>Lançar Saldo Inicial</DialogTitle>
           <DialogContent>
-            <FormControl fullWidth margin="normal" required>
+            <FormControl fullWidth margin="normal" required variant="outlined" size="small">
               <InputLabel>Conta Bancária</InputLabel>
               <Select
                 value={saldoInicialData.contaBancaria}
                 onChange={(e) =>
                   setSaldoInicialData({ ...saldoInicialData, contaBancaria: e.target.value })
                 }
+                label="Conta Bancária"
+                size="small"
               >
                 {contasBancarias.map((conta) => (
                   <MenuItem key={conta._id} value={conta._id}>
@@ -431,6 +439,8 @@ const Extrato = () => {
               onChange={(e) =>
                 setSaldoInicialData({ ...saldoInicialData, valor: e.target.value })
               }
+              variant="outlined"
+              size="small"
             />
             <TextField
               fullWidth
@@ -443,6 +453,8 @@ const Extrato = () => {
               onChange={(e) =>
                 setSaldoInicialData({ ...saldoInicialData, data: e.target.value })
               }
+              variant="outlined"
+              size="small"
             />
           </DialogContent>
           <DialogActions>

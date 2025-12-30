@@ -160,5 +160,34 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/grupos/:id/subgrupos/:subId
+// @desc    Excluir subgrupo de um grupo
+// @access  Private
+router.delete('/:id/subgrupos/:subId', async (req, res) => {
+  try {
+    const grupo = await Grupo.findOne({
+      _id: req.params.id,
+      usuario: req.user._id
+    });
+
+    if (!grupo) {
+      return res.status(404).json({ message: 'Grupo não encontrado' });
+    }
+
+    const sub = grupo.subgrupos.id(req.params.subId);
+    if (!sub) {
+      return res.status(404).json({ message: 'Subgrupo não encontrado' });
+    }
+
+    sub.remove();
+    await grupo.save();
+
+    res.json({ message: 'Subgrupo excluído com sucesso' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao excluir subgrupo' });
+  }
+});
+
 module.exports = router;
 

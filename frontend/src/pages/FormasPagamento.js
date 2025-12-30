@@ -33,6 +33,8 @@ const FormasPagamento = () => {
   const [formaSelecionada, setFormaSelecionada] = useState(null);
   const [formData, setFormData] = useState({ nome: '' });
   const [error, setError] = useState('');
+  const [openDelete, setOpenDelete] = useState(false);
+  const [formaToDelete, setFormaToDelete] = useState(null);
 
   useEffect(() => {
     fetchFormas();
@@ -76,6 +78,7 @@ const FormasPagamento = () => {
     try {
       await api.post('/formas-pagamento', formData);
       fetchFormas();
+      window.dispatchEvent(new Event('formasUpdated'));
       handleCloseCadastro();
       setError('');
     } catch (err) {
@@ -88,6 +91,7 @@ const FormasPagamento = () => {
     try {
       await api.put(`/formas-pagamento/${formaSelecionada._id}`, formData);
       fetchFormas();
+      window.dispatchEvent(new Event('formasUpdated'));
       handleCloseEditar();
       setError('');
     } catch (err) {
@@ -95,15 +99,28 @@ const FormasPagamento = () => {
     }
   };
 
-  const handleExcluir = async (id) => {
-    if (window.confirm('Deseja realmente excluir esta forma de pagamento?')) {
-      try {
-        await api.delete(`/formas-pagamento/${id}`);
-        fetchFormas();
-      } catch (err) {
-        setError('Erro ao excluir forma de pagamento');
-      }
+  const handleExcluir = (id) => {
+    setFormaToDelete(id);
+    setOpenDelete(true);
+  };
+
+  const confirmExcluir = async () => {
+    if (!formaToDelete) return;
+    try {
+      await api.delete(`/formas-pagamento/${formaToDelete}`);
+      fetchFormas();
+      window.dispatchEvent(new Event('formasUpdated'));
+    } catch (err) {
+      setError('Erro ao excluir forma de pagamento');
+    } finally {
+      setOpenDelete(false);
+      setFormaToDelete(null);
     }
+  };
+
+  const cancelExcluir = () => {
+    setOpenDelete(false);
+    setFormaToDelete(null);
   };
 
   if (loading) {
@@ -219,6 +236,16 @@ const FormasPagamento = () => {
             <Button type="submit" variant="contained">Salvar</Button>
           </DialogActions>
         </form>
+      </Dialog>
+      <Dialog open={openDelete} onClose={cancelExcluir}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja excluir esta forma de pagamento?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelExcluir}>Não</Button>
+          <Button onClick={confirmExcluir} variant="contained" color="error">Sim, Excluir</Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

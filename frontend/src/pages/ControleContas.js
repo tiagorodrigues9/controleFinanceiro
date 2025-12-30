@@ -32,6 +32,8 @@ const ControleContas = () => {
   const [formData, setFormData] = useState({ nome: '' });
   const [subgrupoData, setSubgrupoData] = useState({ nome: '' });
   const [error, setError] = useState('');
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     fetchGrupos();
@@ -90,15 +92,37 @@ const ControleContas = () => {
     }
   };
 
-  const handleDeleteGrupo = async (id) => {
-    if (window.confirm('Deseja realmente excluir este grupo?')) {
-      try {
-        await api.delete(`/grupos/${id}`);
-        fetchGrupos();
-      } catch (err) {
-        setError('Erro ao excluir grupo');
+  const handleDeleteGrupo = (id, nome) => {
+    setDeleteTarget({ type: 'grupo', id, nome });
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteSubgrupo = (grupoId, subId, nome) => {
+    setDeleteTarget({ type: 'subgrupo', grupoId, subId, nome });
+    setOpenDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === 'grupo') {
+        await api.delete(`/grupos/${deleteTarget.id}`);
+      } else if (deleteTarget.type === 'subgrupo') {
+        await api.delete(`/grupos/${deleteTarget.grupoId}/subgrupos/${deleteTarget.subId}`);
       }
+      fetchGrupos();
+      setOpenDeleteDialog(false);
+      setDeleteTarget(null);
+    } catch (err) {
+      setError('Erro ao excluir');
+      setOpenDeleteDialog(false);
+      setDeleteTarget(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setOpenDeleteDialog(false);
+    setDeleteTarget(null);
   };
 
   if (loading) {
@@ -139,7 +163,7 @@ const ControleContas = () => {
                 color="error"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDeleteGrupo(grupo._id);
+                  handleDeleteGrupo(grupo._id, grupo.nome);
                 }}
               >
                 <DeleteIcon />
@@ -149,7 +173,11 @@ const ControleContas = () => {
           <AccordionDetails>
             <List>
               {grupo.subgrupos.map((subgrupo, subIndex) => (
-                <ListItem key={subIndex}>
+                <ListItem key={subgrupo._id} secondaryAction={
+                  <IconButton edge="end" size="small" color="error" onClick={() => handleDeleteSubgrupo(grupo._id, subgrupo._id, subgrupo.nome)}>
+                    <DeleteIcon />
+                  </IconButton>
+                }>
                   <ListItemText primary={`${index + 1}.${subIndex + 1} - ${subgrupo.nome}`} />
                 </ListItem>
               ))}
@@ -187,6 +215,21 @@ const ControleContas = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Dialog de confirmação para exclusão de grupo/subgrupo */}
+      <Dialog open={openDeleteDialog} onClose={cancelDelete}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {deleteTarget?.type === 'grupo' && `Tem certeza que deseja excluir o grupo "${deleteTarget.nome}"?`}
+            {deleteTarget?.type === 'subgrupo' && `Tem certeza que deseja excluir o subgrupo "${deleteTarget.nome}"?`}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Não</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error">Sim, Excluir</Button>
+        </DialogActions>
       </Dialog>
 
       <Dialog

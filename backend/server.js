@@ -1,8 +1,12 @@
+require('express-async-errors');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+const logger = require('./utils/logger');
+const errorHandler = require('./middleware/errorHandler');
+const { keepAlive } = require('./utils/keepAlive');
 
 const app = express();
 
@@ -48,12 +52,12 @@ const mongoDb = process.env.MONGO_DB || 'controle-financeiro';
 const mongoHost = process.env.MONGO_HOST || '';
 
 // Debug - mostra as variáveis lidas (sem mostrar senha completa)
-console.log('\n=== Configuração MongoDB ===');
-console.log('MONGO_USER:', mongoUser || '(não configurado)');
-console.log('MONGO_PASS:', mongoPass ? '***configurado***' : '(não configurado)');
-console.log('MONGO_DB:', mongoDb);
-console.log('MONGO_HOST:', mongoHost || '(não configurado)');
-console.log('============================\n');
+logger.info('\n=== Configuração MongoDB ===');
+logger.info('MONGO_USER: %s', mongoUser || '(não configurado)');
+logger.info('MONGO_PASS: %s', mongoPass ? '***configurado***' : '(não configurado)');
+logger.info('MONGO_DB: %s', mongoDb);
+logger.info('MONGO_HOST: %s', mongoHost || '(não configurado)');
+logger.info('============================\n');
 
 // Constrói a URI do MongoDB
 let mongoUri;
@@ -79,11 +83,12 @@ console.log('URI do MongoDB:', mongoUri.replace(/:[^:@]+@/, ':****@')); // Escon
 console.log('');
 
 mongoose.connect(mongoUri)
-.then(() => console.log('MongoDB conectado'))
-.catch(err => console.error('Erro ao conectar MongoDB:', err));
+.then(() => logger.info('MongoDB conectado'))
+.catch(err => logger.error('Erro ao conectar MongoDB:', err));
 
 const PORT = process.env.PORT || 5000;
+app.use(errorHandler);
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  logger.info(`Servidor rodando na porta ${PORT}`);
 });
 

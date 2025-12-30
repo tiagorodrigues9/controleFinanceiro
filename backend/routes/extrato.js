@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
 
     let extratos = await Extrato.find(query)
       .populate('contaBancaria')
-      .populate('referencia.id')
+      .populate({ path: 'referencia.id', model: 'Gasto' })
       .sort({ data: -1 });
 
     // Se filtro por tipo de despesa, filtrar gastos
@@ -48,8 +48,8 @@ router.get('/', async (req, res) => {
     let totalSaldo = 0;
     if (contaBancaria) {
       const saldoAgg = await Extrato.aggregate([
-        { $match: { contaBancaria: mongoose.Types.ObjectId(contaBancaria), usuario: req.user._id, estornado: false } },
-        { $group: { _id: null, total: { $sum: { $cond: { if: { $eq: ['$tipo', 'Entrada'] }, then: '$valor', else: { $multiply: ['$valor', -1] } } } } } }
+        { $match: { contaBancaria: new mongoose.Types.ObjectId(contaBancaria), usuario: req.user._id, estornado: false } },
+        { $group: { _id: null, total: { $sum: { $cond: { if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, then: '$valor', else: { $multiply: ['$valor', -1] } } } } } }
       ]);
       totalSaldo = saldoAgg[0]?.total || 0;
     }
@@ -79,14 +79,15 @@ router.post('/', [
 
     const { contaBancaria, tipo, valor, data, motivo } = req.body;
 
-    // Verificar se conta bancária pertence ao usuário
+    // Verificar se conta bancária pertence ao usuário e está ativa
     const conta = await ContaBancaria.findOne({
       _id: contaBancaria,
-      usuario: req.user._id
+      usuario: req.user._id,
+      ativo: { $ne: false }
     });
 
     if (!conta) {
-      return res.status(404).json({ message: 'Conta bancária não encontrada' });
+      return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
     }
 
     const extrato = await Extrato.create({
@@ -124,6 +125,10 @@ router.post('/saldo-inicial', [
     }
 
     const { contaBancaria, valor, data } = req.body;
+
+    // Verificar se conta bancária existe e está ativa
+    const conta = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: { $ne: false } });
+    if (!conta) return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
 
     // Verificar se já existe saldo inicial
     const saldoInicialExistente = await Extrato.findOne({

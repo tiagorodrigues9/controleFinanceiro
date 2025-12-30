@@ -39,7 +39,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { text: 'Home', icon: <HomeIcon />, path: '/' },
+  { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
   { text: 'Perfil', icon: <AccountCircleIcon />, path: '/perfil' },
   { text: 'Contas a Pagar', icon: <ReceiptIcon />, path: '/contas-pagar' },
   { text: 'Fornecedores', icon: <BusinessIcon />, path: '/fornecedores' },
@@ -48,7 +48,6 @@ const menuItems: MenuItem[] = [
   { text: 'Contas Bancárias', icon: <AccountBalanceWalletIcon />, path: '/contas-bancarias' },
   { text: 'Formas de Pagamento', icon: <PaymentIcon />, path: '/formas-pagamento' },
   { text: 'Extrato', icon: <CategoryIcon />, path: '/extrato' },
-  { text: 'Dashboard', icon: <AssessmentIcon />, path: '/dashboard' },
 ];
 
 interface MainLayoutProps {
@@ -104,6 +103,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <ListItemText primary="Sair" />
           </ListItemButton>
         </ListItem>
+        <Box sx={{ m: 2 }}>
+          <Typography variant="caption" color="text.secondary">
+            Desenvolvido por Tiago Rodrigues
+          </Typography>
+        </Box>
       </List>
     </Box>
   );

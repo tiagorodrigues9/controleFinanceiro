@@ -30,7 +30,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
-import CancelIcon from '@mui/icons-material/Cancel';
+import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -40,8 +41,18 @@ const ContasPagar = () => {
   const [contas, setContas] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
+  const [formasPagamento, setFormasPagamento] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const today = new Date();
+  const [mes, setMes] = useState(today.getMonth() + 1);
+  const [ano, setAno] = useState(today.getFullYear());
+  const [filtros, setFiltros] = useState({
+    ativo: 'todas', // 'todas' | 'ativas' | 'inativas'
+    status: 'todos', // 'todos' | 'pendentes' | 'pagas'
+    dataInicio: '',
+    dataFim: ''
+  });
   const [openCadastro, setOpenCadastro] = useState(false);
   const [openPagamento, setOpenPagamento] = useState(false);
   const [openFornecedor, setOpenFornecedor] = useState(false);
@@ -64,24 +75,64 @@ const ContasPagar = () => {
   });
   const [openConfirmCancel, setOpenConfirmCancel] = useState(false);
   const [contaToCancel, setContaToCancel] = useState(null);
+  const [openConfirmHardDelete, setOpenConfirmHardDelete] = useState(false);
+  const [contaToHardDelete, setContaToHardDelete] = useState(null);
   const [error, setError] = useState('');
   const [parcelasList, setParcelasList] = useState([]);
   const [parcelaData, setParcelaData] = useState({ valor: '', data: '' });
+
+  // Normaliza o campo `ativo` que pode vir como boolean, string, number ou undefined
+  const isActive = (conta) => {
+    const v = conta?.ativo;
+    if (v === undefined || v === null) return true;
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') {
+      const s = v.toLowerCase().trim();
+      if (s === 'false' || s === '0' || s === 'no' || s === 'n') return false;
+      return true;
+    }
+    if (typeof v === 'number') return v !== 0;
+    return Boolean(v);
+  };
 
   useEffect(() => {
     fetchContas();
     fetchFornecedores();
     fetchContasBancarias();
     fetchGrupos();
+    fetchFormasPagamento();
   }, []);
+
+  useEffect(() => {
+    const handler = () => fetchFormasPagamento();
+    window.addEventListener('formasUpdated', handler);
+    return () => window.removeEventListener('formasUpdated', handler);
+  }, []);
+
+  // Recarrega automaticamente quando filtros, mês ou ano mudarem
+  useEffect(() => {
+    fetchContas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mes, ano, filtros]);
 
   const fetchContas = async () => {
     try {
       setLoading(true);
-      // Busca todas as contas sem filtro de mês/ano
-      const response = await api.get('/contas');
+      // Busca contas do mês/ano selecionado por padrão
+      const params = { mes, ano };
+      // ativo filter
+      if (filtros.ativo && filtros.ativo !== 'todas') params.ativo = filtros.ativo;
+      // status filter
+      if (filtros.status && filtros.status !== 'todos') params.status = filtros.status;
+      // date range
+      if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
+      if (filtros.dataFim) params.dataFim = filtros.dataFim;
+
+      console.log('Buscando contas com params:', params);
+      const response = await api.get('/contas', { params });
       console.log('Contas recebidas:', response.data);
-      setContas(response.data.filter(conta => conta && conta.valor != null) || []);
+      const listas = (response.data || []).filter(conta => conta && conta.valor != null);
+      setContas(listas);
     } catch (err) {
       setError('Erro ao carregar contas');
       console.error('Erro ao buscar contas:', err);
@@ -106,6 +157,15 @@ const ContasPagar = () => {
       setContasBancarias(response.data);
     } catch (err) {
       console.error('Erro ao carregar contas bancárias:', err);
+    }
+  };
+
+  const fetchFormasPagamento = async () => {
+    try {
+      const response = await api.get('/formas-pagamento');
+      setFormasPagamento(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar formas de pagamento:', err);
     }
   };
 
@@ -197,6 +257,8 @@ const ContasPagar = () => {
         formDataToSend.append('observacao', formData.observacao);
         formDataToSend.append('tipoControle', formData.tipoControle);
       } else {
+        // garantir que o nome seja sempre enviado (validação no backend exige)
+        formDataToSend.append('nome', formData.nome);
         formDataToSend.append('valor', formData.valor);
         formDataToSend.append('dataVencimento', formData.dataVencimento);
         formDataToSend.append('fornecedor', formData.fornecedor);
@@ -265,6 +327,23 @@ const ContasPagar = () => {
     }
   };
 
+  const handleHardDelete = (id) => {
+    setContaToHardDelete(id);
+    setOpenConfirmHardDelete(true);
+  };
+
+  const confirmHardDelete = async () => {
+    if (!contaToHardDelete) return;
+    try {
+      await api.delete(`/contas/${contaToHardDelete}/hard`);
+      fetchContas();
+      setOpenConfirmHardDelete(false);
+      setContaToHardDelete(null);
+    } catch (err) {
+      setError('Erro ao excluir conta');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pago':
@@ -272,6 +351,8 @@ const ContasPagar = () => {
       case 'Vencida':
         return 'error';
       case 'Cancelada':
+        return 'default';
+      case 'Inativo':
         return 'default';
       default:
         return 'warning';
@@ -305,6 +386,89 @@ const ContasPagar = () => {
         </Alert>
       )}
 
+      {/* Filtros */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Mês</InputLabel>
+              <Select value={mes} label="Mês" size="small" onChange={(e) => { setMes(parseInt(e.target.value)); }}>
+                {[...Array(12)].map((_, i) => (
+                  <MenuItem key={i+1} value={i+1}>{i+1}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Ano</InputLabel>
+              <Select value={ano} label="Ano" size="small" onChange={(e) => { setAno(parseInt(e.target.value)); }}>
+                {Array.from({length:6}).map((_, idx) => {
+                  const y = today.getFullYear() - 2 + idx;
+                  return <MenuItem key={y} value={y}>{y}</MenuItem>;
+                })}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Ativo</InputLabel>
+              <Select
+                value={filtros.ativo}
+                label="Ativo"
+                size="small"
+                onChange={(e) => setFiltros({ ...filtros, ativo: e.target.value })}
+              >
+                <MenuItem value="todas">Todas</MenuItem>
+                <MenuItem value="ativas">Ativas</MenuItem>
+                <MenuItem value="inativas">Inativas</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={filtros.status}
+                label="Status"
+                size="small"
+                onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
+              >
+                <MenuItem value="todos">Todos</MenuItem>
+                <MenuItem value="pendentes">Pendentes</MenuItem>
+                <MenuItem value="pagas">Pagas</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Início"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={filtros.dataInicio}
+              onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Fim"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={filtros.dataFim}
+              onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button variant="contained" color="primary" size="small" onClick={fetchContas}>Aplicar</Button>
+            <Button variant="contained" color="primary" size="small" sx={{ ml: 1 }} onClick={() => { setFiltros({ ativo: 'todas', status: 'todos', dataInicio: '', dataFim: '' }); }}>Limpar</Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {contas.length === 0 && !loading && (
         <Alert severity="info" sx={{ mb: 2 }}>
           Nenhuma conta cadastrada. Clique em "Cadastrar Conta" para adicionar uma nova conta.
@@ -324,7 +488,7 @@ const ContasPagar = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {contas.filter(conta => conta && conta.valor != null).map((conta) => (
+              {contas.filter(conta => conta && conta.valor != null).map((conta) => (
               <TableRow key={conta._id}>
                 <TableCell>
                   {conta.nome}
@@ -343,36 +507,75 @@ const ContasPagar = () => {
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={conta.status}
-                    color={getStatusColor(conta.status)}
+                    label={!isActive(conta) ? 'Inativo' : conta.status}
+                    color={getStatusColor(!isActive(conta) ? 'Inativo' : conta.status)}
                     size="small"
                   />
                 </TableCell>
                 <TableCell>
-                  {(conta.status === 'Pendente' || conta.status === 'Vencida') && (
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => handleOpenPagamento(conta)}
-                    >
-                      <PaymentIcon />
-                    </IconButton>
-                  )}
-                  {conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleCancelar(conta._id)}
-                    >
-                      <CancelIcon />
-                    </IconButton>
-                  )}
+                    {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleOpenPagamento(conta)}
+                        title="Pagar"
+                      >
+                        <PaymentIcon />
+                      </IconButton>
+                    )}
+                    {isActive(conta) && conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => handleCancelar(conta._id)}
+                          title="Inativar (Cancelar)"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleHardDelete(conta._id)}
+                          title="Excluir permanentemente"
+                        >
+                          <DeleteForeverIcon />
+                        </IconButton>
+                      </>
+                    )}
+                    {!isActive(conta) && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleHardDelete(conta._id)}
+                        title="Excluir permanentemente"
+                      >
+                        <DeleteForeverIcon />
+                      </IconButton>
+                    )}
                 </TableCell>
               </TableRow>
             ))}
+            {/* Totais removidos do rodapé da tabela (mostrados acima) */}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Resumo de totais */}
+      <Box mt={2} display="flex" gap={2}>
+        <Paper sx={{ p: 2, minWidth: 200 }}>
+          <Typography variant="subtitle2">Total Pendentes</Typography>
+          <Typography variant="h6" color="error">
+            R$ {(contas.reduce((acc, c) => { if (c.status === 'Pendente' || c.status === 'Vencida') return acc + (c.valor || 0); return acc; }, 0)).toFixed(2).replace('.', ',')}
+          </Typography>
+        </Paper>
+        <Paper sx={{ p: 2, minWidth: 200 }}>
+          <Typography variant="subtitle2">Total Pagas</Typography>
+          <Typography variant="h6" color="success.main">
+            R$ {(contas.reduce((acc, c) => { if (c.status === 'Pago') return acc + (c.valor || 0); return acc; }, 0)).toFixed(2).replace('.', ',')}
+          </Typography>
+        </Paper>
+      </Box>
 
       {/* Dialog Cadastro */}
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
@@ -516,7 +719,7 @@ const ContasPagar = () => {
                       {parcelasList.map((parcela, index) => (
                         <ListItem key={index} secondaryAction={
                           <IconButton edge="end" onClick={() => handleRemoveParcela(index)}>
-                            <CancelIcon />
+                            <DeleteIcon />
                           </IconButton>
                         }>
                           <ListItemText
@@ -573,12 +776,9 @@ const ContasPagar = () => {
                     }
                     label="Forma de Pagamento"
                   >
-                    <MenuItem value="Pix">Pix</MenuItem>
-                    <MenuItem value="Cartão de Crédito">Cartão de Crédito</MenuItem>
-                    <MenuItem value="Cartão de Débito">Cartão de Débito</MenuItem>
-                    <MenuItem value="Dinheiro">Dinheiro</MenuItem>
-                    <MenuItem value="Transferência">Transferência</MenuItem>
-                    <MenuItem value="Boleto">Boleto</MenuItem>
+                    {formasPagamento.map((f) => (
+                      <MenuItem key={f._id} value={f.nome}>{f.nome}</MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </Grid>
@@ -673,6 +873,20 @@ const ContasPagar = () => {
           <Button onClick={() => setOpenConfirmCancel(false)}>Não</Button>
           <Button onClick={confirmCancel} variant="contained" color="error">
             Sim, Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Confirmar Exclusão Permanente */}
+      <Dialog open={openConfirmHardDelete} onClose={() => setOpenConfirmHardDelete(false)}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>Esta ação removerá a conta permanentemente. Deseja continuar?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenConfirmHardDelete(false)}>Não</Button>
+          <Button onClick={confirmHardDelete} variant="contained" color="error">
+            Sim, Excluir
           </Button>
         </DialogActions>
       </Dialog>

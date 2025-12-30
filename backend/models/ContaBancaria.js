@@ -24,6 +24,11 @@ const contaBancariaSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   }
+ ,
+  ativo: {
+    type: Boolean,
+    default: true
+  }
 }, {
   timestamps: true
 });

@@ -1,53 +1,99 @@
-# Sistema de Controle de Contas a Pagar
+# Controle Financeiro
 
-Sistema completo de controle financeiro desenvolvido com React e Node.js, utilizando MongoDB como banco de dados e configurado como PWA (Progressive Web App).
+Sistema completo de controle financeiro (contas a pagar, gastos, extrato bancário) com autenticação JWT, desenvolvido com React e Node.js.
 
-## Tecnologias
+## 🚀 Deploy no Render
+
+### Pré-requisitos
+- Conta no [Render.com](https://render.com)
+- MongoDB Atlas (free tier)
+- Git e repositório no GitHub
+
+### Variáveis de ambiente no Render
+
+No dashboard do Render, adicione as seguintes variáveis de ambiente:
+
+```
+NODE_ENV=production
+PORT=5000
+MONGO_USER=<seu_usuario_mongo>
+MONGO_PASS=<sua_senha_mongo>
+MONGO_HOST=<seu_cluster_mongo_atlas>.mongodb.net
+MONGO_DB=controle-financeiro
+JWT_SECRET=<gere-uma-chave-segura-aqui>
+REACT_APP_API_URL=https://seu-app.onrender.com/api
+RENDER=true
+```
+
+### Deploy automático
+1. Conecte seu repositório GitHub no Render
+2. Selecione "Docker" como runtime
+3. Configure as variáveis de ambiente acima
+4. Deploy automático será acionado a cada push em `main`
+
+### Keep-Alive (evita sleep)
+O sistema inclui um keep-alive que faz requisições automáticas a cada 12 minutos para manter a app acordada.
+
+## 📦 Desenvolvimento Local
+
+### Com Docker Compose
+```bash
+docker-compose up -d
+```
+
+### Sem Docker
+```bash
+# Terminal 1 - Backend
+cd backend
+npm install
+npm run dev
+
+# Terminal 2 - Frontend
+cd frontend
+npm install
+npm start
+```
+
+## 🎯 Funcionalidades
+
+- ✅ Autenticação JWT
+- ✅ Contas a Pagar (filtros, parcelamento, formas de pagamento)
+- ✅ Gastos Diários (grupos/subgrupos)
+- ✅ Extrato Bancário (com estorno)
+- ✅ Formas de Pagamento (dinâmicas, padrão)
+- ✅ Fornecedores (inativação)
+- ✅ Contas Bancárias (inativação, saldo)
+- ✅ Dashboard (métricas)
+- ✅ Controle de Grupos/Subgrupos
+
+## 🔒 Segurança
+
+- JWT com expiração
+- Validação de inputs
+- Autenticação em rotas protegidas
+- Transações Mongoose para operações críticas
+- Logging estruturado
+
+## 📊 Tecnologias
 
 ### Backend
-- Node.js
-- Express
-- MongoDB (Mongoose)
-- JWT para autenticação
-- Nodemailer para recuperação de senha
-- Multer para upload de arquivos
+- Node.js + Express
+- MongoDB + Mongoose
+- JWT (jsonwebtoken)
+- Multer (upload)
+- Winston (logging)
+- Express-async-errors
 
 ### Frontend
-- React
+- React + TypeScript
 - Material-UI (MUI)
 - React Router
 - Axios
-- Recharts para gráficos
-- PWA configurado
+- Date-fns
 
-## Funcionalidades
+## 📝 License
 
-### Autenticação
-- Login
-- Cadastro de usuário com validação de senha forte
-- Recuperação de senha por email
-- Redefinição de senha
-
-### Contas a Pagar
-- Cadastro de contas com anexo
-- Parcelamento de contas
-- Status automático (Pendente, Pago, Vencida, Cancelada)
-- Pagamento de contas com registro no extrato
-- Visualização de contas do mês
-
-### Fornecedores
-- Cadastro de fornecedores
-- Inativação (não exclusão) de fornecedores vinculados a contas
-
-### Controle de Contas
-- Cadastro de grupos de despesas
-- Cadastro de subgrupos dentro dos grupos
-
-### Gastos Diários
-- Cadastro de gastos diários
-- Filtros por tipo de despesa e data
-- Duplicação de gastos
-- Vinculação com grupos/subgrupos
+MIT
 
 ### Contas Bancárias
 - Cadastro de contas bancárias

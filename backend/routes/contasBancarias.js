@@ -14,9 +14,13 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const contasBancarias = await ContaBancaria.find({
-      usuario: req.user._id
-    }).sort({ nome: 1 });
+    // por padrão retorna apenas contas ativas; para listar todas use ?all=true
+    const filter = { usuario: req.user._id };
+    if (req.query.all !== 'true') {
+      filter.ativo = { $ne: false };
+    }
+
+    const contasBancarias = await ContaBancaria.find(filter).sort({ nome: 1 });
 
     // Calcular saldo para cada conta
     const contasComSaldo = await Promise.all(
@@ -169,9 +173,11 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Conta bancária não encontrada' });
     }
 
-    await contaBancaria.deleteOne();
+    // marcar como inativa em vez de excluir fisicamente
+    contaBancaria.ativo = false;
+    await contaBancaria.save();
 
-    res.json({ message: 'Conta bancária excluída com sucesso' });
+    res.json({ message: 'Conta bancária inativada com sucesso' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao excluir conta bancária' });

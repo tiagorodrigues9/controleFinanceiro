@@ -43,6 +43,12 @@ const DashboardCompleto = () => {
     fetchDashboardData();
   }, [mes, ano]);
 
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'Controle Financeiro';
+    return () => { document.title = prev; };
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       const response = await api.get('/dashboard', {
@@ -56,6 +62,8 @@ const DashboardCompleto = () => {
     }
   };
 
+  const safeNum = (v) => (typeof v === 'number' ? v : Number(v) || 0);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -68,10 +76,26 @@ const DashboardCompleto = () => {
     return <Alert severity="error">{error}</Alert>;
   }
 
+  // Build shared chart data for evolucaoSaldo: unify months and balances per account
+  const buildChartData = (evolucao) => {
+    if (!evolucao || evolucao.length === 0) return [];
+    // assume each conta.saldos is same length and aligned by month (backend guarantees monthly endpoints)
+    const months = evolucao[0].saldos.map((s) => s.data);
+    return months.map((m, i) => {
+      const entry = { month: m };
+      evolucao.forEach((conta) => {
+        entry[conta.conta] = conta.saldos[i]?.saldo ?? 0;
+      });
+      return entry;
+    });
+  };
+
+  const chartData = buildChartData(data?.evolucaoSaldo);
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Dashboard Completo</Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4">Dashboard</Typography>
         <Box display="flex" gap={2}>
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Mês</InputLabel>
@@ -99,35 +123,69 @@ const DashboardCompleto = () => {
       <Grid container spacing={3} mb={3}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Total de Contas a Pagar
               </Typography>
-              <Typography variant="h4">{data?.totalContasPagar || 0}</Typography>
+              <Typography variant="h4">{safeNum(data?.totalContasPagar)}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Valor Contas a Pagar
+              </Typography>
+              <Typography variant="h4" color="warning.main">
+                R$ {safeNum(data?.totalValorContasPendentes).toFixed(2).replace('.', ',')}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pagas
               </Typography>
               <Typography variant="h4" color="success.main">
-                {data?.totalContasPagas || 0}
+                {safeNum(data?.totalContasPagas)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Valor Contas Pagas (Mês)
+              </Typography>
+              <Typography variant="h4" color="success.main">
+                R$ {safeNum(data?.totalValorContasPagas).toFixed(2).replace('.', ',')}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pendentes
               </Typography>
               <Typography variant="h4" color="warning.main">
-                {data?.totalContasPagar - (data?.totalContasPagas || 0) || 0}
+                {Math.max(0, safeNum(data?.totalContasPagar) - safeNum(data?.totalContasPagas))}
               </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Total de Contas (Mês)
+              </Typography>
+              <Typography variant="h4">{safeNum(data?.totalContasMes)}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -135,9 +193,26 @@ const DashboardCompleto = () => {
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
-                Total de Contas (Mês)
+                Valor Contas Vencidas
               </Typography>
-              <Typography variant="h4">{data?.totalContasMes || 0}</Typography>
+              <Typography variant="h4" color="error.main">
+                R$ {(data?.totalValorContasVencidas || 0).toFixed(2).replace('.', ',')}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <Typography color="textSecondary" gutterBottom>
+                Próximo Mês — Contas
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                <Typography variant="h4">{data?.totalContasNextMonth || 0}</Typography>
+                <Typography color="textSecondary" variant="subtitle2" sx={{ whiteSpace: 'nowrap' }}>
+                  R$ {(data?.totalValorContasNextMonth || 0).toFixed(2).replace('.', ',')}
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -185,29 +260,28 @@ const DashboardCompleto = () => {
               Evolução do Saldo por Conta Bancária
             </Typography>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="data"
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('pt-BR')}
-                />
-                <YAxis tickFormatter={(value) => `R$ ${value.toFixed(2).replace('.', ',')}`} />
-                <Tooltip
-                  labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR')}
-                  formatter={(value) => [`R$ ${value.toFixed(2).replace('.', ',')}`, 'Saldo']}
-                />
-                <Legend />
-                {data?.evolucaoSaldo?.map((conta, index) => (
-                  <Line
-                    key={index}
-                    type="monotone"
-                    dataKey="saldo"
-                    data={conta.saldos}
-                    name={conta.conta}
-                    stroke={COLORS[index % COLORS.length]}
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
                   />
-                ))}
-              </LineChart>
+                  <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(2).replace('.', ',')}`} />
+                  <Tooltip
+                    labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                    formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Saldo']}
+                  />
+                  <Legend />
+                  {data?.evolucaoSaldo?.map((conta, index) => (
+                    <Line
+                      key={index}
+                      type="monotone"
+                      dataKey={conta.conta}
+                      name={conta.conta}
+                      stroke={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </LineChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>

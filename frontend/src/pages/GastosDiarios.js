@@ -25,6 +25,7 @@ import {
   Grid,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,6 +34,7 @@ const GastosDiarios = () => {
   const [gastos, setGastos] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
+  const [formasPagamento, setFormasPagamento] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -50,11 +52,20 @@ const GastosDiarios = () => {
     contaBancaria: '',
   });
   const [error, setError] = useState('');
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [gastoToDelete, setGastoToDelete] = useState(null);
 
   useEffect(() => {
     fetchGastos();
     fetchGrupos();
     fetchContasBancarias();
+    fetchFormasPagamento();
+  }, []);
+
+  useEffect(() => {
+    const handler = () => fetchFormasPagamento();
+    window.addEventListener('formasUpdated', handler);
+    return () => window.removeEventListener('formasUpdated', handler);
   }, []);
 
   const fetchGastos = async () => {
@@ -91,6 +102,15 @@ const GastosDiarios = () => {
     }
   };
 
+  const fetchFormasPagamento = async () => {
+    try {
+      const response = await api.get('/formas-pagamento');
+      setFormasPagamento(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar formas de pagamento:', err);
+    }
+  };
+
   useEffect(() => {
     fetchGastos();
   }, [filtros]);
@@ -122,6 +142,25 @@ const GastosDiarios = () => {
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao cadastrar gasto');
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!gastoToDelete) return;
+    try {
+      await api.delete(`/gastos/${gastoToDelete}`);
+      setOpenDeleteConfirm(false);
+      setGastoToDelete(null);
+      fetchGastos();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao excluir gasto');
+      setOpenDeleteConfirm(false);
+      setGastoToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setOpenDeleteConfirm(false);
+    setGastoToDelete(null);
   };
 
   const grupoSelecionado = grupos.find((g) => g._id === formData.tipoDespesa.grupo);
@@ -156,11 +195,13 @@ const GastosDiarios = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
+            <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Tipo de Despesa</InputLabel>
               <Select
                 value={filtros.tipoDespesa}
                 onChange={(e) => setFiltros({ ...filtros, tipoDespesa: e.target.value })}
+                label="Tipo de Despesa"
+                size="small"
               >
                 <MenuItem value="">Todos</MenuItem>
                 {grupos.map((grupo) => (
@@ -174,6 +215,8 @@ const GastosDiarios = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
+              size="small"
+              variant="outlined"
               label="Data Início"
               type="date"
               InputLabelProps={{ shrink: true }}
@@ -184,6 +227,8 @@ const GastosDiarios = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
+              size="small"
+              variant="outlined"
               label="Data Fim"
               type="date"
               InputLabelProps={{ shrink: true }}
@@ -219,13 +264,26 @@ const GastosDiarios = () => {
                 <TableCell>R$ {gasto.valor.toFixed(2).replace('.', ',')}</TableCell>
                 <TableCell>{gasto.formaPagamento}</TableCell>
                 <TableCell>
-                  {/* Botão duplicar removido */}
+                  <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto._id); setOpenDeleteConfirm(true); }}>
+                    <DeleteIcon />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Dialog open={openDeleteConfirm} onClose={cancelDelete}>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja excluir este gasto?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Não</Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error">Sim, Excluir</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
@@ -328,12 +386,9 @@ const GastosDiarios = () => {
                       onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value })}
                       label="Forma de Pagamento"
                     >
-                      <MenuItem value="Pix">Pix</MenuItem>
-                      <MenuItem value="Cartão de Crédito">Cartão de Crédito</MenuItem>
-                      <MenuItem value="Cartão de Débito">Cartão de Débito</MenuItem>
-                      <MenuItem value="Dinheiro">Dinheiro</MenuItem>
-                      <MenuItem value="Transferência">Transferência</MenuItem>
-                      <MenuItem value="Boleto">Boleto</MenuItem>
+                      {formasPagamento.map((f) => (
+                        <MenuItem key={f._id} value={f.nome}>{f.nome}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Grid>

@@ -21,7 +21,7 @@ import {
   Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import BlockIcon from '@mui/icons-material/Block';
+import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
 const Fornecedores = () => {
@@ -30,6 +30,21 @@ const Fornecedores = () => {
   const [openCadastro, setOpenCadastro] = useState(false);
   const [formData, setFormData] = useState({ nome: '', tipo: '' });
   const [error, setError] = useState('');
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [selectedFornecedor, setSelectedFornecedor] = useState(null);
+
+  const isActive = (item) => {
+    const v = item?.ativo;
+    if (v === undefined || v === null) return true;
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'string') {
+      const s = v.toLowerCase().trim();
+      if (s === 'false' || s === '0' || s === 'no' || s === 'n') return false;
+      return true;
+    }
+    if (typeof v === 'number') return v !== 0;
+    return Boolean(v);
+  };
 
   useEffect(() => {
     fetchFornecedores();
@@ -67,15 +82,28 @@ const Fornecedores = () => {
     }
   };
 
-  const handleInativar = async (id) => {
-    if (window.confirm('Deseja realmente inativar este fornecedor?')) {
-      try {
-        await api.put(`/fornecedores/${id}/inativar`);
-        fetchFornecedores();
-      } catch (err) {
-        setError(err.response?.data?.message || 'Erro ao inativar fornecedor');
-      }
+  const handleInativar = (id) => {
+    setSelectedFornecedor(id);
+    setOpenConfirm(true);
+  };
+
+  const confirmInativar = async () => {
+    if (!selectedFornecedor) return;
+    try {
+      await api.put(`/fornecedores/${selectedFornecedor}/inativar`);
+      fetchFornecedores();
+      setOpenConfirm(false);
+      setSelectedFornecedor(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erro ao inativar fornecedor');
+      setOpenConfirm(false);
+      setSelectedFornecedor(null);
     }
+  };
+
+  const cancelInativar = () => {
+    setOpenConfirm(false);
+    setSelectedFornecedor(null);
   };
 
   if (loading) {
@@ -122,19 +150,19 @@ const Fornecedores = () => {
                 <TableCell>{fornecedor.tipo}</TableCell>
                 <TableCell>
                   <Chip
-                    label={fornecedor.ativo ? 'Ativo' : 'Inativo'}
-                    color={fornecedor.ativo ? 'success' : 'default'}
+                    label={isActive(fornecedor) ? 'Ativo' : 'Inativo'}
+                    color={isActive(fornecedor) ? 'success' : 'default'}
                     size="small"
                   />
                 </TableCell>
                 <TableCell>
-                  {fornecedor.ativo && (
+                  {isActive(fornecedor) && (
                     <IconButton
                       size="small"
                       color="error"
                       onClick={() => handleInativar(fornecedor._id)}
                     >
-                      <BlockIcon />
+                      <DeleteIcon />
                     </IconButton>
                   )}
                 </TableCell>
@@ -143,6 +171,18 @@ const Fornecedores = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Dialog de confirmação para inativar fornecedor */}
+      <Dialog open={openConfirm} onClose={cancelInativar}>
+        <DialogTitle>Confirmar Inativação</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja inativar este fornecedor?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelInativar}>Não</Button>
+          <Button onClick={confirmInativar} variant="contained" color="error">Sim, Inativar</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>

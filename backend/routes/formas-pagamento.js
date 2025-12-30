@@ -13,10 +13,24 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const formas = await FormaPagamento.find({
-      usuario: req.user._id,
-      ativo: true
-    }).sort({ nome: 1 });
+    // garante formas-padrão para o usuário se estiverem ausentes
+    const defaultNames = ['Dinheiro', 'Boleto', 'Cartão de Crédito', 'Cartão de Débito'];
+
+    // busca todas (ativas ou não) para checar o que já existe
+    let existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+
+    // normaliza nomes para comparação sem case
+    const existingNames = new Set(existing.map(f => (f.nome || '').toLowerCase().trim()));
+    const missing = defaultNames.filter(n => !existingNames.has(n.toLowerCase().trim()));
+
+    if (missing.length > 0) {
+      const toCreate = missing.map(n => ({ nome: n, usuario: req.user._id }));
+      await FormaPagamento.insertMany(toCreate);
+      existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+    }
+
+    // retorna apenas as formas ativas
+    const formas = existing.filter(f => f.ativo !== false);
     res.json(formas);
   } catch (error) {
     console.error(error);
