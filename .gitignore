@@ -39,3 +39,7 @@ backend/.env
 frontend/.env
 frontend/build
 
+# Docker
+Dockerfile
+docker-compose.yml
+
