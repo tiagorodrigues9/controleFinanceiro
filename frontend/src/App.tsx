@@ -18,6 +18,8 @@ import Extrato from './pages/Extrato';
 import DashboardCompleto from './pages/DashboardCompleto';
 import Perfil from './pages/Perfil';
 import FormasPagamento from './pages/FormasPagamento';
+import Cartoes from './pages/Cartoes';
+import Notificacoes from './pages/Notificacoes';
 
 const theme = createTheme({
   palette: {
@@ -57,6 +59,8 @@ const App: React.FC = () => {
                       <Route path="/extrato" element={<Extrato />} />
                       <Route path="/perfil" element={<Perfil />} />
                       <Route path="/formas-pagamento" element={<FormasPagamento />} />
+                      <Route path="/cartoes" element={<Cartoes />} />
+                      <Route path="/notificacoes" element={<Notificacoes />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </MainLayout>

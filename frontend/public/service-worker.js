@@ -62,3 +62,88 @@ self.addEventListener('activate', event => {
     })
   );
 });
+
+// Push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) {
+    return;
+  }
+
+  const data = event.data.json();
+  const options = {
+    body: data.mensagem,
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || '/notificacoes',
+      timestamp: data.timestamp
+    },
+    actions: [
+      {
+        action: 'open',
+        title: 'Abrir App'
+      },
+      {
+        action: 'dismiss',
+        title: 'Fechar'
+      }
+    ],
+    requireInteraction: true,
+    silent: false
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.titulo, options)
+  );
+});
+
+// Clique na notificação
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  const urlToOpen = event.notification.data.url || '/notificacoes';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Se já tiver uma janela aberta, focar nela
+        for (const client of clientList) {
+          if (client.url.includes(urlToOpen)) {
+            return client.focus();
+          }
+        }
+        // Senão, abrir nova janela
+        return clients.openWindow(urlToOpen);
+      })
+  );
+});
+
+// Sincronização em background
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(doBackgroundSync());
+  }
+});
+
+async function doBackgroundSync() {
+  try {
+    // Sincronizar notificações pendentes
+    const response = await fetch('/api/notificacoes/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      console.log('Sincronização em background concluída');
+    }
+  } catch (error) {
+    console.error('Erro na sincronização em background:', error);
+  }
+}

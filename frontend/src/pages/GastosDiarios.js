@@ -43,6 +43,7 @@ const GastosDiarios = () => {
   const [grupos, setGrupos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
   const [formasPagamento, setFormasPagamento] = useState([]);
+  const [cartoes, setCartoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -58,6 +59,7 @@ const GastosDiarios = () => {
     observacao: '',
     formaPagamento: '',
     contaBancaria: '',
+    cartao: '',
   });
   const [error, setError] = useState('');
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
@@ -68,6 +70,7 @@ const GastosDiarios = () => {
     fetchGrupos();
     fetchContasBancarias();
     fetchFormasPagamento();
+    fetchCartoes();
   }, []);
 
   useEffect(() => {
@@ -119,6 +122,15 @@ const GastosDiarios = () => {
     }
   };
 
+  const fetchCartoes = async () => {
+    try {
+      const response = await api.get('/cartoes');
+      setCartoes(response.data.filter(cartao => cartao.ativo));
+    } catch (err) {
+      console.error('Erro ao carregar cartões:', err);
+    }
+  };
+
   useEffect(() => {
     fetchGastos();
   }, [filtros]);
@@ -132,6 +144,7 @@ const GastosDiarios = () => {
       observacao: '',
       formaPagamento: '',
       contaBancaria: '',
+      cartao: '',
     });
     setOpenCadastro(true);
   };
@@ -483,7 +496,7 @@ const GastosDiarios = () => {
                     <InputLabel>Forma de Pagamento</InputLabel>
                     <Select
                       value={formData.formaPagamento}
-                      onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value, cartao: '' })}
                       label="Forma de Pagamento"
                     >
                       {formasPagamento.map((f) => (
@@ -492,6 +505,33 @@ const GastosDiarios = () => {
                     </Select>
                   </FormControl>
                 </Grid>
+                
+                {/* Campo de Cartão - aparece apenas para formas de pagamento com cartão */}
+                {(formData.formaPagamento === 'Cartão de Crédito' || formData.formaPagamento === 'Cartão de Débito') && (
+                  <Grid item xs={12}>
+                    <FormControl fullWidth required variant="outlined">
+                      <InputLabel>Cartão</InputLabel>
+                      <Select
+                        value={formData.cartao}
+                        onChange={(e) => setFormData({ ...formData, cartao: e.target.value })}
+                        label="Cartão"
+                      >
+                        {cartoes
+                          .filter(cartao => 
+                            formData.formaPagamento === 'Cartão de Crédito' ? 
+                              cartao.tipo === 'Crédito' : 
+                              cartao.tipo === 'Débito'
+                          )
+                          .map((cartao) => (
+                            <MenuItem key={cartao._id} value={cartao._id}>
+                              {cartao.nome} - {cartao.banco} ({cartao.tipo})
+                            </MenuItem>
+                          ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                
                 <Grid item xs={12}>
                   <FormControl fullWidth required variant="outlined">
                     <InputLabel>Conta Bancária</InputLabel>

@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const Conta = require('../models/Conta');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
+const Cartao = require('../models/Cartao');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const logger = require('../utils/logger');
@@ -407,6 +408,13 @@ router.post('/:id/pagar', [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    const { formaPagamento, contaBancaria, cartao, juros } = req.body;
+    
+    // Validação customizada: cartão é obrigatório para pagamentos com cartão
+    if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
+      return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
+    }
+
     const conta = await Conta.findOne({
       _id: req.params.id,
       usuario: req.user._id,
@@ -425,11 +433,19 @@ router.post('/:id/pagar', [
       return res.status(400).json({ message: 'Conta cancelada não pode ser paga' });
     }
 
-    const { formaPagamento, contaBancaria, juros } = req.body;
     // Verificar se conta bancária informada existe e está ativa
     const contaBancariaObj = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: { $ne: false } });
     if (!contaBancariaObj) {
       return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
+    }
+
+    // Se for pagamento com cartão, verificar se o cartão existe
+    let cartaoObj = null;
+    if (cartao) {
+      cartaoObj = await Cartao.findOne({ _id: cartao, usuario: req.user._id, ativo: true });
+      if (!cartaoObj) {
+        return res.status(400).json({ message: 'Cartão inválido ou inativo' });
+      }
     }
 
     // Usar transação para garantir consistência (pagar conta + criar extrato atomicamente)
@@ -440,6 +456,7 @@ router.post('/:id/pagar', [
       conta.dataPagamento = new Date();
       conta.formaPagamento = formaPagamento;
       conta.contaBancaria = contaBancaria;
+      conta.cartao = cartaoObj ? cartaoObj._id : null;
       if (juros) {
         conta.jurosPago = parseFloat(juros);
       }
@@ -449,6 +466,7 @@ router.post('/:id/pagar', [
       const valorPago = conta.valor + (conta.jurosPago || 0);
       await Extrato.create([{
         contaBancaria,
+        cartao: cartaoObj ? cartaoObj._id : null,
         tipo: 'Saída',
         valor: valorPago,
         data: new Date(),

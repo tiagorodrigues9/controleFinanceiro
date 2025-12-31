@@ -7,6 +7,13 @@ import {
   Grid,
   Button,
   Alert,
+  FormControlLabel,
+  Switch,
+  Divider,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
 } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 import api from '../utils/api';
@@ -19,6 +26,15 @@ const Perfil = () => {
     endereco: '',
     bairro: '',
     cidade: '',
+    configuracoes: {
+      notificacoes: {
+        ativo: true,
+        contasVencidas: true,
+        contasProximas: true,
+        limiteCartao: true,
+        diasAntecedencia: 7
+      }
+    }
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,15 +47,40 @@ const Perfil = () => {
         endereco: user.endereco || '',
         bairro: user.bairro || '',
         cidade: user.cidade || '',
+        configuracoes: {
+          notificacoes: {
+            ativo: user.configuracoes?.notificacoes?.ativo ?? true,
+            contasVencidas: user.configuracoes?.notificacoes?.contasVencidas ?? true,
+            contasProximas: user.configuracoes?.notificacoes?.contasProximas ?? true,
+            limiteCartao: user.configuracoes?.notificacoes?.limiteCartao ?? true,
+            diasAntecedencia: user.configuracoes?.notificacoes?.diasAntecedencia ?? 7
+          }
+        }
       });
     }
   }, [user]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value, checked, type } = e.target;
+    
+    if (name.startsWith('configuracoes.notificacoes.')) {
+      const configField = name.replace('configuracoes.notificacoes.', '');
+      setFormData({
+        ...formData,
+        configuracoes: {
+          ...formData.configuracoes,
+          notificacoes: {
+            ...formData.configuracoes.notificacoes,
+            [configField]: type === 'checkbox' ? checked : value
+          }
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -123,6 +164,94 @@ const Perfil = () => {
                 margin="normal"
               />
             </Grid>
+            
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Configurações de Notificações
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.configuracoes.notificacoes.ativo}
+                    onChange={handleChange}
+                    name="configuracoes.notificacoes.ativo"
+                    color="primary"
+                  />
+                }
+                label="Ativar notificações"
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.configuracoes.notificacoes.contasVencidas}
+                    onChange={handleChange}
+                    name="configuracoes.notificacoes.contasVencidas"
+                    color="primary"
+                    disabled={!formData.configuracoes.notificacoes.ativo}
+                  />
+                }
+                label="Notificar contas vencidas"
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.configuracoes.notificacoes.contasProximas}
+                    onChange={handleChange}
+                    name="configuracoes.notificacoes.contasProximas"
+                    color="primary"
+                    disabled={!formData.configuracoes.notificacoes.ativo}
+                  />
+                }
+                label="Notificar contas próximas ao vencimento"
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.configuracoes.notificacoes.limiteCartao}
+                    onChange={handleChange}
+                    name="configuracoes.notificacoes.limiteCartao"
+                    color="primary"
+                    disabled={!formData.configuracoes.notificacoes.ativo}
+                  />
+                }
+                label="Notificar limite do cartão"
+              />
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Dias de antecedência</InputLabel>
+                <Select
+                  name="configuracoes.notificacoes.diasAntecedencia"
+                  value={formData.configuracoes.notificacoes.diasAntecedencia}
+                  onChange={handleChange}
+                  disabled={!formData.configuracoes.notificacoes.ativo}
+                  label="Dias de antecedência"
+                >
+                  <MenuItem value={1}>1 dia</MenuItem>
+                  <MenuItem value={3}>3 dias</MenuItem>
+                  <MenuItem value={5}>5 dias</MenuItem>
+                  <MenuItem value={7}>7 dias</MenuItem>
+                  <MenuItem value={10}>10 dias</MenuItem>
+                  <MenuItem value={15}>15 dias</MenuItem>
+                  <MenuItem value={30}>30 dias</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
             <Grid item xs={12}>
               <Button
                 type="submit"

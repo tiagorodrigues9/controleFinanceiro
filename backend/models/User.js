@@ -36,6 +36,32 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordExpire: {
     type: Date
+  },
+  configuracoes: {
+    notificacoes: {
+      ativo: {
+        type: Boolean,
+        default: true
+      },
+      contasVencidas: {
+        type: Boolean,
+        default: true
+      },
+      contasProximas: {
+        type: Boolean,
+        default: true
+      },
+      limiteCartao: {
+        type: Boolean,
+        default: true
+      },
+      diasAntecedencia: {
+        type: Number,
+        default: 7,
+        min: 1,
+        max: 30
+      }
+    }
   }
 }, {
   timestamps: true

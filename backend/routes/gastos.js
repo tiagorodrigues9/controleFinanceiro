@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
+const Cartao = require('../models/Cartao');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -84,7 +85,21 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria } = req.body;
+    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria, cartao } = req.body;
+    
+    // Validação customizada: cartão é obrigatório para pagamentos com cartão
+    if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
+      return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
+    }
+
+    // Se for pagamento com cartão, verificar se o cartão existe
+    let cartaoObj = null;
+    if (cartao) {
+      cartaoObj = await Cartao.findOne({ _id: cartao, usuario: req.user._id, ativo: true });
+      if (!cartaoObj) {
+        return res.status(400).json({ message: 'Cartão inválido ou inativo' });
+      }
+    }
 
     // Criar data em UTC para evitar problemas de timezone
     const [year, month, day] = data.split('-').map(Number);
@@ -98,12 +113,14 @@ router.post('/', [
       observacao,
       formaPagamento,
       contaBancaria,
+      cartao: cartaoObj ? cartaoObj._id : null,
       usuario: req.user._id
     });
 
     // Criar registro no extrato
     await Extrato.create({
       contaBancaria,
+      cartao: cartaoObj ? cartaoObj._id : null,
       tipo: 'Saída',
       valor: parseFloat(valor),
       data: new Date(data),

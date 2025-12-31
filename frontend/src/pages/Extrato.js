@@ -33,6 +33,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,13 +45,19 @@ const Extrato = () => {
   const [extratos, setExtratos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [cartoes, setCartoes] = useState([]);
   const [totalSaldo, setTotalSaldo] = useState(0);
+  const [totalEntradas, setTotalEntradas] = useState(0);
+  const [totalSaidas, setTotalSaidas] = useState(0);
   const [loading, setLoading] = useState(true);
   const [openLancamento, setOpenLancamento] = useState(false);
   const [openSaldoInicial, setOpenSaldoInicial] = useState(false);
   const [filtros, setFiltros] = useState({
     contaBancaria: '',
     tipoDespesa: '',
+    cartao: '',
+    dataInicio: '',
+    dataFim: '',
   });
   const [formData, setFormData] = useState({
     contaBancaria: '',
@@ -72,6 +79,7 @@ const Extrato = () => {
     fetchExtratos();
     fetchContasBancarias();
     fetchGrupos();
+    fetchCartoes();
   }, []);
 
   useEffect(() => {
@@ -83,10 +91,15 @@ const Extrato = () => {
       const params = {};
       if (filtros.contaBancaria) params.contaBancaria = filtros.contaBancaria;
       if (filtros.tipoDespesa) params.tipoDespesa = filtros.tipoDespesa;
+      if (filtros.cartao) params.cartao = filtros.cartao;
+      if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
+      if (filtros.dataFim) params.dataFim = filtros.dataFim;
 
       const response = await api.get('/extrato', { params });
       setExtratos(response.data.extratos || []);
       setTotalSaldo(response.data.totalSaldo || 0);
+      setTotalEntradas(response.data.totalEntradas || 0);
+      setTotalSaidas(response.data.totalSaidas || 0);
     } catch (err) {
       setError('Erro ao carregar extrato');
     } finally {
@@ -109,6 +122,15 @@ const Extrato = () => {
       setGrupos(response.data);
     } catch (err) {
       console.error('Erro ao carregar grupos:', err);
+    }
+  };
+
+  const fetchCartoes = async () => {
+    try {
+      const response = await api.get('/cartoes');
+      setCartoes(response.data.filter(cartao => cartao.ativo));
+    } catch (err) {
+      console.error('Erro ao carregar cartões:', err);
     }
   };
 
@@ -171,6 +193,16 @@ const Extrato = () => {
   const handleEstornar = (id) => {
     setEstornoId(id);
     setOpenConfirmEstorno(true);
+  };
+
+  const limparFiltros = () => {
+    setFiltros({
+      contaBancaria: '',
+      tipoDespesa: '',
+      cartao: '',
+      dataInicio: '',
+      dataFim: '',
+    });
   };
 
   const confirmEstorno = async () => {
@@ -274,8 +306,8 @@ const Extrato = () => {
       )}
 
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={2.4}>
             <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Conta Bancária</InputLabel>
               <Select
@@ -293,7 +325,7 @@ const Extrato = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={2.4}>
             <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Tipo de Despesa</InputLabel>
               <Select
@@ -310,6 +342,59 @@ const Extrato = () => {
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2.4}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Cartão</InputLabel>
+              <Select
+                value={filtros.cartao}
+                onChange={(e) => setFiltros({ ...filtros, cartao: e.target.value })}
+                label="Cartão"
+                size="small"
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {cartoes.map((cartao) => (
+                  <MenuItem key={cartao._id} value={cartao._id}>
+                    {cartao.nome} - {cartao.banco} ({cartao.tipo})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              label="Data Início"
+              type="date"
+              value={filtros.dataInicio}
+              onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
+              variant="outlined"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <TextField
+              fullWidth
+              label="Data Fim"
+              type="date"
+              value={filtros.dataFim}
+              onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
+              variant="outlined"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid item xs={12} md={1.2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={limparFiltros}
+              size="small"
+            >
+              Limpar
+            </Button>
           </Grid>
         </Grid>
       </Paper>
@@ -396,6 +481,57 @@ const Extrato = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Totais do Período */}
+      <Paper sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Resumo do Período Filtrado
+        </Typography>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={4}>
+            <Box textAlign="center">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Total de Entradas
+              </Typography>
+              <Chip
+                label={`R$ ${totalEntradas.toFixed(2).replace('.', ',')}`}
+                color="success"
+                variant="outlined"
+                size="large"
+                sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box textAlign="center">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Total de Saídas
+              </Typography>
+              <Chip
+                label={`R$ ${totalSaidas.toFixed(2).replace('.', ',')}`}
+                color="error"
+                variant="outlined"
+                size="large"
+                sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}
+              />
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box textAlign="center">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Saldo do Período
+              </Typography>
+              <Chip
+                label={`R$ ${(totalEntradas - totalSaidas).toFixed(2).replace('.', ',')}`}
+                color={totalEntradas - totalSaidas >= 0 ? 'success' : 'error'}
+                variant="filled"
+                size="large"
+                sx={{ fontSize: '1.1rem', fontWeight: 'bold' }}
+              />
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Dialog Lançamento */}
       <Dialog open={openLancamento} onClose={handleCloseLancamento} maxWidth="sm" fullScreen={isMobile} fullWidth>

@@ -6,6 +6,10 @@ const extratoSchema = new mongoose.Schema({
     ref: 'ContaBancaria',
     required: true
   },
+  cartao: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cartao'
+  },
   tipo: {
     type: String,
     enum: ['Entrada', 'Saída', 'Saldo Inicial'],

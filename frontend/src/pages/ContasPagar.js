@@ -51,6 +51,7 @@ const ContasPagar = () => {
   const [contasBancarias, setContasBancarias] = useState([]);
   const [formasPagamento, setFormasPagamento] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [cartoes, setCartoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const today = new Date();
   const [mes, setMes] = useState(today.getMonth() + 1);
@@ -79,6 +80,7 @@ const ContasPagar = () => {
   const [pagamentoData, setPagamentoData] = useState({
     formaPagamento: '',
     contaBancaria: '',
+    cartao: '',
     juros: '',
   });
   const [openConfirmCancel, setOpenConfirmCancel] = useState(false);
@@ -180,12 +182,22 @@ const ContasPagar = () => {
     }
   };
 
+  const fetchCartoes = async () => {
+    try {
+      const response = await api.get('/cartoes');
+      setCartoes(response.data.filter(cartao => cartao.ativo));
+    } catch (err) {
+      setError('Erro ao carregar cartões');
+    }
+  };
+
   useEffect(() => {
     fetchContas();
     fetchFornecedores();
     fetchContasBancarias();
     fetchGrupos();
     fetchFormasPagamento();
+    fetchCartoes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -305,6 +317,7 @@ const ContasPagar = () => {
     setPagamentoData({
       formaPagamento: '',
       contaBancaria: '',
+      cartao: '',
       juros: '',
     });
     setOpenPagamento(true);
@@ -945,7 +958,7 @@ const ContasPagar = () => {
                   <Select
                     value={pagamentoData.formaPagamento}
                     onChange={(e) =>
-                      setPagamentoData({ ...pagamentoData, formaPagamento: e.target.value })
+                      setPagamentoData({ ...pagamentoData, formaPagamento: e.target.value, cartao: '' })
                     }
                     label="Forma de Pagamento"
                   >
@@ -955,6 +968,33 @@ const ContasPagar = () => {
                   </Select>
                 </FormControl>
               </Grid>
+              
+              {/* Campo de Cartão - aparece apenas para formas de pagamento com cartão */}
+              {(pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && (
+                <Grid item xs={12}>
+                  <FormControl fullWidth required variant="outlined">
+                    <InputLabel>Cartão</InputLabel>
+                    <Select
+                      value={pagamentoData.cartao}
+                      onChange={(e) => setPagamentoData({ ...pagamentoData, cartao: e.target.value })}
+                      label="Cartão"
+                    >
+                      {cartoes
+                        .filter(cartao => 
+                          pagamentoData.formaPagamento === 'Cartão de Crédito' ? 
+                            cartao.tipo === 'Crédito' : 
+                            cartao.tipo === 'Débito'
+                        )
+                        .map((cartao) => (
+                          <MenuItem key={cartao._id} value={cartao._id}>
+                            {cartao.nome} - {cartao.banco} ({cartao.tipo})
+                          </MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+              
               <Grid item xs={12}>
                 <FormControl fullWidth required variant="outlined">
                   <InputLabel>Conta Bancária</InputLabel>
@@ -996,7 +1036,11 @@ const ContasPagar = () => {
           <Button
             variant="contained"
             onClick={handlePagar}
-            disabled={!pagamentoData.formaPagamento || !pagamentoData.contaBancaria}
+            disabled={
+              !pagamentoData.formaPagamento || 
+              !pagamentoData.contaBancaria ||
+              ((pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && !pagamentoData.cartao)
+            }
           >
             Confirmar Pagamento
           </Button>

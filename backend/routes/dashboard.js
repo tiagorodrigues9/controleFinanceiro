@@ -4,6 +4,7 @@ const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const Grupo = require('../models/Grupo');
+const Cartao = require('../models/Cartao');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -180,6 +181,10 @@ router.get('/', async (req, res) => {
 
     // Percentual de gastos por categoria
     const grupos = await Grupo.find({ usuario: req.user._id });
+    
+    // Calcular total geral de gastos no período
+    const totalGeral = gastos.reduce((acc, gasto) => acc + gasto.valor, 0);
+    
     const percentualPorCategoria = await Promise.all(
       grupos.map(async (grupo) => {
         const gastosGrupo = await Gasto.find({
@@ -189,7 +194,6 @@ router.get('/', async (req, res) => {
         });
 
         const totalGrupo = gastosGrupo.reduce((acc, gasto) => acc + gasto.valor, 0);
-        const totalGeral = gastos.reduce((acc, gasto) => acc + gasto.valor, 0);
         const percentual = totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0;
 
         return {
@@ -199,6 +203,114 @@ router.get('/', async (req, res) => {
         };
       })
     );
+
+    // Relatório detalhado por tipo de despesa (grupos e subgrupos)
+    const relatorioTiposDespesa = await Promise.all(
+      grupos.map(async (grupo) => {
+        // Buscar gastos do grupo no período
+        const gastosGrupo = await Gasto.find({
+          usuario: req.user._id,
+          'tipoDespesa.grupo': grupo._id,
+          data: { $gte: startDate, $lte: endDate }
+        }).populate('tipoDespesa.grupo');
+
+        // Agrupar por subgrupo
+        const gastosPorSubgrupo = {};
+        gastosGrupo.forEach(gasto => {
+          const subgrupoNome = gasto.tipoDespesa.subgrupo || 'Não categorizado';
+          gastosPorSubgrupo[subgrupoNome] = (gastosPorSubgrupo[subgrupoNome] || 0) + gasto.valor;
+        });
+
+        const totalGrupo = Object.values(gastosPorSubgrupo).reduce((acc, valor) => acc + valor, 0);
+
+        // Criar objeto com detalhes do grupo
+        const relatorioGrupo = {
+          grupoId: grupo._id,
+          grupoNome: grupo.nome,
+          totalGrupo: totalGrupo,
+          percentualGrupo: totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0,
+          subgrupos: Object.entries(gastosPorSubgrupo).map(([subgrupoNome, valor]) => ({
+            subgrupoNome,
+            valor,
+            percentualSubgrupo: totalGrupo > 0 ? (valor / totalGrupo) * 100 : 0
+          })).sort((a, b) => b.valor - a.valor)
+        };
+
+        return relatorioGrupo;
+      })
+    );
+
+    // Filtrar apenas grupos com gastos no período e ordenar por valor
+    const relatorioTiposDespesaFiltrado = relatorioTiposDespesa
+      .filter(item => item.totalGrupo > 0)
+      .sort((a, b) => b.totalGrupo - a.totalGrupo);
+
+    // Dados para gráfico de barras (top 10 grupos)
+    const graficoBarrasTiposDespesa = relatorioTiposDespesaFiltrado
+      .slice(0, 10)
+      .map(item => ({
+        nome: item.grupoNome,
+        valor: item.totalGrupo,
+        percentual: item.percentualGrupo
+      }));
+
+    // Dados para gráfico de pizza (top 6 grupos)
+    const graficoPizzaTiposDespesa = relatorioTiposDespesaFiltrado
+      .slice(0, 6)
+      .map(item => ({
+        categoria: item.grupoNome,
+        valor: item.totalGrupo,
+        percentual: item.percentualGrupo
+      }));
+
+    // Relatório de gastos por cartão
+    const cartoes = await Cartao.find({ usuario: req.user._id, ativo: true });
+    const relatorioCartoes = await Promise.all(
+      cartoes.map(async (cartao) => {
+        // Buscar gastos do cartão no período
+        const gastosCartao = await Gasto.find({
+          usuario: req.user._id,
+          cartao: cartao._id,
+          data: { $gte: startDate, $lte: endDate }
+        });
+
+        // Buscar contas pagas com cartão no período
+        const contasPagasCartao = await Conta.find({
+          usuario: req.user._id,
+          cartao: cartao._id,
+          status: 'Pago',
+          dataPagamento: { $gte: startDate, $lte: endDate }
+        });
+
+        // Calcular totais
+        const totalGastos = gastosCartao.reduce((acc, gasto) => acc + gasto.valor, 0);
+        const totalContas = contasPagasCartao.reduce((acc, conta) => acc + conta.valor + (conta.jurosPago || 0), 0);
+        const totalGeral = totalGastos + totalContas;
+        const quantidadeTransacoes = gastosCartao.length + contasPagasCartao.length;
+
+        return {
+          cartaoId: cartao._id,
+          nome: cartao.nome,
+          tipo: cartao.tipo,
+          banco: cartao.banco,
+          limite: cartao.limite,
+          totalGastos,
+          totalContas,
+          totalGeral,
+          quantidadeTransacoes,
+          quantidadeGastos: gastosCartao.length,
+          quantidadeContas: contasPagasCartao.length,
+          limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
+            ((totalGeral / cartao.limite) * 100).toFixed(2) : 0,
+          disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGeral : null
+        };
+      })
+    );
+
+    // Filtrar apenas cartões com gastos no período e ordenar
+    const relatorioCartoesFiltrado = relatorioCartoes
+      .filter(item => item.totalGeral > 0)
+      .sort((a, b) => b.totalGeral - a.totalGeral);
 
     res.json({
       totalContasPagar,
@@ -215,7 +327,11 @@ router.get('/', async (req, res) => {
       mesesComparacao,
       tipoDespesaMaisGasto,
       evolucaoSaldo,
-      percentualPorCategoria
+      percentualPorCategoria,
+      relatorioTiposDespesa: relatorioTiposDespesaFiltrado,
+      graficoBarrasTiposDespesa,
+      graficoPizzaTiposDespesa,
+      relatorioCartoes: relatorioCartoesFiltrado
     });
   } catch (error) {
     console.error(error);

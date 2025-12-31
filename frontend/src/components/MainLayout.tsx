@@ -27,6 +27,8 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import HomeIcon from '@mui/icons-material/Home';
 import PaymentIcon from '@mui/icons-material/Payment';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 
 const drawerWidth = 240;
@@ -45,7 +47,9 @@ const menuItems: MenuItem[] = [
   { text: 'Controle de Contas', icon: <AccountBalanceIcon />, path: '/controle-contas' },
   { text: 'Gastos Diários', icon: <AttachMoneyIcon />, path: '/gastos-diarios' },
   { text: 'Contas Bancárias', icon: <AccountBalanceWalletIcon />, path: '/contas-bancarias' },
+  { text: 'Cartões', icon: <CreditCardIcon />, path: '/cartoes' },
   { text: 'Formas de Pagamento', icon: <PaymentIcon />, path: '/formas-pagamento' },
+  { text: 'Notificações', icon: <NotificationsIcon />, path: '/notificacoes' },
   { text: 'Extrato', icon: <CategoryIcon />, path: '/extrato' },
 ];
 

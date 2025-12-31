@@ -44,6 +44,8 @@ app.use('/api/grupos', require('./routes/grupos'));
 app.use('/api/extrato', require('./routes/extrato'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
+app.use('/api/cartoes', require('./routes/cartoes'));
+app.use('/api/notificacoes', require('./routes/notificacoes'));
 
 // Conexão com MongoDB
 const mongoUser = process.env.MONGO_USER || '';
@@ -83,7 +85,13 @@ console.log('URI do MongoDB:', mongoUri.replace(/:[^:@]+@/, ':****@')); // Escon
 console.log('');
 
 mongoose.connect(mongoUri)
-.then(() => logger.info('MongoDB conectado'))
+.then(() => {
+  logger.info('MongoDB conectado');
+  
+  // Iniciar agendador de notificações após conectar ao MongoDB
+  const NotificationScheduler = require('./schedulers/NotificationScheduler');
+  NotificationScheduler.iniciar();
+})
 .catch(err => logger.error('Erro ao conectar MongoDB:', err));
 
 const PORT = process.env.PORT || 5000;

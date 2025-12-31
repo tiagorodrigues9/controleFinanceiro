@@ -35,6 +35,11 @@ const gastoSchema = new mongoose.Schema({
     enum: ['Pix', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência', 'Boleto'],
     required: true
   },
+  cartao: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cartao',
+    required: false
+  },
   contaBancaria: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ContaBancaria',

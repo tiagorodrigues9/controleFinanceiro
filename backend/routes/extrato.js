@@ -15,11 +15,15 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const { contaBancaria, tipoDespesa, dataInicio, dataFim } = req.query;
+    const { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, estornado: false };
 
     if (contaBancaria) {
       query.contaBancaria = contaBancaria;
+    }
+
+    if (cartao) {
+      query.cartao = cartao;
     }
 
     if (dataInicio && dataFim) {
@@ -35,6 +39,7 @@ router.get('/', async (req, res) => {
 
     let extratos = await Extrato.find(query)
       .populate('contaBancaria')
+      .populate('cartao')
       .populate({ path: 'referencia.id', model: 'Gasto' })
       .sort({ data: -1 });
 
@@ -50,6 +55,9 @@ router.get('/', async (req, res) => {
     }
 
     let totalSaldo = 0;
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+    
     if (contaBancaria) {
       const saldoAgg = await Extrato.aggregate([
         { $match: { contaBancaria: new mongoose.Types.ObjectId(contaBancaria), usuario: req.user._id, estornado: false } },
@@ -58,7 +66,40 @@ router.get('/', async (req, res) => {
       totalSaldo = saldoAgg[0]?.total || 0;
     }
 
-    res.json({ extratos, totalSaldo });
+    // Calcular totais do período filtrado
+    const matchQuery = { usuario: req.user._id, estornado: false };
+    if (contaBancaria) {
+      matchQuery.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
+    }
+    if (cartao) {
+      matchQuery.cartao = new mongoose.Types.ObjectId(cartao);
+    }
+    if (dataInicio && dataFim) {
+      const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
+      const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
+      matchQuery.data = {
+        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
+        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+      };
+    }
+
+    const totaisAgg = await Extrato.aggregate([
+      { $match: matchQuery },
+      { 
+        $group: { 
+          _id: null,
+          totalEntradas: { $sum: { $cond: { if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, then: '$valor', else: 0 } } },
+          totalSaidas: { $sum: { $cond: { if: { $eq: ['$tipo', 'Saída'] }, then: '$valor', else: 0 } } }
+        } 
+      }
+    ]);
+
+    if (totaisAgg.length > 0) {
+      totalEntradas = totaisAgg[0].totalEntradas || 0;
+      totalSaidas = totaisAgg[0].totalSaidas || 0;
+    }
+
+    res.json({ extratos, totalSaldo, totalEntradas, totalSaidas });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao buscar extrato' });
@@ -81,7 +122,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { contaBancaria, tipo, valor, data, motivo } = req.body;
+    const { contaBancaria, tipo, valor, data, motivo, cartao } = req.body;
 
     // Criar data em UTC para evitar problemas de timezone
     const [year, month, day] = data.split('-').map(Number);
@@ -100,6 +141,7 @@ router.post('/', [
 
     const extrato = await Extrato.create({
       contaBancaria,
+      cartao: cartao || null,
       tipo,
       valor: parseFloat(valor),
       data: dataParsed,
@@ -152,6 +194,7 @@ router.post('/saldo-inicial', [
 
     const extrato = await Extrato.create({
       contaBancaria,
+      cartao: null, // Saldo inicial não tem cartão
       tipo: 'Saldo Inicial',
       valor: parseFloat(valor),
       data: new Date(data),

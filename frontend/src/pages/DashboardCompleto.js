@@ -12,7 +12,18 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   LineChart,
   Line,
@@ -241,15 +252,24 @@ const DashboardCompleto = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Typography variant="h6" gutterBottom>
-              Tipo de Despesa com Mais Gasto
+              Top 10 Categorias com Mais Gastos
             </Typography>
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={data?.tipoDespesaMaisGasto || []}>
+              <BarChart data={data?.graficoBarrasTiposDespesa || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="nome" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
+                <XAxis 
+                  dataKey="nome" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  interval={0}
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(0).replace('.', ',')}`} />
+                <Tooltip 
+                  formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']}
+                  labelFormatter={(label) => `Categoria: ${label}`}
+                />
                 <Bar dataKey="valor" fill="#00C49F" />
               </BarChart>
             </ResponsiveContainer>
@@ -296,21 +316,278 @@ const DashboardCompleto = () => {
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
-                  data={data?.percentualPorCategoria || []}
+                  data={data?.graficoPizzaTiposDespesa || []}
                   cx="50%"
                   cy="50%"
-                  label={({ categoria, percentual }) => `${categoria}: ${percentual}%`}
+                  label={({ categoria, percentual }) => `${categoria}: ${percentual.toFixed(1)}%`}
                   outerRadius={60}
                   fill="#8884d8"
-                  dataKey="percentual"
+                  dataKey="valor"
                 >
-                  {(data?.percentualPorCategoria || []).map((entry, index) => (
+                  {(data?.graficoPizzaTiposDespesa || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']} />
               </PieChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Relatórios Detalhados por Tipo de Despesa */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+            <Typography variant="h6" gutterBottom>
+              Relatório Detalhado por Tipo de Despesa
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Valores gastos no mês/ano selecionados, organizados por categoria do plano de contas
+            </Typography>
+            
+            {data?.relatorioTiposDespesa?.length > 0 ? (
+              <Box>
+                {data.relatorioTiposDespesa.map((grupo, index) => (
+                  <Accordion key={grupo.grupoId} sx={{ mb: 1 }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mr: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                          {grupo.grupoNome}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip 
+                            label={`R$ ${grupo.totalGrupo.toFixed(2).replace('.', ',')}`}
+                            color="primary" 
+                            variant="outlined"
+                            size="small"
+                          />
+                          <Chip 
+                            label={`${grupo.percentualGrupo.toFixed(1)}%`}
+                            color="secondary" 
+                            variant="filled"
+                            size="small"
+                          />
+                        </Box>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      {grupo.subgrupos.length > 0 ? (
+                        <TableContainer size="small">
+                          <Table>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Subcategoria</TableCell>
+                                <TableCell align="right">Valor</TableCell>
+                                <TableCell align="right">% do Grupo</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {grupo.subgrupos.map((subgrupo) => (
+                                <TableRow key={subgrupo.subgrupoNome}>
+                                  <TableCell>{subgrupo.subgrupoNome}</TableCell>
+                                  <TableCell align="right">
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                      R$ {subgrupo.valor.toFixed(2).replace('.', ',')}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    <Chip 
+                                      label={`${subgrupo.percentualSubgrupo.toFixed(1)}%`}
+                                      size="small"
+                                      color="default"
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Nenhum gasto detalhado encontrado para este grupo no período.
+                        </Typography>
+                      )}
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+                
+                {/* Resumo Total */}
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Resumo Total do Período
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Total Gasto no Período
+                        </Typography>
+                        <Typography variant="h5" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          R$ {data.relatorioTiposDespesa.reduce((acc, grupo) => acc + grupo.totalGrupo, 0).toFixed(2).replace('.', ',')}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Número de Categorias
+                        </Typography>
+                        <Typography variant="h5" color="secondary.main" sx={{ fontWeight: 'bold' }}>
+                          {data.relatorioTiposDespesa.length}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Média por Categoria
+                        </Typography>
+                        <Typography variant="h5" color="success.main" sx={{ fontWeight: 'bold' }}>
+                          R$ {(data.relatorioTiposDespesa.reduce((acc, grupo) => acc + grupo.totalGrupo, 0) / data.relatorioTiposDespesa.length).toFixed(2).replace('.', ',')}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                Nenhum gasto encontrado no período selecionado.
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Relatório de Gastos por Cartão */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+            <Typography variant="h6" gutterBottom>
+              Comparação de Gastos por Cartão
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Valores gastos no mês/ano selecionados, organizados por cartão
+            </Typography>
+            
+            {data?.relatorioCartoes?.length > 0 ? (
+              <>
+                <Grid container spacing={2}>
+                {data.relatorioCartoes.map((cartao) => (
+                  <Grid item xs={12} sm={6} md={4} key={cartao.cartaoId}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                            {cartao.nome}
+                          </Typography>
+                          <Chip
+                            label={cartao.tipo}
+                            color={cartao.tipo === 'Crédito' ? 'primary' : 'secondary'}
+                            size="small"
+                          />
+                        </Box>
+                        
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          {cartao.banco}
+                        </Typography>
+                        
+                        <Box mb={2}>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Gasto
+                          </Typography>
+                          <Typography variant="h6" color="error.main" sx={{ fontWeight: 'bold' }}>
+                            R$ {cartao.totalGeral.toFixed(2).replace('.', ',')}
+                          </Typography>
+                        </Box>
+                        
+                        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                          <Typography variant="caption" color="text.secondary">
+                            Gastos: R$ {cartao.totalGastos.toFixed(2).replace('.', ',')}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Contas: R$ {cartao.totalContas.toFixed(2).replace('.', ',')}
+                          </Typography>
+                        </Box>
+                        
+                        <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {cartao.quantidadeTransacoes} transações
+                          </Typography>
+                          {cartao.tipo === 'Crédito' && cartao.limite > 0 && (
+                            <Box textAlign="right">
+                              <Typography variant="caption" color="text.secondary">
+                                Limite utilizado
+                              </Typography>
+                              <Typography variant="body2" color={cartao.limiteUtilizado > 80 ? 'error.main' : 'success.main'}>
+                                {cartao.limiteUtilizado}%
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+                
+                {/* Gráfico de Comparação de Cartões */}
+                {data.relatorioCartoes.length > 1 && (
+                  <Box sx={{ mt: 3 }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={data.relatorioCartoes}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="nome" />
+                        <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(0).replace('.', ',')}`} />
+                        <Tooltip 
+                          formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Total Gasto']}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <Box sx={{ p: 1, bgcolor: 'background.paper', border: '1px solid #ccc' }}>
+                                  <Typography variant="subtitle2">{data.nome}</Typography>
+                                  <Typography variant="body2">
+                                    Total: R$ {data.totalGeral.toFixed(2).replace('.', ',')}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Gastos: R$ {data.totalGastos.toFixed(2).replace('.', ',')}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Contas: R$ {data.totalContas.toFixed(2).replace('.', ',')}
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    Transações: {data.quantidadeTransacoes}
+                                  </Typography>
+                                  {data.tipo === 'Crédito' && (
+                                    <Typography variant="body2">
+                                      Limite utilizado: {data.limiteUtilizado}%
+                                    </Typography>
+                                  )}
+                                </Box>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="totalGeral" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                )}
+              </>
+            ) : (
+              <Box sx={{ py: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Nenhum gasto com cartão encontrado no período selecionado.
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                  Cadastre cartões e utilize-os nos lançamentos para ver os relatórios aqui.
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
       </Grid>
