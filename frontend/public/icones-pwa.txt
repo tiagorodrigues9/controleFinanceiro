@@ -1,0 +1,4 @@
+<!-- Placeholder para ícones PWA -->
+<!-- Você precisa adicionar os arquivos logo192.png e logo512.png na pasta public -->
+<!-- Ícones podem ser criados em: https://favicon.io/favicon-generator/ -->
+<!-- Use um ícone de carteira ou dinheiro para o app -->

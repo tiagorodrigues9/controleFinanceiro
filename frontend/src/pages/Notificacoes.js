@@ -21,7 +21,9 @@ import {
   Divider,
   Switch,
   FormControlLabel,
-  Paper
+  Paper,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -38,6 +40,8 @@ import api from '../utils/api';
 import usePushNotifications from '../hooks/usePushNotifications';
 
 const Notificacoes = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [notificacoes, setNotificacoes] = useState([]);
   const [naoLidasCount, setNaoLidasCount] = useState(0);
   const [loading, setLoading] = useState(true);
