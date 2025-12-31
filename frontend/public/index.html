@@ -3,19 +3,120 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Sistema de controle de contas a pagar"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="description" content="Sistema completo de controle financeiro com gerenciamento de contas, parcelas e extrato" />
+    <meta name="keywords" content="controle financeiro, contas a pagar, parcelas, extrato, finanças pessoais" />
+    <meta name="author" content="Tiago Rodrigues" />
+    
+    <!-- PWA -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- SEO e Redes Sociais -->
+    <meta property="og:title" content="Controle Financeiro Pessoal" />
+    <meta property="og:description" content="Sistema completo de controle financeiro" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" href="%PUBLIC_URL%/logo512.png" />
+    
+    <!-- Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
     <title>Controle Financeiro</title>
+    
+    <!-- Estilo para splash screen -->
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f5f5f5;
+      }
+      
+      #root {
+        min-height: 100vh;
+      }
+      
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+      }
+      
+      .splash-screen.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .splash-icon {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        font-size: 40px;
+        color: #1976d2;
+      }
+      
+      .splash-text {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      
+      .splash-subtitle {
+        font-size: 16px;
+        opacity: 0.8;
+      }
+    </style>
   </head>
   <body>
     <noscript>Você precisa habilitar JavaScript para executar este app.</noscript>
+    
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splash-screen">
+      <div class="splash-icon">💰</div>
+      <div class="splash-text">Controle Financeiro</div>
+      <div class="splash-subtitle">Gerencie suas finanças com facilidade</div>
+    </div>
+    
     <div id="root"></div>
+    
+    <script>
+      // Remover splash screen quando o app carregar
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const splash = document.getElementById('splash-screen');
+          if (splash) {
+            splash.classList.add('hide');
+            setTimeout(function() {
+              splash.remove();
+            }, 300);
+          }
+        }, 1000);
+      });
+    </script>
   </body>
 </html>
 

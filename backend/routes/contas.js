@@ -1,4 +1,4 @@
-const express = require('express');
+  const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
@@ -44,9 +44,10 @@ router.get('/', async (req, res) => {
     if (ativo === 'ativas') query.ativo = { $ne: false };
     if (ativo === 'inativas') query.ativo = false;
 
-    // filtro status: 'pendentes' | 'pagas' | 'todos'
-    if (status === 'pendentes') query.status = { $in: ['Pendente', 'Vencida'] };
+    // filtro status: 'pendentes' | 'pagas' | 'vencidas' | 'todos'
+    if (status === 'pendentes') query.status = 'Pendente';
     if (status === 'pagas') query.status = 'Pago';
+    if (status === 'vencidas') query.status = 'Vencida';
 
     // filtro por intervalo arbitrário
     if (dataInicio) {
@@ -276,6 +277,29 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Conta não encontrada' });
     }
 
+    // Check if there are remaining active installments
+    let hasRemainingInstallments = false;
+    let remainingCount = 0;
+    
+    if (conta.parcelaId) {
+      const remainingInstallments = await Conta.find({
+        parcelaId: conta.parcelaId,
+        usuario: req.user._id,
+        ativo: { $ne: false },
+        _id: { $ne: conta._id } // Excluir a conta atual
+      });
+      remainingCount = remainingInstallments.length;
+      hasRemainingInstallments = remainingCount > 0;
+    }
+
+    if (hasRemainingInstallments) {
+      return res.json({
+        hasRemainingInstallments: true,
+        remainingCount,
+        message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja cancelar apenas esta ou todas as restantes?`
+      });
+    }
+
     // Soft inactivate: set ativo=false and status to 'Cancelada' for clarity
     conta.ativo = false;
     conta.status = 'Cancelada';
@@ -285,6 +309,72 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao cancelar conta' });
+  }
+});
+
+// @route   DELETE /api/contas/:id/hard-all-remaining
+// @desc    Excluir permanentemente todas as parcelas do mesmo grupo
+// @access  Private
+router.delete('/:id/hard-all-remaining', async (req, res) => {
+  try {
+    const conta = await Conta.findOne({
+      _id: req.params.id,
+      usuario: req.user._id,
+      parcelaId: { $exists: true }
+    });
+
+    if (!conta) {
+      return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
+    }
+    
+    // Excluir permanentemente todas as parcelas do mesmo parcelaId
+    const result = await Conta.deleteMany({
+      parcelaId: conta.parcelaId,
+      usuario: req.user._id
+    });
+
+    res.json({ 
+      message: 'Todas as parcelas foram excluídas permanentemente com sucesso',
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao excluir parcelas permanentemente' });
+  }
+});
+
+// @route   DELETE /api/contas/:id/cancel-all-remaining
+// @desc    Cancelar todas as parcelas do mesmo grupo
+// @access  Private
+router.delete('/:id/cancel-all-remaining', async (req, res) => {
+  try {
+    const conta = await Conta.findOne({
+      _id: req.params.id,
+      usuario: req.user._id,
+      parcelaId: { $exists: true }
+    });
+
+    if (!conta) {
+      return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
+    }
+
+    // Cancelar todas as parcelas do mesmo parcelaId
+    await Conta.updateMany(
+      {
+        parcelaId: conta.parcelaId,
+        usuario: req.user._id,
+        ativo: { $ne: false }
+      },
+      {
+        ativo: false,
+        status: 'Cancelada'
+      }
+    );
+
+    res.json({ message: 'Todas as parcelas foram canceladas com sucesso' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao cancelar parcelas' });
   }
 });
 

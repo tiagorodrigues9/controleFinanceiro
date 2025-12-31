@@ -19,6 +19,11 @@ import {
   CircularProgress,
   Alert,
   Grid,
+  Card,
+  CardContent,
+  CardActions,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -26,6 +31,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
 const FormasPagamento = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [formas, setFormas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
@@ -123,6 +131,41 @@ const FormasPagamento = () => {
     setFormaToDelete(null);
   };
 
+  // Componente para renderizar cards no mobile
+  const FormaPagamentoCard = ({ forma }) => (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {forma.nome}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            ID: {forma._id.slice(-6)}
+          </Typography>
+        </Box>
+      </CardContent>
+      
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => handleOpenEditar(forma)}
+          title="Editar"
+        >
+          <EditIcon />
+        </IconButton>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleExcluir(forma._id)}
+          title="Excluir"
+        >
+          <DeleteIcon />
+        </IconButton>
+      </CardActions>
+    </Card>
+  );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -133,12 +176,13 @@ const FormasPagamento = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Formas de Pagamento</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCadastro}
+          size="small"
         >
           Cadastrar Forma
         </Button>
@@ -150,39 +194,48 @@ const FormasPagamento = () => {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {formas.map((forma) => (
-              <TableRow key={forma._id}>
-                <TableCell>{forma.nome}</TableCell>
-                <TableCell>
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleOpenEditar(forma)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleExcluir(forma._id)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+      {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
+      {isMobile ? (
+        <Box>
+          {formas.map((forma) => (
+            <FormaPagamentoCard key={forma._id} forma={forma} />
+          ))}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nome</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {formas.map((forma) => (
+                <TableRow key={forma._id}>
+                  <TableCell>{forma.nome}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => handleOpenEditar(forma)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleExcluir(forma._id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Dialog Cadastro */}
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>

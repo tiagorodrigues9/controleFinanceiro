@@ -9,7 +9,6 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import MainLayout from './components/MainLayout';
-import Dashboard from './pages/Dashboard';
 import ContasPagar from './pages/ContasPagar';
 import Fornecedores from './pages/Fornecedores';
 import GastosDiarios from './pages/GastosDiarios';

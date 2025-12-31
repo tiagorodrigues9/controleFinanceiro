@@ -21,6 +21,11 @@ import {
   AccordionSummary,
   AccordionDetails,
   IconButton,
+  Card,
+  CardContent,
+  CardActions,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -28,6 +33,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
 const ContasBancarias = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [contas, setContas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
@@ -108,6 +115,46 @@ const ContasBancarias = () => {
     }
   };
 
+  // Componente para renderizar cards no mobile
+  const ContaBancariaCard = ({ conta }) => (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {conta.nome}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {conta.banco}
+          </Typography>
+        </Box>
+        
+        <Box mb={1}>
+          <Typography variant="body2" color="text.secondary">
+            Agência: {conta.agencia || 'N/A'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Conta: {conta.numeroConta || 'N/A'}
+          </Typography>
+        </Box>
+        
+        <Typography variant="h6" color="primary" fontWeight="bold">
+          Saldo: R$ {(conta.saldo || 0).toFixed(2).replace('.', ',')}
+        </Typography>
+      </CardContent>
+      
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => { setIdToInactivate(conta._id); setOpenConfirm(true); }}
+          title="Inativar"
+        >
+          <DeleteIcon />
+        </IconButton>
+      </CardActions>
+    </Card>
+  );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -118,14 +165,15 @@ const ContasBancarias = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Contas Bancárias</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCadastro}
+          size="small"
         >
-          Cadastrar
+          Cadastrar Conta
         </Button>
       </Box>
 
@@ -135,42 +183,51 @@ const ContasBancarias = () => {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Banco</TableCell>
-              <TableCell>Agência</TableCell>
-              <TableCell>Conta</TableCell>
-              <TableCell>Saldo</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {contas.map((conta) => (
-              <TableRow key={conta._id}>
-                <TableCell>{conta.nome}</TableCell>
-                <TableCell>{conta.banco}</TableCell>
-                <TableCell>{conta.agencia || '-'}</TableCell>
-                <TableCell>{conta.numeroConta || '-'}</TableCell>
-                <TableCell>
-                  R$ {conta.saldo?.toFixed(2).replace('.', ',') || '0,00'}
-                </TableCell>
-                <TableCell>
-                  {isActive(conta) ? (
-                    <IconButton size="small" color="error" onClick={() => { setIdToInactivate(conta._id); setOpenConfirm(true); }}>
-                      <DeleteIcon />
-                    </IconButton>
-                  ) : (
-                    <Typography variant="caption" color="textSecondary">Inativa</Typography>
-                  )}
-                </TableCell>
+      {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
+      {isMobile ? (
+        <Box>
+          {contas.map((conta) => (
+            <ContaBancariaCard key={conta._id} conta={conta} />
+          ))}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nome</TableCell>
+                <TableCell>Banco</TableCell>
+                <TableCell>Agência</TableCell>
+                <TableCell>Conta</TableCell>
+                <TableCell>Saldo</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {contas.map((conta) => (
+                <TableRow key={conta._id}>
+                  <TableCell>{conta.nome}</TableCell>
+                  <TableCell>{conta.banco}</TableCell>
+                  <TableCell>{conta.agencia || '-'}</TableCell>
+                  <TableCell>{conta.numeroConta || '-'}</TableCell>
+                  <TableCell>
+                    R$ {conta.saldo?.toFixed(2).replace('.', ',') || '0,00'}
+                  </TableCell>
+                  <TableCell>
+                    {isActive(conta) ? (
+                      <IconButton size="small" color="error" onClick={() => { setIdToInactivate(conta._id); setOpenConfirm(true); }}>
+                        <DeleteIcon />
+                      </IconButton>
+                    ) : (
+                      <Typography variant="caption" color="textSecondary">Inativa</Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <Dialog open={openConfirm} onClose={cancelInactivate}>
         <DialogTitle>Confirmar Inativação</DialogTitle>

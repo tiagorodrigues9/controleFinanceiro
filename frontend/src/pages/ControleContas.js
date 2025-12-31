@@ -157,14 +157,14 @@ const ControleContas = () => {
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
               <Typography variant="h6">{index + 1} - {grupo.nome}</Typography>
-              <Chip label={`${grupo.subgrupos.length} subgrupos`} size="small" sx={{ mr: 2 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Chip label={`${grupo.subgrupos.length} subgrupos`} size="small" />
+              </Box>
               <IconButton
                 size="small"
                 color="error"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteGrupo(grupo._id, grupo.nome);
-                }}
+                onClick={() => handleDeleteGrupo(grupo._id, grupo.nome)}
+                sx={{ ml: 1 }}
               >
                 <DeleteIcon />
               </IconButton>

@@ -25,6 +25,23 @@ router.get('/', async (req, res) => {
       ativo: { $ne: false }
     });
 
+    // Valor total de contas a pagar no mês
+    const contasPagarMes = await Conta.find({
+      usuario: req.user._id,
+      ativo: { $ne: false },
+      status: { $in: ['Pendente', 'Vencida'] },
+      dataVencimento: { $gte: startDate, $lte: endDate }
+    });
+    const totalValorContasPagarMes = contasPagarMes.reduce((acc, conta) => acc + conta.valor, 0);
+
+    // Quantidade de contas pendentes no mês
+    const totalContasPendentesMes = await Conta.countDocuments({
+      usuario: req.user._id,
+      ativo: { $ne: false },
+      status: 'Pendente',
+      dataVencimento: { $gte: startDate, $lte: endDate }
+    });
+
     const totalContasPagas = await Conta.countDocuments({
       usuario: req.user._id,
       status: 'Pago',
@@ -185,6 +202,8 @@ router.get('/', async (req, res) => {
 
     res.json({
       totalContasPagar,
+      totalValorContasPagarMes,
+      totalContasPendentesMes,
       totalContasPagas,
       totalContasVencidas,
       totalValorContasVencidas,

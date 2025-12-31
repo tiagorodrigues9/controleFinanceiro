@@ -24,6 +24,11 @@ import {
   Grid,
   IconButton,
   Chip,
+  Card,
+  CardContent,
+  CardActions,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -33,6 +38,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Extrato = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [extratos, setExtratos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
   const [grupos, setGrupos] = useState([]);
@@ -176,6 +184,54 @@ const Extrato = () => {
     }
   };
 
+  // Componente para renderizar cards no mobile
+  const ExtratoCard = ({ extrato }) => (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {extrato.motivo || 'Sem motivo'}
+          </Typography>
+          <Chip
+            label={extrato.tipo}
+            color={
+              extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial'
+                ? 'success'
+                : 'error'
+            }
+            size="small"
+          />
+        </Box>
+        
+        <Box mb={1}>
+          <Typography variant="body2" color="text.secondary">
+            Data: {format(new Date(extrato.data), 'dd/MM/yyyy', { locale: ptBR })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Conta: {extrato.contaBancaria?.nome || 'N/A'}
+          </Typography>
+        </Box>
+        
+        <Typography variant="h6" color={extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial' ? 'success.main' : 'error.main'} fontWeight="bold">
+          {extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial' ? '+' : '-'} R$ {extrato.valor.toFixed(2).replace('.', ',')}
+        </Typography>
+      </CardContent>
+      
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+        {extrato.tipo !== 'Saldo Inicial' && (
+          <IconButton
+            size="small"
+            color="warning"
+            onClick={() => handleEstornar(extrato._id)}
+            title="Estornar"
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </CardActions>
+    </Card>
+  );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -186,14 +242,17 @@ const Extrato = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">Extrato Financeiro</Typography>
+      <Box sx={{ position: 'relative', mb: 2, minHeight: 80 }}>
         <Box>
+          <Typography variant="h4">Extrato</Typography>
+          <Typography variant="h4">Financeiro</Typography>
+        </Box>
+        <Box sx={{ position: 'absolute', right: 0, top: 8, display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Button
             variant="outlined"
             startIcon={<AccountBalanceWalletIcon />}
             onClick={handleOpenSaldoInicial}
-            sx={{ mr: 1 }}
+            size="small"
           >
             Saldo Inicial
           </Button>
@@ -201,6 +260,7 @@ const Extrato = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleOpenLancamento}
+            size="small"
           >
             Lançamento
           </Button>
@@ -269,68 +329,78 @@ const Extrato = () => {
         </Paper>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Data</TableCell>
-              <TableCell>Conta Bancária</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Motivo</TableCell>
-              <TableCell>Valor</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {extratos.map((extrato) => (
-              <TableRow key={extrato._id}>
-                <TableCell>
-                  {format(new Date(extrato.data), 'dd/MM/yyyy', { locale: ptBR })}
-                </TableCell>
-                <TableCell>{extrato.contaBancaria?.nome}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={extrato.tipo}
-                    color={
-                      extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial'
-                        ? 'success'
-                        : 'error'
-                    }
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{extrato.motivo}</TableCell>
-                <TableCell>
-                  R$ {extrato.valor.toFixed(2).replace('.', ',')}
-                </TableCell>
-                <TableCell>
-                  {extrato.estornado ? (
-                    <Chip label="Estornado" color="default" size="small" />
-                  ) : (
-                    <Chip label="Ativo" color="success" size="small" />
-                  )}
-                </TableCell>
-                <TableCell>
-                  {!extrato.estornado && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleEstornar(extrato._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
-                </TableCell>
+      {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
+      {isMobile ? (
+        <Box>
+          {extratos.map((extrato) => (
+            <ExtratoCard key={extrato._id} extrato={extrato} />
+          ))}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Data</TableCell>
+                <TableCell>Conta Bancária</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Motivo</TableCell>
+                <TableCell>Valor</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {extratos.map((extrato) => (
+                <TableRow key={extrato._id}>
+                  <TableCell>
+                    {format(new Date(extrato.data), 'dd/MM/yyyy', { locale: ptBR })}
+                  </TableCell>
+                  <TableCell>{extrato.contaBancaria?.nome}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={extrato.tipo}
+                      color={
+                        extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial'
+                          ? 'success'
+                          : 'error'
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{extrato.motivo || '-'}</TableCell>
+                  <TableCell>
+                    <Typography
+                      color={extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial' ? 'success.main' : 'error.main'}
+                    >
+                      {extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial' ? '+' : '-'} R$ {extrato.valor.toFixed(2).replace('.', ',')}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={extrato.estornado ? 'Estornado' : 'Ativo'}
+                      color={extrato.estornado ? 'default' : 'primary'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {extrato.tipo !== 'Saldo Inicial' && !extrato.estornado && (
+                      <IconButton size="small" color="warning" onClick={() => handleEstornar(extrato._id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-      <Dialog open={openLancamento} onClose={handleCloseLancamento} maxWidth="sm" fullWidth>
+      {/* Dialog Lançamento */}
+      <Dialog open={openLancamento} onClose={handleCloseLancamento} maxWidth="sm" fullScreen={isMobile} fullWidth>
         <form onSubmit={handleSubmitLancamento}>
-          <DialogTitle>Novo Lançamento</DialogTitle>
+          <DialogTitle>Lançamento</DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Grid container spacing={2}>
@@ -408,7 +478,7 @@ const Extrato = () => {
         </form>
       </Dialog>
 
-      <Dialog open={openSaldoInicial} onClose={handleCloseSaldoInicial} maxWidth="sm" fullWidth>
+      <Dialog open={openSaldoInicial} onClose={handleCloseSaldoInicial} maxWidth="sm" fullScreen={isMobile} fullWidth>
         <form onSubmit={handleSubmitSaldoInicial}>
           <DialogTitle>Lançar Saldo Inicial</DialogTitle>
           <DialogContent>

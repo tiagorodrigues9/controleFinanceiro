@@ -93,11 +93,11 @@ const DashboardCompleto = () => {
   const chartData = buildChartData(data?.evolucaoSaldo);
 
   return (
-    <Box>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Dashboard</Typography>
-        <Box display="flex" gap={2}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+    <Box sx={{ flexGrow: 1 }} className="dashboard-page">
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: { xs: 1, sm: 2 } }}>
+        <Typography variant="h4" sx={{ flexGrow: 1, minWidth: { xs: 'auto', sm: 200 } }}>Dashboard</Typography>
+        <Box display="flex" gap={1} sx={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Mês</InputLabel>
             <Select value={mes} onChange={(e) => setMes(e.target.value)}>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -107,7 +107,7 @@ const DashboardCompleto = () => {
               ))}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+          <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Ano</InputLabel>
             <Select value={ano} onChange={(e) => setAno(e.target.value)}>
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((a) => (
@@ -120,7 +120,7 @@ const DashboardCompleto = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={3} mb={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} mb={2}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -218,13 +218,13 @@ const DashboardCompleto = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Typography variant="h6" gutterBottom>
               Comparação de Meses
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={data?.mesesComparacao || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
@@ -238,28 +238,29 @@ const DashboardCompleto = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Typography variant="h6" gutterBottom>
               Tipo de Despesa com Mais Gasto
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={data?.tipoDespesaMaisGasto || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="nome" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="valor" fill="#82ca9d" />
+                <Legend />
+                <Bar dataKey="valor" fill="#00C49F" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Typography variant="h6" gutterBottom>
               Evolução do Saldo por Conta Bancária
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
@@ -287,19 +288,18 @@ const DashboardCompleto = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
             <Typography variant="h6" gutterBottom>
               Percentual de Gastos por Categoria
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={data?.percentualPorCategoria || []}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
                   label={({ categoria, percentual }) => `${categoria}: ${percentual}%`}
-                  outerRadius={80}
+                  outerRadius={60}
                   fill="#8884d8"
                   dataKey="percentual"
                 >

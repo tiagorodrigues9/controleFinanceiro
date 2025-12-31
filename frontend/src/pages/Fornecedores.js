@@ -19,12 +19,20 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Card,
+  CardContent,
+  CardActions,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
 const Fornecedores = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
@@ -106,6 +114,41 @@ const Fornecedores = () => {
     setSelectedFornecedor(null);
   };
 
+  // Componente para renderizar cards no mobile
+  const FornecedorCard = ({ fornecedor }) => (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {fornecedor.nome}
+          </Typography>
+          <Chip
+            label={isActive(fornecedor) ? 'Ativo' : 'Inativo'}
+            color={isActive(fornecedor) ? 'success' : 'default'}
+            size="small"
+          />
+        </Box>
+        
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Tipo: {fornecedor.tipo}
+        </Typography>
+      </CardContent>
+      
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+        {isActive(fornecedor) && (
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => handleInativar(fornecedor._id)}
+            title="Inativar"
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </CardActions>
+    </Card>
+  );
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -116,14 +159,16 @@ const Fornecedores = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box sx={{ position: 'relative', mb: 2, minHeight: 40 }}>
         <Typography variant="h4">Fornecedores</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCadastro}
+          size="small"
+          sx={{ position: 'absolute', right: 0, top: 0 }}
         >
-          Cadastrar Fornecedor
+          Cadastrar
         </Button>
       </Box>
 
@@ -133,44 +178,53 @@ const Fornecedores = () => {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Nome</TableCell>
-              <TableCell>Tipo</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {fornecedores.map((fornecedor) => (
-              <TableRow key={fornecedor._id}>
-                <TableCell>{fornecedor.nome}</TableCell>
-                <TableCell>{fornecedor.tipo}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={isActive(fornecedor) ? 'Ativo' : 'Inativo'}
-                    color={isActive(fornecedor) ? 'success' : 'default'}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  {isActive(fornecedor) && (
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleInativar(fornecedor._id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
-                </TableCell>
+      {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
+      {isMobile ? (
+        <Box>
+          {fornecedores.map((fornecedor) => (
+            <FornecedorCard key={fornecedor._id} fornecedor={fornecedor} />
+          ))}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nome</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {fornecedores.map((fornecedor) => (
+                <TableRow key={fornecedor._id}>
+                  <TableCell>{fornecedor.nome}</TableCell>
+                  <TableCell>{fornecedor.tipo}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={isActive(fornecedor) ? 'Ativo' : 'Inativo'}
+                      color={isActive(fornecedor) ? 'success' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {isActive(fornecedor) && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleInativar(fornecedor._id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Dialog de confirmação para inativar fornecedor */}
       <Dialog open={openConfirm} onClose={cancelInativar}>
@@ -184,6 +238,7 @@ const Fornecedores = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Dialog de cadastro */}
       <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
           <DialogTitle>Cadastrar Fornecedor</DialogTitle>

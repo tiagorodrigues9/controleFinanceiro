@@ -23,6 +23,11 @@ import {
   InputLabel,
   Select,
   Grid,
+  Card,
+  CardContent,
+  CardActions,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -31,6 +36,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const GastosDiarios = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [gastos, setGastos] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
@@ -163,6 +171,72 @@ const GastosDiarios = () => {
     setGastoToDelete(null);
   };
 
+  // Calcular totais
+  const calcularTotais = () => {
+    const gastosDoDia = gastos.filter(gasto => {
+      const dataGasto = format(new Date(gasto.data), 'yyyy-MM-dd');
+      const dataHoje = format(new Date(), 'yyyy-MM-dd');
+      return dataGasto === dataHoje;
+    });
+
+    const totalDoDia = gastosDoDia.reduce((sum, gasto) => sum + (gasto.valor || 0), 0);
+    const quantidadeDoDia = gastosDoDia.length;
+
+    return { totalDoDia, quantidadeDoDia };
+  };
+
+  const { totalDoDia, quantidadeDoDia } = calcularTotais();
+
+  // Componente para renderizar cards no mobile
+  const GastoCard = ({ gasto }) => (
+    <Card sx={{ mb: 2 }}>
+      <CardContent>
+        <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {gasto.tipoDespesa?.subgrupo || gasto.tipoDespesa?.grupo || 'Sem categoria'}
+          </Typography>
+          <Typography variant="h6" color="primary" fontWeight="bold">
+            R$ {gasto.valor.toFixed(2).replace('.', ',')}
+          </Typography>
+        </Box>
+        
+        <Box mb={1}>
+          <Typography variant="body2" color="text.secondary">
+            Data: {format(new Date(gasto.data), 'dd/MM/yyyy', { locale: ptBR })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Local: {gasto.local || 'N/A'}
+          </Typography>
+          {gasto.formaPagamento && (
+            <Typography variant="body2" color="text.secondary">
+              Pagamento: {gasto.formaPagamento}
+            </Typography>
+          )}
+        </Box>
+        
+        {gasto.observacao && (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            {gasto.observacao}
+          </Typography>
+        )}
+      </CardContent>
+      
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => {
+            setGastoToDelete(gasto._id);
+            setOpenDeleteConfirm(true);
+          }}
+          title="Excluir"
+        >
+          <DeleteIcon />
+        </IconButton>
+      </CardActions>
+    </Card>
+  );
+
   const grupoSelecionado = grupos.find((g) => g._id === formData.tipoDespesa.grupo);
 
   if (loading) {
@@ -175,12 +249,13 @@ const GastosDiarios = () => {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h4">Gastos Diários</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenCadastro}
+          size="small"
         >
           Cadastrar Gasto
         </Button>
@@ -239,40 +314,65 @@ const GastosDiarios = () => {
         </Grid>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Data</TableCell>
-              <TableCell>Tipo de Despesa</TableCell>
-              <TableCell>Local</TableCell>
-              <TableCell>Valor</TableCell>
-              <TableCell>Forma de Pagamento</TableCell>
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {gastos.map((gasto) => (
-              <TableRow key={gasto._id}>
-                <TableCell>
-                  {format(new Date(gasto.data), 'dd/MM/yyyy', { locale: ptBR })}
-                </TableCell>
-                <TableCell>
-                  {gasto.tipoDespesa?.grupo?.nome} - {gasto.tipoDespesa?.subgrupo}
-                </TableCell>
-                <TableCell>{gasto.local || '-'}</TableCell>
-                <TableCell>R$ {gasto.valor.toFixed(2).replace('.', ',')}</TableCell>
-                <TableCell>{gasto.formaPagamento}</TableCell>
-                <TableCell>
-                  <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto._id); setOpenDeleteConfirm(true); }}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+      {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
+      {isMobile ? (
+        <Box>
+          {gastos.map((gasto) => (
+            <GastoCard key={gasto._id} gasto={gasto} />
+          ))}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Data</TableCell>
+                <TableCell>Tipo de Despesa</TableCell>
+                <TableCell>Local</TableCell>
+                <TableCell>Valor</TableCell>
+                <TableCell>Forma de Pagamento</TableCell>
+                <TableCell>Ações</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {gastos.map((gasto) => (
+                <TableRow key={gasto._id}>
+                  <TableCell>
+                    {format(new Date(gasto.data), 'dd/MM/yyyy', { locale: ptBR })}
+                  </TableCell>
+                  <TableCell>
+                    {gasto.tipoDespesa?.grupo?.nome} - {gasto.tipoDespesa?.subgrupo}
+                  </TableCell>
+                  <TableCell>{gasto.local || '-'}</TableCell>
+                  <TableCell>R$ {gasto.valor.toFixed(2).replace('.', ',')}</TableCell>
+                  <TableCell>{gasto.formaPagamento}</TableCell>
+                  <TableCell>
+                    <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto._id); setOpenDeleteConfirm(true); }}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Resumo do dia */}
+      <Box mt={3} display="flex" gap={2} flexWrap={isMobile ? 'wrap' : 'nowrap'}>
+        <Paper sx={{ p: 2, minWidth: 200, flex: 1 }}>
+          <Typography variant="subtitle2">Total do Dia</Typography>
+          <Typography variant="h6" color="primary">
+            R$ {totalDoDia.toFixed(2).replace('.', ',')}
+          </Typography>
+        </Paper>
+        <Paper sx={{ p: 2, minWidth: 200, flex: 1 }}>
+          <Typography variant="subtitle2">Quantidade de Gastos</Typography>
+          <Typography variant="h6" color="secondary">
+            {quantidadeDoDia}
+          </Typography>
+        </Paper>
+      </Box>
 
       <Dialog open={openDeleteConfirm} onClose={cancelDelete}>
         <DialogTitle>Confirmar Exclusão</DialogTitle>

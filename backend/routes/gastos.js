@@ -22,9 +22,13 @@ router.get('/', async (req, res) => {
     }
 
     if (dataInicio && dataFim) {
+      // Criar datas em UTC para evitar problemas de timezone
+      const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
+      const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
+
       query.data = {
-        $gte: new Date(dataInicio),
-        $lte: new Date(dataFim)
+        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
+        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
       };
     }
 
@@ -82,10 +86,14 @@ router.post('/', [
 
     const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria } = req.body;
 
+    // Criar data em UTC para evitar problemas de timezone
+    const [year, month, day] = data.split('-').map(Number);
+    const dataParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
     const gasto = await Gasto.create({
       tipoDespesa,
       valor: parseFloat(valor),
-      data: new Date(data),
+      data: dataParsed,
       local,
       observacao,
       formaPagamento,
