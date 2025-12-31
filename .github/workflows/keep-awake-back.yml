@@ -1,0 +1,77 @@
+name: Keep Render Awake
+
+on: 
+  schedule:
+    # A cada 10 minutos, 24 horas por dia (mais frequente para evitar suspensão)
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps: 
+      - name: Request API Health Check
+        id: call_api
+        env:
+          RENDER_URL: ${{ secrets.RENDER_URL || 'https://controlefinanceiro-backend.onrender.com' }}
+        run: |
+          echo "🔄 Fazendo ping em: ${RENDER_URL}/health"
+          echo "⏰ Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          
+          # Tenta /health primeiro, se falhar tenta /ping
+          HTTP_CODE=$(curl -s -o response.txt -w "%{http_code}" --max-time 30 --connect-timeout 10 ${RENDER_URL}/health || echo "000")
+          
+          # Se /health falhar, tenta /ping como fallback
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "⚠️  /health falhou, tentando /ping..."
+            HTTP_CODE=$(curl -s -o response.txt -w "%{http_code}" --max-time 30 --connect-timeout 10 ${RENDER_URL}/ping || echo "000")
+          fi
+          
+          BODY=$(cat response.txt 2>/dev/null || echo "Erro ao ler resposta")
+          TIME_TOTAL=$(curl -s -o /dev/null -w "%{time_total}" --max-time 30 ${RENDER_URL}/health 2>/dev/null || curl -s -o /dev/null -w "%{time_total}" --max-time 30 ${RENDER_URL}/ping 2>/dev/null || echo "0")
+          
+          echo "📊 Status HTTP: $HTTP_CODE"
+          echo "⏱️  Tempo de resposta: ${TIME_TOTAL}s"
+          echo "📄 Resposta: $BODY"
+          
+          # Verifica se foi bem-sucedido
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Ping bem-sucedido!"
+            FULL_RESPONSE="✅ Sucesso | Status: $HTTP_CODE | Tempo: ${TIME_TOTAL}s | $BODY"
+          else
+            echo "❌ Ping falhou com status: $HTTP_CODE"
+            FULL_RESPONSE="❌ Falha | Status: $HTTP_CODE | Tempo: ${TIME_TOTAL}s | $BODY"
+            # Não falha o workflow, apenas registra o erro
+            echo "⚠️  Aplicação pode estar suspensa ou com problemas"
+          fi
+          
+          # Exporta para env
+          echo "response=$FULL_RESPONSE" >> $GITHUB_ENV
+          echo "http_code=$HTTP_CODE" >> $GITHUB_ENV
+
+      - name: Send to Discord (opcional)
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK || '' }}
+          RESPONSE_BODY: ${{ env.response }}
+          HTTP_CODE: ${{ env.http_code }}
+        run: |
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+            if [ "$HTTP_CODE" = "200" ]; then
+              EMOJI="✅"
+            else
+              EMOJI="❌"
+            fi
+            
+            PAYLOAD=$(echo "$RESPONSE_BODY" | jq -Rs .)
+            MESSAGE="{\"content\": \"$EMOJI **Keep Render Awake** - $TIMESTAMP\n$PAYLOAD\"}"
+            
+            curl -s -H "Content-Type: application/json" \
+                 -X POST \
+                 -d "$MESSAGE" \
+                 "$DISCORD_WEBHOOK" || echo "Erro ao enviar para Discord"
+          else
+            echo "ℹ️  Discord webhook não configurado, pulando envio"
+          fi
