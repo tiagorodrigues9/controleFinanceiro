@@ -31,6 +31,9 @@ jobs:
           BODY=$(cat response.txt 2>/dev/null || echo "Erro ao ler resposta")
           TIME_TOTAL=$(curl -s -o /dev/null -w "%{time_total}" --max-time 30 ${RENDER_URL}/health 2>/dev/null || curl -s -o /dev/null -w "%{time_total}" --max-time 30 ${RENDER_URL}/ping 2>/dev/null || echo "0")
           
+          # Limpar o BODY para remover caracteres especiais
+          BODY=$(echo "$BODY" | tr -d '\n\r\t' | sed 's/"/\\"/g' | head -c 200)
+          
           echo "📊 Status HTTP: $HTTP_CODE"
           echo "⏱️  Tempo de resposta: ${TIME_TOTAL}s"
           echo "📄 Resposta: $BODY"
