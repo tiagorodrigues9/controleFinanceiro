@@ -20,6 +20,6 @@ services:
       - type: rewrite
         source: /api/*
         destination: /backend/server.js
-      - type: file
+      - type: rewrite
         source: /*
-        destination: /index.html
+        destination: /frontend/build/index.html
