@@ -7,6 +7,7 @@ const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -181,43 +182,44 @@ router.post('/', upload.single('anexo'), [
     } else {
       // Se for parcelamento normal
       if (totalParcelas && totalParcelas > 1) {
-      const parcelas = [];
-      const parcelaIdFinal = parcelaId || Date.now().toString();
-      let valorParcela;
-      const dataBase = new Date(dataVencimentoParsed);
+        const parcelas = [];
+        const parcelaIdFinal = parcelaId || Date.now().toString();
+        let valorParcela;
+        const dataBase = new Date(dataVencimentoParsed);
 
-      if (parcelMode === 'mesmo_valor') {
-        valorParcela = parseFloat(valor);
-      } else {
-        // dividir or manual, default to dividir
-        valorParcela = parseFloat(valor) / parseInt(totalParcelas);
+        if (parcelMode === 'mesmo_valor') {
+          valorParcela = parseFloat(valor);
+        } else {
+          // dividir or manual, default to dividir
+          valorParcela = parseFloat(valor) / parseInt(totalParcelas);
+        }
+
+        for (let i = 1; i <= totalParcelas; i++) {
+          const dataVencimentoParcela = new Date(dataBase);
+          dataVencimentoParcela.setMonth(dataVencimentoParcela.getMonth() + (i - 1));
+
+          const parcela = {
+            ...contaData,
+            nome: `${nome} - Parcela ${i} de ${totalParcelas}`,
+            valor: valorParcela,
+            dataVencimento: dataVencimentoParcela,
+            parcelaAtual: i,
+            totalParcelas: parseInt(totalParcelas),
+            parcelaId: parcelaIdFinal
+          };
+
+          parcelas.push(parcela);
+        }
+
+        const contasCriadas = await Conta.insertMany(parcelas);
+        logger.info('Contas parceladas criadas', { count: contasCriadas.length });
+        return res.status(201).json(contasCriadas);
       }
 
-      for (let i = 1; i <= totalParcelas; i++) {
-        const dataVencimentoParcela = new Date(dataBase);
-        dataVencimentoParcela.setMonth(dataVencimentoParcela.getMonth() + (i - 1));
-
-        const parcela = {
-          ...contaData,
-          nome: `${nome} - Parcela ${i} de ${totalParcelas}`,
-          valor: valorParcela,
-          dataVencimento: dataVencimentoParcela,
-          parcelaAtual: i,
-          totalParcelas: parseInt(totalParcelas),
-          parcelaId: parcelaIdFinal
-        };
-
-        parcelas.push(parcela);
-      }
-
-      const contasCriadas = await Conta.insertMany(parcelas);
-      logger.info('Contas parceladas criadas', { count: contasCriadas.length });
-      return res.status(201).json(contasCriadas);
+      const conta = await Conta.create(contaData);
+      logger.info('Conta criada com sucesso', { contaId: conta._id });
+      res.status(201).json(conta);
     }
-
-    const conta = await Conta.create(contaData);
-    logger.info('Conta criada com sucesso', { contaId: conta._id });
-    res.status(201).json(conta);
   } catch (error) {
     logger.error('Erro ao criar conta', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao criar conta' });

@@ -105,34 +105,12 @@ const ContasPagar = () => {
     return Boolean(v);
   };
 
-  useEffect(() => {
-    fetchContas();
-    fetchFornecedores();
-    fetchContasBancarias();
-    fetchGrupos();
-    fetchFormasPagamento();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const handler = () => fetchFormasPagamento();
-    window.addEventListener('formasUpdated', handler);
-    return () => window.removeEventListener('formasUpdated', handler);
-  }, []);
-
-  // Recarrega automaticamente quando filtros, mês ou ano mudarem
-  useEffect(() => {
-    fetchContas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano, filtros, fetchContas]);
-
-  // Limpa a lista de parcelas quando o modo de parcelamento muda para algo diferente de 'manual'
-  useEffect(() => {
-    if (formData.parcelMode !== 'manual') {
-      setParcelasList([]);
-      setParcelaData({ valor: '', data: '' });
-    }
-  }, [formData.parcelMode]);
+  const isNotEmpty = (v) => {
+    if (v === null || v === undefined) return false;
+    if (typeof v === 'string') return v.trim().length > 0;
+    if (typeof v === 'number') return v !== 0;
+    return Boolean(v);
+  };
 
   const fetchContas = async () => {
     try {
@@ -156,6 +134,15 @@ const ContasPagar = () => {
       setLoading(false);
     }
   };
+
+
+  // Limpa a lista de parcelas quando o modo de parcelamento muda para algo diferente de 'manual'
+  useEffect(() => {
+    if (formData.parcelMode !== 'manual') {
+      setParcelasList([]);
+      setParcelaData({ valor: '', data: '' });
+    }
+  }, [formData.parcelMode]);
 
   const fetchFornecedores = async () => {
     try {
@@ -192,6 +179,21 @@ const ContasPagar = () => {
       setError('Erro ao carregar grupos');
     }
   };
+
+  useEffect(() => {
+    fetchContas();
+    fetchFornecedores();
+    fetchContasBancarias();
+    fetchGrupos();
+    fetchFormasPagamento();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const handler = () => fetchFormasPagamento();
+    window.addEventListener('formasUpdated', handler);
+    return () => window.removeEventListener('formasUpdated', handler);
+  }, []);
 
   const handleAddParcela = () => {
     if (parcelaData.valor && parcelaData.data) {

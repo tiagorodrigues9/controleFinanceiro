@@ -39,17 +39,6 @@ const DashboardCompleto = () => {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
 
-  useEffect(() => {
-    fetchDashboardData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano, fetchDashboardData]);
-
-  useEffect(() => {
-    const prev = document.title;
-    document.title = 'Controle Financeiro';
-    return () => { document.title = prev; };
-  }, []);
-
   const fetchDashboardData = useCallback(async () => {
     try {
       const response = await api.get('/dashboard', {
@@ -63,19 +52,16 @@ const DashboardCompleto = () => {
     }
   }, [mes, ano]);
 
-  const safeNum = (v) => (typeof v === 'number' ? v : Number(v) || 0);
+  useEffect(() => {
+    fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mes, ano, fetchDashboardData]);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
+  useEffect(() => {
+    const prev = document.title;
+    document.title = 'Controle Financeiro';
+    return () => { document.title = prev; };
+  }, []);
 
   // Build shared chart data for evolucaoSaldo: unify months and balances per account
   const buildChartData = useCallback((evolucao) => {
@@ -92,6 +78,20 @@ const DashboardCompleto = () => {
   }, []);
 
   const chartData = useMemo(() => buildChartData(data?.evolucaoSaldo), [data?.evolucaoSaldo, buildChartData]);
+
+  const safeNum = (v) => (typeof v === 'number' ? v : Number(v) || 0);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <Alert severity="error">{error}</Alert>;
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }} className="dashboard-page">
