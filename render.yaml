@@ -1,12 +1,11 @@
 services:
-  # Backend API
   - type: web
-    name: controle-financeiro-api
+    name: controle-financeiro
     env: node
-    repo: https://github.com/tiagorodrigues9/controle-financeiro
-    rootDir: backend
-    buildCommand: npm install
-    startCommand: npm start
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,17 +13,13 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: PORT
-        value: 5000
-
-  # Frontend
-  - type: web
-    name: controle-financeiro-web
-    env: static
-    repo: https://github.com/tiagorodrigues9/controle-financeiro
-    rootDir: frontend
-    buildCommand: npm run build
-    staticPublishPath: ./build
-    envVars:
       - key: REACT_APP_API_URL
-        value: https://controle-financeiro-api.onrender.com/api
+        value: https://controle-financeiro.onrender.com
+    staticPublishPath: ./frontend/build
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: /backend/server.js
+      - type: file
+        source: /*
+        destination: /index.html
