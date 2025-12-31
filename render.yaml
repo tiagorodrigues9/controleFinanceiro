@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install && cd backend && npm install && cd ../frontend && npm install && npm run build
-    startCommand: cd backend && npm start
+    startCommand: cd backend && npm install && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
