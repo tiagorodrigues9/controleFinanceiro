@@ -34,6 +34,23 @@ app.get('/', (req, res) => {
   });
 });
 
+// Rota de health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Rota de ping
+app.get('/ping', (req, res) => {
+  res.json({ 
+    message: 'PONG',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Rotas da API
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/contas', require('./routes/contas'));
