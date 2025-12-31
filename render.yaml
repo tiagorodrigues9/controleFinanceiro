@@ -3,7 +3,7 @@ services:
     name: controle-financeiro
     env: node
     plan: free
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd backend && npm install && cd ../frontend && npm install && npm run build
     startCommand: cd backend && npm start
     healthCheckPath: /api/health
     envVars:
