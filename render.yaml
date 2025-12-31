@@ -1,0 +1,30 @@
+services:
+  # Backend API
+  - type: web
+    name: controle-financeiro-api
+    env: node
+    repo: https://github.com/tiagorodrigues9/controle-financeiro
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 5000
+
+  # Frontend
+  - type: web
+    name: controle-financeiro-web
+    env: static
+    repo: https://github.com/tiagorodrigues9/controle-financeiro
+    rootDir: frontend
+    buildCommand: npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://controle-financeiro-api.onrender.com/api
