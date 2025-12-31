@@ -111,6 +111,7 @@ const ContasPagar = () => {
     fetchContasBancarias();
     fetchGrupos();
     fetchFormasPagamento();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -123,7 +124,7 @@ const ContasPagar = () => {
   useEffect(() => {
     fetchContas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano, filtros]);
+  }, [mes, ano, filtros, fetchContas]);
 
   // Limpa a lista de parcelas quando o modo de parcelamento muda para algo diferente de 'manual'
   useEffect(() => {
@@ -146,16 +147,11 @@ const ContasPagar = () => {
       if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
       if (filtros.dataFim) params.dataFim = filtros.dataFim;
 
-      console.log('Buscando contas com params:', params);
       const response = await api.get('/contas', { params });
-      console.log('Contas recebidas:', response.data);
       const listas = (response.data || []).filter(conta => conta && conta.valor != null);
-      console.log('Contas filtradas (valor não nulo):', listas.length);
       setContas(listas);
     } catch (err) {
       setError('Erro ao carregar contas');
-      console.error('Erro ao buscar contas:', err);
-      console.error('Detalhes do erro:', err.response?.data);
     } finally {
       setLoading(false);
     }
@@ -166,7 +162,7 @@ const ContasPagar = () => {
       const response = await api.get('/fornecedores');
       setFornecedores(response.data.filter(f => f.ativo));
     } catch (err) {
-      console.error('Erro ao carregar fornecedores:', err);
+      setError('Erro ao carregar fornecedores');
     }
   };
 
@@ -175,7 +171,7 @@ const ContasPagar = () => {
       const response = await api.get('/contas-bancarias');
       setContasBancarias(response.data);
     } catch (err) {
-      console.error('Erro ao carregar contas bancárias:', err);
+      setError('Erro ao carregar contas bancárias');
     }
   };
 
@@ -184,7 +180,7 @@ const ContasPagar = () => {
       const response = await api.get('/formas-pagamento');
       setFormasPagamento(response.data);
     } catch (err) {
-      console.error('Erro ao carregar formas de pagamento:', err);
+      setError('Erro ao carregar formas de pagamento');
     }
   };
 
@@ -193,7 +189,7 @@ const ContasPagar = () => {
       const response = await api.get('/grupos');
       setGrupos(response.data);
     } catch (err) {
-      console.error('Erro ao carregar grupos:', err);
+      setError('Erro ao carregar grupos');
     }
   };
 
@@ -399,21 +395,19 @@ const ContasPagar = () => {
       setParcelasInfo({ count: 0, contaId: null });
       setContaToHardDelete(null);
     } catch (err) {
-      console.error('Erro ao excluir parcela permanentemente:', err);
-      setError('Erro ao excluir parcela');
+      setError('Erro ao excluir parcela permanentemente');
     }
   };
 
   // Função para excluir todas as parcelas permanentemente
   const cancelarTodasParcelas = async () => {
     try {
-      const response = await api.delete(`/contas/${parcelasInfo.contaId}/hard-all-remaining`);
+      await api.delete(`/contas/${parcelasInfo.contaId}/hard-all-remaining`);
       await fetchContas();
       setOpenConfirmParcelas(false);
       setParcelasInfo({ count: 0, contaId: null });
       setContaToHardDelete(null);
     } catch (err) {
-      console.error('Erro ao excluir todas as parcelas permanentemente:', err);
       setError('Erro ao excluir todas as parcelas');
     }
   };

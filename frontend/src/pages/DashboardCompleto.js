@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -41,7 +41,8 @@ const DashboardCompleto = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [mes, ano]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mes, ano, fetchDashboardData]);
 
   useEffect(() => {
     const prev = document.title;
@@ -49,7 +50,7 @@ const DashboardCompleto = () => {
     return () => { document.title = prev; };
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       const response = await api.get('/dashboard', {
         params: { mes, ano },
@@ -60,7 +61,7 @@ const DashboardCompleto = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mes, ano]);
 
   const safeNum = (v) => (typeof v === 'number' ? v : Number(v) || 0);
 
@@ -77,7 +78,7 @@ const DashboardCompleto = () => {
   }
 
   // Build shared chart data for evolucaoSaldo: unify months and balances per account
-  const buildChartData = (evolucao) => {
+  const buildChartData = useCallback((evolucao) => {
     if (!evolucao || evolucao.length === 0) return [];
     // assume each conta.saldos is same length and aligned by month (backend guarantees monthly endpoints)
     const months = evolucao[0].saldos.map((s) => s.data);
@@ -88,15 +89,15 @@ const DashboardCompleto = () => {
       });
       return entry;
     });
-  };
+  }, []);
 
-  const chartData = buildChartData(data?.evolucaoSaldo);
+  const chartData = useMemo(() => buildChartData(data?.evolucaoSaldo), [data?.evolucaoSaldo, buildChartData]);
 
   return (
     <Box sx={{ flexGrow: 1 }} className="dashboard-page">
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: { xs: 1, sm: 2 } }}>
         <Typography variant="h4" sx={{ flexGrow: 1, minWidth: { xs: 'auto', sm: 200 } }}>Dashboard</Typography>
-        <Box display="flex" gap={1} sx={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
           <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Mês</InputLabel>
             <Select value={mes} onChange={(e) => setMes(e.target.value)}>

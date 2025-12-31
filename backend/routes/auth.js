@@ -21,8 +21,12 @@ const transporter = nodemailer.createTransport({
 
 // Gerar token JWT
 const generateToken = (id) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET não configurado');
+  }
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || '7d',
+    algorithm: 'HS256'
   });
 };
 

@@ -62,8 +62,7 @@ router.get('/', async (req, res) => {
       query.dataVencimento.$lte = fim;
     }
 
-    console.log('Buscando contas para usuário:', req.user._id);
-    console.log('Query built:', query);
+    logger.info('Buscando contas', { userId: req.user._id, filters: { mes, ano, ativo, status } });
 
     // Atualizar status de contas vencidas
     await Conta.updateMany(
@@ -81,10 +80,10 @@ router.get('/', async (req, res) => {
       .populate('contaBancaria')
       .sort({ dataVencimento: 1 });
 
-    console.log('Contas encontradas:', contas.length);
+    logger.info('Contas encontradas', { count: contas.length });
     res.json(contas);
   } catch (error) {
-    console.error('Erro ao buscar contas:', error);
+    logger.error('Erro ao buscar contas', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao buscar contas' });
   }
 });
@@ -107,7 +106,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(conta);
   } catch (error) {
-    console.error(error);
+    logger.error('Erro ao buscar conta', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao buscar conta' });
   }
 });
@@ -129,7 +128,7 @@ router.post('/', upload.single('anexo'), [
 
     const { nome, dataVencimento, valor, fornecedor, observacao, totalParcelas, parcelaId, parcelMode, parcelas, tipoControle } = req.body;
 
-    console.log('Cadastrando conta:', { nome, dataVencimento, valor, fornecedor, usuario: req.user._id });
+    logger.info('Cadastrando conta', { nome, dataVencimento, valor, fornecedor, userId: req.user._id });
 
     let dataVencimentoParsed;
     if (dataVencimento) {
@@ -212,16 +211,15 @@ router.post('/', upload.single('anexo'), [
       }
 
       const contasCriadas = await Conta.insertMany(parcelas);
-      console.log('Contas parceladas criadas:', contasCriadas.length);
+      logger.info('Contas parceladas criadas', { count: contasCriadas.length });
       return res.status(201).json(contasCriadas);
     }
 
     const conta = await Conta.create(contaData);
-    console.log('Conta criada com sucesso:', conta._id);
+    logger.info('Conta criada com sucesso', { contaId: conta._id });
     res.status(201).json(conta);
-    }
   } catch (error) {
-    console.error(error);
+    logger.error('Erro ao criar conta', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao criar conta' });
   }
 });
@@ -258,7 +256,7 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
 
     res.json(conta);
   } catch (error) {
-    console.error(error);
+    logger.error('Erro ao atualizar conta', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao atualizar conta' });
   }
 });
@@ -307,7 +305,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error('Erro ao cancelar conta', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao cancelar conta' });
   }
 });
