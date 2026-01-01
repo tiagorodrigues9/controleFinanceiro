@@ -42,7 +42,6 @@ const cartaoSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para melhor performance
 cartaoSchema.index({ usuario: 1, ativo: 1 });
 cartaoSchema.index({ usuario: 1, tipo: 1 });
 

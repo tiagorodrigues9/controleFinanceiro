@@ -17,7 +17,7 @@ const auth = async (req, res, next) => {
     const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
-      console.log('❌ Usuário não encontrado para ID:', decoded.id);
+      console.log(' Usuário não encontrado para ID:', decoded.id);
       return res.status(401).json({ message: 'Usuário não encontrado' });
     }
 

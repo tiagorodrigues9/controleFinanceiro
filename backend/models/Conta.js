@@ -37,7 +37,6 @@ const contaSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  // Campos para parcelamento
   parcelaAtual: {
     type: Number
   },
@@ -45,9 +44,8 @@ const contaSchema = new mongoose.Schema({
     type: Number
   },
   parcelaId: {
-    type: String // ID único para agrupar parcelas
+    type: String 
   },
-  // Campos para pagamento
   dataPagamento: {
     type: Date
   },
@@ -71,8 +69,7 @@ const contaSchema = new mongoose.Schema({
   tipoControle: {
     type: String,
     trim: true
-  }
-  ,
+  },
   ativo: {
     type: Boolean,
     default: true
@@ -81,7 +78,6 @@ const contaSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Middleware para atualizar status automaticamente
 contaSchema.pre('save', function(next) {
   if (this.status === 'Pendente' && this.dataVencimento < new Date()) {
     this.status = 'Vencida';

@@ -474,13 +474,15 @@ router.post('/:id/pagar', [
 
       // Criar registro no extrato
       const valorPago = conta.valor + (conta.jurosPago || 0);
+      const fornecedorNome = conta.fornecedor?.nome || 'Fornecedor não informado';
+      
       await Extrato.create([{
         contaBancaria,
         cartao: cartaoObj ? cartaoObj._id : null,
         tipo: 'Saída',
         valor: valorPago,
         data: new Date(),
-        motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor.nome}${juros ? ` (juros: R$ ${juros})` : ''}`,
+        motivo: `Pagamento: ${conta.nome} - ${fornecedorNome}${juros ? ` (juros: R$ ${juros})` : ''}`,
         referencia: {
           tipo: 'Conta',
           id: conta._id
@@ -497,7 +499,15 @@ router.post('/:id/pagar', [
       await session.endSession();
     }
   } catch (error) {
-    console.error(error);
+    console.error('❌ Erro ao pagar conta:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ Dados da requisição:', {
+      contaId: req.params.id,
+      formaPagamento: req.body.formaPagamento,
+      contaBancaria: req.body.contaBancaria,
+      cartao: req.body.cartao,
+      juros: req.body.juros
+    });
     res.status(500).json({ message: 'Erro ao pagar conta' });
   }
 });

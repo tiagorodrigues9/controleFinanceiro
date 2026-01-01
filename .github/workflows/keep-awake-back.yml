@@ -52,29 +52,3 @@ jobs:
           # Exporta para env
           echo "response=$FULL_RESPONSE" >> $GITHUB_ENV
           echo "http_code=$HTTP_CODE" >> $GITHUB_ENV
-
-      - name: Send to Discord (opcional)
-        if: always()
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK || '' }}
-          RESPONSE_BODY: ${{ env.response }}
-          HTTP_CODE: ${{ env.http_code }}
-        run: |
-          if [ -n "$DISCORD_WEBHOOK" ]; then
-            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-            if [ "$HTTP_CODE" = "200" ]; then
-              EMOJI="✅"
-            else
-              EMOJI="❌"
-            fi
-            
-            PAYLOAD=$(echo "$RESPONSE_BODY" | jq -Rs .)
-            MESSAGE="{\"content\": \"$EMOJI **Keep Render Awake** - $TIMESTAMP\n$PAYLOAD\"}"
-            
-            curl -s -H "Content-Type: application/json" \
-                 -X POST \
-                 -d "$MESSAGE" \
-                 "$DISCORD_WEBHOOK" || echo "Erro ao enviar para Discord"
-          else
-            echo "ℹ️  Discord webhook não configurado, pulando envio"
-          fi

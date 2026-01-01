@@ -8,7 +8,6 @@ const emailService = require('../services/emailService');
 
 const router = express.Router();
 
-// Gerar token JWT
 const generateToken = (id) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET não configurado');
@@ -19,13 +18,10 @@ const generateToken = (id) => {
   });
 };
 
-// @route   POST /api/auth/register
-// @desc    Registrar novo usuário
-// @access  Public
 router.post('/register', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').isEmail().withMessage('Email inválido'),
-  body('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres')
+  body('password').isLength({ min: 5 }).withMessage('Senha deve ter no mínimo 6 caracteres')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -35,15 +31,12 @@ router.post('/register', [
 
     const { nome, email, password } = req.body;
 
-    // Verificar se usuário já existe
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'Usuário já cadastrado' });
     }
 
-    // Criar usuário
     const user = await User.create({ nome, email, password });
-
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -60,9 +53,6 @@ router.post('/register', [
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Autenticar usuário
-// @access  Public
 router.post('/login', [
   body('email').isEmail().withMessage('Email inválido'),
   body('password').notEmpty().withMessage('Senha é obrigatória')
@@ -74,14 +64,11 @@ router.post('/login', [
     }
 
     const { email, password } = req.body;
-
-    // Verificar usuário
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
-    // Verificar senha
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -103,9 +90,6 @@ router.post('/login', [
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Obter usuário atual
-// @access  Private
 router.get('/me', auth, async (req, res) => {
   res.json({
     user: {
@@ -116,9 +100,6 @@ router.get('/me', auth, async (req, res) => {
   });
 });
 
-// @route   POST /api/auth/forgot-password
-// @desc    Solicitar recuperação de senha
-// @access  Public
 router.post('/forgot-password', [
   body('email').isEmail().withMessage('Email inválido')
 ], async (req, res) => {
@@ -135,13 +116,11 @@ router.post('/forgot-password', [
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    // Gerar token de reset
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutos
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Enviar email
     const resetUrl = `${process.env.FRONTEND_URL || 'https://controlefinanceiro.onrender.com'}/reset-password/${resetToken}`;
     
     const mailOptions = {
@@ -157,7 +136,6 @@ router.post('/forgot-password', [
       `
     };
 
-    // Enviar email usando o serviço robusto
     try {
       const result = await emailService.sendMail(mailOptions);
       console.log('Email de recuperação enviado para:', user.email, 'via', result.provider);
@@ -165,7 +143,6 @@ router.post('/forgot-password', [
     } catch (emailError) {
       console.error('Erro ao enviar email de recuperação:', emailError.message);
       
-      // Resposta amigável para o usuário
       if (emailError.message.includes('timeout') || emailError.message.includes('connection')) {
         return res.status(500).json({ 
           message: 'Servidor de e-mail temporariamente indisponível. Tente novamente em alguns minutos.' 
@@ -186,9 +163,6 @@ router.post('/forgot-password', [
   }
 });
 
-// @route   POST /api/auth/reset-password
-// @desc    Redefinir senha
-// @access  Public
 router.post('/reset-password', [
   body('token').notEmpty().withMessage('Token é obrigatório'),
   body('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres')
@@ -224,9 +198,6 @@ router.post('/reset-password', [
   }
 });
 
-// @route   PUT /api/auth/profile
-// @desc    Atualizar perfil do usuário
-// @access  Private
 router.put('/profile', auth, [
   body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio'),
   body('endereco').optional().trim(),

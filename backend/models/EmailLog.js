@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// Schema para salvar e-mails quando SMTP falha
 const EmailLogSchema = new mongoose.Schema({
   to: {
     type: String,
@@ -33,7 +32,6 @@ const EmailLogSchema = new mongoose.Schema({
   }
 });
 
-// Índice para consulta rápida
 EmailLogSchema.index({ to: 1, createdAt: -1 });
 EmailLogSchema.index({ status: 1, createdAt: -1 });
 
