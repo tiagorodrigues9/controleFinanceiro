@@ -46,6 +46,9 @@ const PWAInstallBanner: React.FC = () => {
     // Verificar se já foi dispensado nesta sessão
     if (sessionStorage.getItem('pwa-banner-dismissed')) return;
 
+    // Verificar se o prompt principal já foi mostrado
+    if (sessionStorage.getItem('pwa-prompt-shown')) return;
+
     // Capturar evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
@@ -55,9 +58,9 @@ const PWAInstallBanner: React.FC = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Mostrar banner após 2 segundos no mobile
+    // Mostrar banner após 2 segundos no mobile (só se o prompt principal não tiver sido mostrado)
     const timer = setTimeout(() => {
-      if (!isInstalled && !sessionStorage.getItem('pwa-banner-dismissed')) {
+      if (!isInstalled && !sessionStorage.getItem('pwa-banner-dismissed') && !sessionStorage.getItem('pwa-prompt-shown')) {
         setShowBanner(true);
       }
     }, 2000);

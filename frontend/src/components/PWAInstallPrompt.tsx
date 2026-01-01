@@ -42,10 +42,16 @@ const PWAInstallPrompt: React.FC = () => {
       return;
     }
 
+    // Verificar se já foi dispensado nesta sessão
+    if (sessionStorage.getItem('pwa-prompt-dismissed')) return;
+
     // Capturar evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      
+      // Marcar que o prompt foi mostrado para evitar duplicidade
+      sessionStorage.setItem('pwa-prompt-shown', 'true');
       
       // Mostrar diálogo após 3 segundos (mais tempo para usuário ver o app)
       setTimeout(() => {
@@ -55,7 +61,7 @@ const PWAInstallPrompt: React.FC = () => {
 
     // Também mostrar após interação do usuário
     const showPromptAfterInteraction = () => {
-      if (!isInstalled && !sessionStorage.getItem('pwa-prompt-shown')) {
+      if (!isInstalled && !sessionStorage.getItem('pwa-prompt-shown') && !sessionStorage.getItem('pwa-prompt-dismissed')) {
         setTimeout(() => {
           setShowInstallDialog(true);
           sessionStorage.setItem('pwa-prompt-shown', 'true');
@@ -87,6 +93,8 @@ const PWAInstallPrompt: React.FC = () => {
       
       if (outcome === 'accepted') {
         console.log('App instalado com sucesso!');
+        // Marcar como dispensado para não mostrar novamente
+        sessionStorage.setItem('pwa-prompt-dismissed', 'true');
       }
       
       setDeferredPrompt(null);
@@ -98,12 +106,16 @@ const PWAInstallPrompt: React.FC = () => {
 
   const handleIOSInstall = () => {
     setShowInstallDialog(false);
+    // Marcar como dispensado para não mostrar novamente
+    sessionStorage.setItem('pwa-prompt-dismissed', 'true');
     // Mostrar instruções para iOS
     alert('Para instalar este app:\n\n1. Toque no ícone de compartilhar \ud83d\udce4\n2. Role para baixo e toque em "Adicionar à Tela de Início"\n3. Toque em "Adicionar"');
   };
 
   const handleClose = () => {
     setShowInstallDialog(false);
+    // Marcar que o prompt foi dispensado para não mostrar novamente
+    sessionStorage.setItem('pwa-prompt-dismissed', 'true');
   };
 
   // Não mostrar se já foi instalado ou não houver prompt
