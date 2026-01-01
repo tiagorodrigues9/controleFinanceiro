@@ -111,11 +111,18 @@ router.delete('/:id', async (req, res) => {
 // @access  Private
 router.delete('/limpar-todas', async (req, res) => {
   try {
-    await Notificacao.deleteMany({ usuario: req.user._id });
+    console.log('🗑️ Tentando limpar notificações do usuário:', req.user._id);
+    console.log('🔑 Token recebido:', req.header('Authorization')?.substring(0, 20) + '...');
+    
+    const resultado = await Notificacao.deleteMany({ usuario: req.user._id });
+    console.log('📊 Resultado da exclusão:', resultado);
 
-    res.json({ message: 'Todas as notificações excluídas com sucesso' });
+    res.json({ 
+      message: 'Todas as notificações excluídas com sucesso',
+      deletadas: resultado.deletedCount 
+    });
   } catch (error) {
-    console.error(error);
+    console.error('❌ Erro ao limpar notificações:', error);
     res.status(500).json({ message: 'Erro ao limpar notificações' });
   }
 });
