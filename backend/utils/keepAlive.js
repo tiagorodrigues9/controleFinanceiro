@@ -3,7 +3,7 @@
 
 const https = require('https');
 
-const RENDER_URL = process.env.RENDER_APP_URL || 'https://seu-app.onrender.com';
+const RENDER_URL = process.env.RENDER_APP_URL || process.env.RENDER_EXTERNAL_URL || 'https://controlefinanceiro-backend.onrender.com';
 const KEEP_ALIVE_INTERVAL = 12 * 60 * 1000; // 12 minutos (Render dorme após 15min sem requisições)
 
 function keepAlive() {
