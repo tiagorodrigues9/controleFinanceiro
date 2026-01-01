@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Controle Financeiro - Redirect</title>
+  <script>
+    // Salvar a rota original e redirecionar para a raiz
+    var originalPath = window.location.pathname;
+    var search = window.location.search;
+    window.location.replace('/?redirected=' + encodeURIComponent(originalPath) + search);
+  </script>
+</head>
+<body>
+  <p>Redirecionando...</p>
+</body>
+</html>
