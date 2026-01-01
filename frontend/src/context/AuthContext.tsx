@@ -13,6 +13,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  error: string | null;
+  setError: (error: string | null) => void;
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   register: (nome: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -30,6 +32,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,6 +47,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
+      setLoading(true); // Inicia loading
+      setError(''); // Limpa erros anteriores
+      
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
 
@@ -54,10 +60,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { success: true };
     } catch (error: any) {
+      // Garante que loading seja desativado mesmo em caso de erro
+      setLoading(false);
+      
       return {
         success: false,
         message: error.response?.data?.message || 'Erro ao fazer login',
       };
+    } finally {
+      setLoading(false); // Garante que loading seja sempre desativado
     }
   };
 
@@ -121,6 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       value={{
         user,
         loading,
+        error,
+        setError,
         login,
         register,
         logout,

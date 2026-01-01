@@ -1,23 +1,12 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
-
-// Configurar nodemailer
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
 
 // Gerar token JWT
 const generateToken = (id) => {
@@ -168,12 +157,32 @@ router.post('/forgot-password', [
       `
     };
 
-    await transporter.sendMail(mailOptions);
-
-    res.json({ message: 'Email de recuperação enviado' });
+    // Enviar email usando o serviço robusto
+    try {
+      const result = await emailService.sendMail(mailOptions);
+      console.log('Email de recuperação enviado para:', user.email, 'via', result.provider);
+      res.json({ message: 'Email de recuperação enviado' });
+    } catch (emailError) {
+      console.error('Erro ao enviar email de recuperação:', emailError.message);
+      
+      // Resposta amigável para o usuário
+      if (emailError.message.includes('timeout') || emailError.message.includes('connection')) {
+        return res.status(500).json({ 
+          message: 'Servidor de e-mail temporariamente indisponível. Tente novamente em alguns minutos.' 
+        });
+      }
+      
+      if (emailError.message.includes('auth') || emailError.message.includes('credentials')) {
+        return res.status(500).json({ 
+          message: 'Erro de configuração do servidor de e-mail. Contate o suporte.' 
+        });
+      }
+      
+      res.status(500).json({ message: 'Erro ao enviar email de recuperação' });
+    }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao enviar email de recuperação' });
+    console.error('Erro geral no forgot-password:', error);
+    res.status(500).json({ message: 'Erro ao processar solicitação de recuperação' });
   }
 });
 

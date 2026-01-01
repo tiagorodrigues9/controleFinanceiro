@@ -401,29 +401,29 @@ const ContasPagar = () => {
     }
   };
 
-  // Função para excluir apenas esta parcela permanentemente
+  // Função para inativar apenas esta parcela
   const cancelarApenasEsta = async () => {
     try {
-      await api.delete(`/contas/${parcelasInfo.contaId}/hard`);
+      await api.delete(`/contas/${parcelasInfo.contaId}`);
       await fetchContas();
       setOpenConfirmParcelas(false);
       setParcelasInfo({ count: 0, contaId: null });
-      setContaToHardDelete(null);
+      setContaToCancel(null);
     } catch (err) {
-      setError('Erro ao excluir parcela permanentemente');
+      setError('Erro ao inativar parcela');
     }
   };
 
-  // Função para excluir todas as parcelas permanentemente
+  // Função para inativar todas as parcelas restantes
   const cancelarTodasParcelas = async () => {
     try {
-      await api.delete(`/contas/${parcelasInfo.contaId}/hard-all-remaining`);
+      await api.delete(`/contas/${parcelasInfo.contaId}/cancel-all-remaining`);
       await fetchContas();
       setOpenConfirmParcelas(false);
       setParcelasInfo({ count: 0, contaId: null });
-      setContaToHardDelete(null);
+      setContaToCancel(null);
     } catch (err) {
-      setError('Erro ao excluir todas as parcelas');
+      setError('Erro ao inativar parcelas');
     }
   };
 
@@ -1096,13 +1096,17 @@ const ContasPagar = () => {
 
       {/* Dialog Confirmar Cancelamento de Parcelas */}
       <Dialog open={openConfirmParcelas} onClose={() => setOpenConfirmParcelas(false)}>
-        <DialogTitle>Excluir Parcelas em Aberto</DialogTitle>
+        <DialogTitle>Inativar Parcelas Restantes</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, textAlign: 'left' }}>
             Existem <strong>{parcelasInfo.count}</strong> parcela(s) restante(s) deste grupo.
           </Typography>
           <Typography>
-            Como você deseja proceder com a **exclusão permanente**?
+            Como você deseja proceder com o **cancelamento**?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            • <strong>Inativar apenas esta</strong>: Cancela apenas a parcela atual<br/>
+            • <strong>Inativar todas</strong>: Cancela esta e todas as parcelas restantes
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1111,14 +1115,14 @@ const ContasPagar = () => {
             variant="outlined"
             color="primary"
           >
-            Apenas esta parcela
+            Inativar apenas esta
           </Button>
           <Button 
             onClick={cancelarTodasParcelas}
             variant="contained"
-            color="error"
+            color="warning"
           >
-            Excluir todas as parcelas
+            Inativar todas
           </Button>
         </DialogActions>
       </Dialog>

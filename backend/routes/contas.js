@@ -314,7 +314,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // @route   DELETE /api/contas/:id/hard-all-remaining
-// @desc    Excluir permanentemente todas as parcelas do mesmo grupo
+// @desc    Inativar todas as parcelas do mesmo grupo
 // @access  Private
 router.delete('/:id/hard-all-remaining', async (req, res) => {
   try {
@@ -328,19 +328,25 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
       return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
     }
     
-    // Excluir permanentemente todas as parcelas do mesmo parcelaId
-    const result = await Conta.deleteMany({
-      parcelaId: conta.parcelaId,
-      usuario: req.user._id
-    });
+    // Inativar todas as parcelas do mesmo parcelaId
+    const result = await Conta.updateMany(
+      {
+        parcelaId: conta.parcelaId,
+        usuario: req.user._id
+      },
+      {
+        ativo: false,
+        status: 'Cancelada'
+      }
+    );
 
     res.json({ 
-      message: 'Todas as parcelas foram excluídas permanentemente com sucesso',
-      deletedCount: result.deletedCount
+      message: 'Todas as parcelas foram inativadas com sucesso',
+      updatedCount: result.modifiedCount
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Erro ao excluir parcelas permanentemente' });
+    res.status(500).json({ message: 'Erro ao inativar parcelas' });
   }
 });
 
@@ -380,18 +386,22 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
 });
 
 // @route   DELETE /api/contas/:id/hard
-// @desc    Excluir conta fisicamente (apenas usuário dono)
+// @desc    Inativar conta permanentemente (apenas usuário dono)
 // @access  Private
 router.delete('/:id/hard', async (req, res) => {
   try {
     const conta = await Conta.findOne({ _id: req.params.id, usuario: req.user._id });
     if (!conta) return res.status(404).json({ message: 'Conta não encontrada' });
 
-    await Conta.deleteOne({ _id: conta._id });
-    res.json({ message: 'Conta excluída com sucesso' });
+    // Soft inactivate em vez de excluir fisicamente
+    conta.ativo = false;
+    conta.status = 'Cancelada';
+    await conta.save();
+    
+    res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Erro ao excluir conta' });
+    res.status(500).json({ message: 'Erro ao inativar conta' });
   }
 });
 

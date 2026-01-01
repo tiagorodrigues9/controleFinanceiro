@@ -1,0 +1,16 @@
+
+    <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="blueGradient192" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1565c0;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      
+      <!-- Background circle -->
+      <circle cx="96" cy="96" r="86.4" fill="url(#blueGradient192)" stroke="#ffffff" stroke-width="3.84"/>
+      
+      <!-- Money symbol -->
+      <text x="96" y="134.4" font-family="Arial, sans-serif" font-size="96" font-weight="bold" text-anchor="middle" fill="white">R$</text>
+    </svg>
+  

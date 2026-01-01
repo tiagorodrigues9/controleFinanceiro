@@ -35,21 +35,46 @@ const PWAInstallPrompt: React.FC = () => {
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
+    // Detectar se já está instalado
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    if (isInstalled) {
+      console.log('App já está instalado como PWA');
+      return;
+    }
+
     // Capturar evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       
-      // Mostrar diálogo após 2 segundos
+      // Mostrar diálogo após 3 segundos (mais tempo para usuário ver o app)
       setTimeout(() => {
         setShowInstallDialog(true);
-      }, 2000);
+      }, 3000);
+    };
+
+    // Também mostrar após interação do usuário
+    const showPromptAfterInteraction = () => {
+      if (!isInstalled && !sessionStorage.getItem('pwa-prompt-shown')) {
+        setTimeout(() => {
+          setShowInstallDialog(true);
+          sessionStorage.setItem('pwa-prompt-shown', 'true');
+        }, 5000);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Mostrar após scroll ou clique (engajamento do usuário)
+    if (!isInstalled) {
+      window.addEventListener('scroll', showPromptAfterInteraction, { once: true });
+      window.addEventListener('click', showPromptAfterInteraction, { once: true });
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('scroll', showPromptAfterInteraction);
+      window.removeEventListener('click', showPromptAfterInteraction);
     };
   }, []);
 

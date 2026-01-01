@@ -21,6 +21,7 @@ import FormasPagamento from './pages/FormasPagamento';
 import Cartoes from './pages/Cartoes';
 import Notificacoes from './pages/Notificacoes';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import PWAInstallBanner from './components/PWAInstallBanner';
 
 const theme = createTheme({
   palette: {
@@ -72,6 +73,7 @@ const App: React.FC = () => {
         </Router>
       </AuthProvider>
       <PWAInstallPrompt />
+      <PWAInstallBanner />
     </ThemeProvider>
   );
 };

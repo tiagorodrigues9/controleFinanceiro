@@ -15,24 +15,19 @@ import { useAuth } from '../hooks/useAuth';
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const { login } = useAuth();
+  const { login, loading, error, setError } = useAuth(); // Usar estados do contexto
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setError(null); // Limpa erro anterior
 
     const result = await login(email, password);
-    setLoading(false);
 
     if (result.success) {
       navigate('/');
-    } else {
-      setError(result.message || 'Erro ao fazer login');
     }
+    // Se houver erro, o login já trata de definir a mensagem
   };
 
   return (
