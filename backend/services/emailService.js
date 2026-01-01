@@ -28,53 +28,44 @@ class EmailService {
       return;
     }
 
-    // Estratégia 2: Outlook com configuração alternativa
+    // Estratégia 2: Outlook com configuração otimizada para Render.com
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       const host = process.env.EMAIL_HOST || 'smtp-mail.outlook.com';
+      const port = parseInt(process.env.EMAIL_PORT) || 587;
       
-      // Tentar diferentes configurações para Outlook
-      const configs = [
-        {
-          host: 'smtp-mail.outlook.com',
-          port: 587,
-          secure: false
-        },
-        {
-          host: 'smtp.office365.com',
-          port: 587,
-          secure: false
-        },
-        {
-          host: 'smtp-mail.outlook.com',
-          port: 25,
-          secure: false
-        }
-      ];
-
-      // Usar a primeira configuração disponível
-      const config = configs[0];
-      
+      // Configuração otimizada para Outlook em ambiente cloud
       this.transporter = nodemailer.createTransport({
-        host: config.host,
-        port: config.port,
-        secure: config.secure,
+        host: host,
+        port: port,
+        secure: port === 465, // SSL para porta 465, TLS para outras
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
         },
+        // Configurações TLS específicas para Outlook
         tls: {
           rejectUnauthorized: false,
-          minVersion: 'TLSv1.2'
+          ciphers: 'SSLv3'
         },
-        connectionTimeout: 30000,
-        greetingTimeout: 20000,
-        socketTimeout: 20000,
-        pool: false, // Desativar pool para tentar conexões limpas
+        // Timeouts otimizados para Render.com
+        connectionTimeout: 45000,  // 45 segundos
+        greetingTimeout: 30000,   // 30 segundos
+        socketTimeout: 30000,    // 30 segundos
+        // Configurações de estabilidade
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 3,
+        rateDelta: 2000,
+        rateLimit: 3,
+        // Configurações específicas Outlook
         requireTLS: true,
-        authMethod: 'LOGIN'
+        authMethod: 'LOGIN',
+        // Desabilitar verificação extra que pode causar timeout
+        disableFileAccess: true,
+        disableUrlAccess: true
       });
       
-      this.provider = `Outlook (${config.host}:${config.port})`;
+      this.provider = `Outlook (${host}:${port})`;
       console.log(`✅ EmailService configurado com ${this.provider}`);
       return;
     }
