@@ -83,6 +83,7 @@ app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
 app.use('/api/cartoes', require('./routes/cartoes'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
 app.use('/api/emails', require('./routes/emails'));
+app.use('/api/email-test', require('./routes/emailTest'));
 
 // Conexão com MongoDB
 const mongoUser = process.env.MONGO_USER || '';
