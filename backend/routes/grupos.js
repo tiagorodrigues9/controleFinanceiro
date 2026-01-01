@@ -179,7 +179,8 @@ router.delete('/:id/subgrupos/:subId', async (req, res) => {
       return res.status(404).json({ message: 'Subgrupo não encontrado' });
     }
 
-    sub.remove();
+    // Remover subgrupo usando pull
+    grupo.subgrupos.pull({ _id: req.params.subId });
     await grupo.save();
 
     res.json({ message: 'Subgrupo excluído com sucesso' });
