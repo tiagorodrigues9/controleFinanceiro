@@ -172,7 +172,7 @@ const Notificacoes = () => {
       });
 
       // Atualizar lista de notificações
-      carregarNotificacoes();
+      fetchNotificacoes();
       
     } catch (error) {
       console.error('Erro ao criar notificação de teste:', error);
