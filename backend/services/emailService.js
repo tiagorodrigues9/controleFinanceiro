@@ -43,24 +43,37 @@ class EmailService {
       return;
     }
 
-    // Fallback para Gmail/Outlook
+    // Fallback para Gmail/Outlook com configuração otimizada
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+      const port = parseInt(process.env.EMAIL_PORT) || 587;
+      
+      // Configuração específica para Gmail no Render.com
       this.transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: process.env.EMAIL_PORT === '465',
+        host: host,
+        port: port,
+        secure: port === 465, // true para 465, false para outras portas
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
         },
+        // Configurações TLS otimizadas
         tls: {
-          rejectUnauthorized: false
+          rejectUnauthorized: false,
+          minVersion: 'TLSv1.2'
         },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000
+        // Timeouts aumentados para Render.com
+        connectionTimeout: 30000,  // 30 segundos
+        greetingTimeout: 20000,   // 20 segundos
+        socketTimeout: 20000,     // 20 segundos
+        // Configurações adicionais para estabilidade
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 5,
+        rateDelta: 1000,
+        rateLimit: 5
       });
-      console.log('✅ EmailService configurado com SMTP tradicional');
+      console.log(`✅ EmailService configurado com ${host} (porta ${port})`);
       return;
     }
 
