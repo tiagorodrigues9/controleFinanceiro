@@ -7,7 +7,7 @@ const RENDER_URL = process.env.RENDER_APP_URL || process.env.RENDER_EXTERNAL_URL
 const KEEP_ALIVE_INTERVAL = 12 * 60 * 1000; // 12 minutos (Render dorme após 15min sem requisições)
 
 function keepAlive() {
-  https.get(`${RENDER_URL}/api`, (res) => {
+  https.get(`${RENDER_URL}/`, (res) => {
     console.log(`[Keep-alive] Status: ${res.statusCode} at ${new Date().toISOString()}`);
   }).on('error', (err) => {
     console.error(`[Keep-alive] Erro: ${err.message}`);
