@@ -1,117 +1,151 @@
 const nodemailer = require('nodemailer');
 
-// Configuração do serviço de e-mail com fallback
+// Serviço de e-mail simplificado e mais confiável
 class EmailService {
   constructor() {
-    this.transporters = [];
-    this.setupTransporters();
+    this.transporter = null;
+    this.setupTransporter();
   }
 
-  setupTransporters() {
-    // Transporter 1: Configuração principal (Gmail/Outlook)
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      this.transporters.push({
-        name: 'Primary',
-        transporter: nodemailer.createTransport({
-          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.EMAIL_PORT) || 587,
-          secure: process.env.EMAIL_PORT === '465',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-          },
-          tls: {
-            rejectUnauthorized: false
-          },
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 10000
-        })
-      });
-    }
-
-    // Transporter 2: Mailtrap (para desenvolvimento/teste)
-    if (process.env.MAILTRAP_USER && process.env.MAILTRAP_PASS) {
-      this.transporters.push({
-        name: 'Mailtrap',
-        transporter: nodemailer.createTransport({
-          host: 'sandbox.smtp.mailtrap.io',
-          port: 2525,
-          auth: {
-            user: process.env.MAILTRAP_USER,
-            pass: process.env.MAILTRAP_PASS
-          },
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 10000
-        })
-      });
-    }
-
-    // Transporter 3: Ethereal (para desenvolvimento)
-    this.transporters.push({
-      name: 'Ethereal',
-      transporter: nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
+  setupTransporter() {
+    // Tentar configurar SendGrid primeiro (mais confiável)
+    if (process.env.SENDGRID_API_KEY) {
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
         port: 587,
+        secure: false,
         auth: {
-          user: 'ethereal.user@ethereal.email',
-          pass: 'ethereal.pass'
+          user: 'apikey',
+          pass: process.env.SENDGRID_API_KEY
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000
-      })
-    });
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000
+      });
+      console.log('✅ EmailService configurado com SendGrid');
+      return;
+    }
 
-    console.log(`Configurados ${this.transporters.length} transporters de e-mail`);
+    // Tentar Mailtrap (desenvolvimento)
+    if (process.env.MAILTRAP_USER && process.env.MAILTRAP_PASS) {
+      this.transporter = nodemailer.createTransport({
+        host: 'sandbox.smtp.mailtrap.io',
+        port: 2525,
+        auth: {
+          user: process.env.MAILTRAP_USER,
+          pass: process.env.MAILTRAP_PASS
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000
+      });
+      console.log('✅ EmailService configurado com Mailtrap (desenvolvimento)');
+      return;
+    }
+
+    // Fallback para Gmail/Outlook
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: process.env.EMAIL_PORT === '465',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000
+      });
+      console.log('✅ EmailService configurado com SMTP tradicional');
+      return;
+    }
+
+    console.warn('⚠️ Nenhuma configuração de e-mail encontrada');
   }
 
   async sendMail(mailOptions) {
-    let lastError;
-
-    // Tentar enviar com cada transporter configurado
-    for (const { name, transporter } of this.transporters) {
-      try {
-        console.log(`Tentando enviar e-mail com ${name}...`);
-        
-        // Verificar conexão
-        await transporter.verify();
-        
-        // Enviar e-mail
-        const result = await transporter.sendMail(mailOptions);
-        
-        console.log(`E-mail enviado com sucesso via ${name}:`, result.messageId);
-        
-        return {
-          success: true,
-          messageId: result.messageId,
-          provider: name
-        };
-
-      } catch (error) {
-        console.error(`Erro ao enviar com ${name}:`, error.message);
-        lastError = error;
-        continue; // Tentar próximo transporter
-      }
+    if (!this.transporter) {
+      throw new Error('Serviço de e-mail não configurado');
     }
 
-    // Se nenhum funcionou, retornar erro detalhado
-    throw lastError || new Error('Nenhum transporter de e-mail disponível');
+    try {
+      console.log('📧 Tentando enviar e-mail...');
+      
+      // Adicionar informações de fallback
+      const enhancedOptions = {
+        ...mailOptions,
+        from: mailOptions.from || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@controlefinanceiro.com',
+        priority: 'high',
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High'
+        }
+      };
+
+      const result = await this.transporter.sendMail(enhancedOptions);
+      console.log('✅ E-mail enviado com sucesso:', result.messageId);
+      
+      return {
+        success: true,
+        messageId: result.messageId,
+        provider: this.getProviderName()
+      };
+
+    } catch (error) {
+      console.error('❌ Erro detalhado ao enviar e-mail:', {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        stack: error.stack
+      });
+
+      // Tentar reconectar se for erro de conexão
+      if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+        console.log('🔄 Tentando reconectar...');
+        try {
+          this.transporter.close();
+          this.setupTransporter();
+          
+          // Tentar novamente uma vez
+          const result = await this.transporter.sendMail(mailOptions);
+          console.log('✅ E-mail enviado na segunda tentativa:', result.messageId);
+          
+          return {
+            success: true,
+            messageId: result.messageId,
+            provider: this.getProviderName()
+          };
+        } catch (retryError) {
+          console.error('❌ Falha na segunda tentativa:', retryError.message);
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  getProviderName() {
+    if (process.env.SENDGRID_API_KEY) return 'SendGrid';
+    if (process.env.MAILTRAP_USER) return 'Mailtrap';
+    if (process.env.EMAIL_HOST?.includes('gmail')) return 'Gmail';
+    if (process.env.EMAIL_HOST?.includes('outlook')) return 'Outlook';
+    return 'SMTP';
   }
 
   // Método para testar configuração
   async testConfiguration() {
-    const testMail = {
-      from: process.env.EMAIL_FROM || 'test@example.com',
-      to: process.env.EMAIL_USER || 'test@example.com',
-      subject: 'Teste de Configuração de E-mail',
-      html: '<p>Este é um e-mail de teste da configuração do servidor.</p>'
-    };
+    if (!this.transporter) {
+      return { success: false, error: 'Serviço não configurado' };
+    }
 
     try {
-      const result = await this.sendMail(testMail);
-      return { success: true, ...result };
+      await this.transporter.verify();
+      return { success: true, provider: this.getProviderName() };
     } catch (error) {
       return { success: false, error: error.message };
     }

@@ -15,12 +15,14 @@ import { useAuth } from '../hooks/useAuth';
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const { login, loading, error, setError } = useAuth(); // Usar estados do contexto
+  const [submitting, setSubmitting] = useState<boolean>(false); // Loading local só para o formulário
+  const { login, error, setError } = useAuth(); // Removido loading do contexto
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setError(null); // Limpa erro anterior
+    setSubmitting(true); // Ativa loading do botão
 
     const result = await login(email, password);
 
@@ -28,6 +30,7 @@ const Login: React.FC = () => {
       navigate('/');
     }
     // Se houver erro, o login já trata de definir a mensagem
+    setSubmitting(false); // Desativa loading do botão
   };
 
   return (
@@ -79,9 +82,9 @@ const Login: React.FC = () => {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+              disabled={submitting}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {submitting ? 'Entrando...' : 'Entrar'}
             </Button>
             <Box textAlign="center">
               <MuiLink

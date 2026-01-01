@@ -1,109 +1,143 @@
 {
-  "short_name": "Controle Financeiro",
   "name": "Controle Financeiro Pessoal",
+  "short_name": "Controle Financeiro",
   "description": "Sistema completo de controle financeiro com gerenciamento de contas, parcelas e extrato",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "pt-BR",
+  "categories": [
+    "finance",
+    "productivity",
+    "business"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/icons/icon-16x16.svg",
+      "sizes": "16x16",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-72x72.svg",
+      "src": "/icons/icon-32x32.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-72x72.svg",
       "sizes": "72x72",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-96x96.svg",
+      "src": "/icons/icon-96x96.svg",
       "sizes": "96x96",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-128x128.svg",
+      "src": "/icons/icon-128x128.svg",
       "sizes": "128x128",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-144x144.svg",
+      "src": "/icons/icon-144x144.svg",
       "sizes": "144x144",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-152x152.svg",
+      "src": "/icons/icon-152x152.svg",
       "sizes": "152x152",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-192x192.svg",
+      "src": "/icons/icon-192x192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-384x384.svg",
+      "src": "/icons/icon-384x384.svg",
       "sizes": "384x384",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-512x512.svg",
+      "src": "/icons/icon-512x512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
-  "theme_color": "#1976d2",
-  "background_color": "#ffffff",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "lang": "pt-BR",
-  "categories": ["finance", "productivity", "business"],
-  "prefer_related_applications": false,
-  "shortcuts": [
+  "splash_pages": [
     {
-      "name": "Nova Conta",
-      "short_name": "Nova Conta",
-      "description": "Adicionar nova conta a pagar",
-      "url": "/contas-pagar",
-      "icons": [{"src": "icons/icon-192x192.png", "sizes": "192x192"}]
+      "src": "/icons/splash-640x1136.svg",
+      "sizes": "640x1136",
+      "type": "image/svg+xml"
     },
+    {
+      "src": "/icons/splash-750x1334.svg",
+      "sizes": "750x1334",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/splash-1242x2208.svg",
+      "sizes": "1242x2208",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/splash-1125x2436.svg",
+      "sizes": "1125x2436",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/splash-828x1792.svg",
+      "sizes": "828x1792",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/splash-1242x2688.svg",
+      "sizes": "1242x2688",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/splash-2048x2732.svg",
+      "sizes": "2048x2732",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "Ver resumo financeiro",
       "url": "/dashboard",
-      "icons": [{"src": "icons/icon-192x192.png", "sizes": "192x192"}]
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.svg",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
-      "name": "Cartões",
-      "short_name": "Cartões",
-      "description": "Gerenciar cartões",
-      "url": "/cartoes",
-      "icons": [{"src": "icons/icon-192x192.png", "sizes": "192x192"}]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/desktop-1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard principal no desktop"
-    },
-    {
-      "src": "screenshots/mobile-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dashboard no mobile"
+      "name": "Contas a Pagar",
+      "short_name": "Contas",
+      "description": "Gerenciar contas a pagar",
+      "url": "/contas-pagar",
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.svg",
+          "sizes": "96x96"
+        }
+      ]
     }
   ]
 }
-

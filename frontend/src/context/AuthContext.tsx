@@ -54,7 +54,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      setLoading(true);
       setError(null);
       
       const response = await api.post('/auth/login', { email, password });
@@ -74,9 +73,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         success: false,
         message: errorMessage,
       };
-    } finally {
-      setLoading(false);
     }
+    // Removido setLoading - não usa mais loading do contexto
   };
 
   const register = async (nome: string, email: string, password: string): Promise<{ success: boolean; message?: string }> => {

@@ -1,16 +1,37 @@
-
-    <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="blueGradient512" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#1565c0;stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      
-      <!-- Background circle -->
-      <circle cx="256" cy="256" r="230.4" fill="url(#blueGradient512)" stroke="#ffffff" stroke-width="10.24"/>
-      
-      <!-- Money symbol -->
-      <text x="256" y="358.4" font-family="Arial, sans-serif" font-size="256" font-weight="bold" text-anchor="middle" fill="white">R$</text>
-    </svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1565c0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#e3f2fd;stop-opacity:0.9" />
+    </linearGradient>
+  </defs>
   
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGradient)" rx="80"/>
+  
+  <!-- Card/Document Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Document background -->
+    <rect x="-80" y="-100" width="160" height="200" fill="url(#iconGradient)" rx="8" opacity="0.95"/>
+    
+    <!-- Document lines -->
+    <rect x="-60" y="-70" width="120" height="8" fill="#1976d2" rx="4" opacity="0.8"/>
+    <rect x="-60" y="-50" width="100" height="8" fill="#1976d2" rx="4" opacity="0.8"/>
+    <rect x="-60" y="-30" width="80" height="8" fill="#1976d2" rx="4" opacity="0.8"/>
+    <rect x="-60" y="-10" width="90" height="8" fill="#1976d2" rx="4" opacity="0.8"/>
+    
+    <!-- Calculator/Money symbol -->
+    <circle cx="0" cy="40" r="35" fill="#ffffff" opacity="0.9"/>
+    <text x="0" y="50" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#1976d2">R$</text>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="15" fill="#ffffff" opacity="0.2"/>
+  <circle cx="412" cy="100" r="20" fill="#ffffff" opacity="0.15"/>
+  <circle cx="100" cy="412" r="25" fill="#ffffff" opacity="0.1"/>
+  <circle cx="412" cy="412" r="18" fill="#ffffff" opacity="0.2"/>
+</svg>
