@@ -20,6 +20,7 @@ import Perfil from './pages/Perfil';
 import FormasPagamento from './pages/FormasPagamento';
 import Cartoes from './pages/Cartoes';
 import Notificacoes from './pages/Notificacoes';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 const theme = createTheme({
   palette: {
@@ -70,6 +71,7 @@ const App: React.FC = () => {
           </Routes>
         </Router>
       </AuthProvider>
+      <PWAInstallPrompt />
     </ThemeProvider>
   );
 };

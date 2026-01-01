@@ -55,6 +55,8 @@ const Cartoes = () => {
     diaFatura: '',
     dataVencimento: '',
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cartaoToDelete, setCartaoToDelete] = useState(null);
 
   useEffect(() => {
     fetchCartoes();
@@ -170,14 +172,24 @@ const Cartoes = () => {
   };
 
   const handleExcluir = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este cartão?')) {
-      try {
-        await api.delete(`/cartoes/${id}`);
-        fetchCartoes();
-      } catch (err) {
-        setError('Erro ao excluir cartão');
-      }
+    setCartaoToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/cartoes/${cartaoToDelete}`);
+      fetchCartoes();
+      setDeleteDialogOpen(false);
+      setCartaoToDelete(null);
+    } catch (err) {
+      setError('Erro ao excluir cartão');
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setCartaoToDelete(null);
   };
 
   const renderCartaoCard = (cartao) => (
@@ -449,6 +461,27 @@ const Cartoes = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={deleteDialogOpen} onClose={cancelDelete} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <DeleteIcon color="error" />
+            Confirmar Exclusão
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja excluir este cartão? Esta ação não poderá ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelDelete}>Cancelar</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Excluir
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

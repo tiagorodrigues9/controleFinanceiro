@@ -43,3 +43,4 @@ frontend/build
 Dockerfile
 docker-compose.yml
 
+.vercel

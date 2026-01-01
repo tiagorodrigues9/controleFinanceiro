@@ -23,7 +23,13 @@ import {
   FormControlLabel,
   Paper,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Fab,
+  Drawer,
+  AppBar,
+  Toolbar,
+  BottomNavigation,
+  BottomNavigationAction
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -34,7 +40,10 @@ import {
   CreditCard as CreditCardIcon,
   CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Menu as MenuIcon,
+  ClearAll as ClearAllIcon,
+  DoneAll as DoneAllIcon
 } from '@mui/icons-material';
 import api from '../utils/api';
 import usePushNotifications from '../hooks/usePushNotifications';
@@ -42,6 +51,7 @@ import usePushNotifications from '../hooks/usePushNotifications';
 const Notificacoes = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [notificacoes, setNotificacoes] = useState([]);
   const [naoLidasCount, setNaoLidasCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -49,6 +59,7 @@ const Notificacoes = () => {
   const [selectedNotificacao, setSelectedNotificacao] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
   const [showSettings, setShowSettings] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Hook de notificações push
   const {
@@ -196,48 +207,75 @@ const Notificacoes = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          <Badge badgeContent={naoLidasCount} color="error">
-            <NotificationsIcon />
-          </Badge>
-          {' '}Notificações
-        </Typography>
-        
-        <Box>
-          {isSupported && (
-            <Button
-              variant="outlined"
-              onClick={() => setShowSettings(true)}
-              sx={{ mr: 1 }}
-              startIcon={<SettingsIcon />}
+    <Box sx={{ 
+      pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
+      px: isMobile ? 1 : 3,
+      pt: isMobile ? 1 : 3,
+      minHeight: '100vh',
+      bgcolor: 'background.default'
+    }}>
+      {/* Header responsivo */}
+      {isMobile ? (
+        <AppBar position="sticky" color="default" elevation={1} sx={{ mb: 2 }}>
+          <Toolbar>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              <Badge badgeContent={naoLidasCount} color="error">
+                <NotificationsIcon />
+              </Badge>
+              {' '}Notificações
+            </Typography>
+            <IconButton 
+              edge="end" 
+              onClick={() => setMobileMenuOpen(true)}
+              sx={{ ml: 1 }}
             >
-              Configurar
-            </Button>
-          )}
-          {naoLidasCount > 0 && (
-            <Button
-              variant="outlined"
-              onClick={marcarTodasComoLidas}
-              sx={{ mr: 1 }}
-              startIcon={<MarkReadIcon />}
-            >
-              Marcar Todas como Lidas
-            </Button>
-          )}
-          {notificacoes.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={limparTodas}
-              startIcon={<DeleteIcon />}
-            >
-              Limpar Todas
-            </Button>
-          )}
+              <SettingsIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+      ) : (
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h4" component="h1">
+            <Badge badgeContent={naoLidasCount} color="error">
+              <NotificationsIcon />
+            </Badge>
+            {' '}Notificações
+          </Typography>
+          
+          <Box>
+            {isSupported && (
+              <Button
+                variant="outlined"
+                onClick={() => setShowSettings(true)}
+                sx={{ mr: 1 }}
+                startIcon={<SettingsIcon />}
+              >
+                Configurar
+              </Button>
+            )}
+            {naoLidasCount > 0 && (
+              <Button
+                variant="outlined"
+                onClick={marcarTodasComoLidas}
+                sx={{ mr: 1 }}
+                startIcon={<DoneAllIcon />}
+              >
+                Marcar Todas como Lidas
+              </Button>
+            )}
+            {notificacoes.length > 0 && (
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={limparTodas}
+                startIcon={<ClearAllIcon />}
+              >
+                Limpar Todas
+              </Button>
+            )}
+          </Box>
         </Box>
-      </Box>
+      )}
 
       {/* Alerta de configuração de notificações */}
       {isSupported && permission === 'default' && (
@@ -265,11 +303,12 @@ const Notificacoes = () => {
         </Alert>
       )}
 
+      {/* Cards de notificações otimizados para mobile */}
       {notificacoes.length === 0 ? (
         <Card>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <CheckCircleIcon sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
+          <CardContent sx={{ textAlign: 'center', py: isMobile ? 6 : 4, px: isMobile ? 2 : 3 }}>
+            <CheckCircleIcon sx={{ fontSize: isMobile ? 48 : 64, color: 'success.main', mb: 2 }} />
+            <Typography variant={isMobile ? 'body1' : 'h6'} color="text.secondary">
               Nenhuma notificação
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -278,86 +317,107 @@ const Notificacoes = () => {
           </CardContent>
         </Card>
       ) : (
-        <List>
-          {notificacoes.map((notificacao, index) => (
-            <React.Fragment key={notificacao._id}>
-              <ListItem
-                sx={{
-                  bgcolor: notificacao.lida ? 'transparent' : 'action.hover',
-                  cursor: 'pointer',
-                  borderRadius: 1,
-                  mb: 1,
-                  '&:hover': {
-                    bgcolor: 'grey.50'
-                  }
-                }}
-                onClick={() => setSelectedNotificacao(notificacao)}
-              >
-                <ListItemIcon>
-                  {getIcon(notificacao.tipo)}
-                </ListItemIcon>
-                
-                <ListItemText
-                  primary={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: !notificacao.lida ? 'bold' : 'normal' }}>
+        <Box>
+          {notificacoes.map((notificacao) => (
+            <Card 
+              key={notificacao._id} 
+              sx={{ 
+                mb: 2, 
+                bgcolor: notificacao.lida ? 'background.paper' : 'primary.50',
+                border: notificacao.lida ? '1px solid' : '2px solid',
+                borderColor: notificacao.lida ? 'divider' : 'primary.main',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: 3
+                }
+              }}
+              onClick={() => setSelectedNotificacao(notificacao)}
+            >
+              <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                <Box display="flex" alignItems="flex-start" gap={2}>
+                  <Box sx={{ mt: 1 }}>
+                    {getIcon(notificacao.tipo)}
+                  </Box>
+                  
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
+                      <Typography 
+                        variant={isMobile ? 'body2' : 'subtitle2'} 
+                        sx={{ 
+                          fontWeight: !notificacao.lida ? 'bold' : 'normal',
+                          color: !notificacao.lida ? 'primary.main' : 'text.primary'
+                        }}
+                      >
                         {notificacao.titulo}
                       </Typography>
                       <Chip
                         label={notificacao.tipo.replace('_', ' ').toUpperCase()}
                         color={getCorChip(notificacao.tipo)}
                         size="small"
+                        sx={{ fontSize: '0.7rem' }}
                       />
                       {!notificacao.lida && (
                         <Chip
-                          label="Nova"
+                          label="NOVA"
                           color="primary"
                           size="small"
+                          sx={{ fontSize: '0.7rem', fontWeight: 'bold' }}
                         />
                       )}
                     </Box>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">
-                        {notificacao.mensagem}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatarData(notificacao.data)}
-                      </Typography>
-                    </Box>
-                  }
-                />
+                    
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary" 
+                      sx={{ 
+                        mb: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {notificacao.mensagem}
+                    </Typography>
+                    
+                    <Typography variant="caption" color="text.secondary">
+                      {formatarData(notificacao.data)}
+                    </Typography>
+                  </Box>
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                  {!notificacao.lida && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {!notificacao.lida && (
+                      <IconButton
+                        size={isMobile ? 'small' : 'medium'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          marcarComoLida(notificacao._id);
+                        }}
+                        title="Marcar como lida"
+                        sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                      >
+                        <MarkReadIcon fontSize={isMobile ? 'small' : 'medium'} />
+                      </IconButton>
+                    )}
                     <IconButton
-                      size="small"
+                      size={isMobile ? 'small' : 'medium'}
                       onClick={(e) => {
                         e.stopPropagation();
-                        marcarComoLida(notificacao._id);
+                        excluirNotificacao(notificacao._id);
                       }}
-                      title="Marcar como lida"
+                      title="Excluir notificação"
+                      sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
                     >
-                      <MarkReadIcon fontSize="small" />
+                      <DeleteIcon fontSize={isMobile ? 'small' : 'medium'} />
                     </IconButton>
-                  )}
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      excluirNotificacao(notificacao._id);
-                    }}
-                    title="Excluir notificação"
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  </Box>
                 </Box>
-              </ListItem>
-              {index < notificacoes.length - 1 && <Divider />}
-            </React.Fragment>
+              </CardContent>
+            </Card>
           ))}
-        </List>
+        </Box>
       )}
 
       {/* Dialog para detalhes da notificação */}
@@ -480,12 +540,90 @@ const Notificacoes = () => {
         </DialogActions>
       </Dialog>
 
+      {/* FAB para ações rápidas em mobile */}
+      {isMobile && (
+        <Fab
+          color="primary"
+          sx={{
+            position: 'fixed',
+            bottom: 80,
+            right: 16,
+            zIndex: 1000
+          }}
+          onClick={() => setMobileMenuOpen(true)}
+        >
+          <MenuIcon />
+        </Fab>
+      )}
+
+      {/* Drawer mobile para ações */}
+      <Drawer
+        anchor="bottom"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            p: 2
+          }
+        }}
+      >
+        <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
+          Ações Rápidas
+        </Typography>
+        
+        {isSupported && (
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setShowSettings(true);
+              setMobileMenuOpen(false);
+            }}
+            sx={{ mb: 1, width: '100%' }}
+            startIcon={<SettingsIcon />}
+          >
+            Configurar Notificações
+          </Button>
+        )}
+        
+        {naoLidasCount > 0 && (
+          <Button
+            variant="outlined"
+            onClick={() => {
+              marcarTodasComoLidas();
+              setMobileMenuOpen(false);
+            }}
+            sx={{ mb: 1, width: '100%' }}
+            startIcon={<DoneAllIcon />}
+          >
+            Marcar Todas como Lidas ({naoLidasCount})
+          </Button>
+        )}
+        
+        {notificacoes.length > 0 && (
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              limparTodas();
+              setMobileMenuOpen(false);
+            }}
+            sx={{ mb: 1, width: '100%' }}
+            startIcon={<ClearAllIcon />}
+          >
+            Limpar Todas
+          </Button>
+        )}
+      </Drawer>
+
       {/* Snackbar para feedback */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
     </Box>
   );
