@@ -1,7 +1,6 @@
-const nodemailer = require('nodemailer');
 const EmailLog = require('../models/EmailLog');
 
-// Serviço de e-mail com Resend (mais simples e confiável)
+// Serviço de e-mail com API REST do Resend (mais confiável que SMTP)
 class EmailService {
   constructor() {
     this.providers = [];
@@ -9,29 +8,43 @@ class EmailService {
   }
 
   setupProviders() {
-    // Provider 1: Resend (RECOMENDADO - mais simples)
+    // Provider 1: Resend API REST (RECOMENDADO)
     if (process.env.RESEND_API_KEY) {
       this.providers.push({
-        name: 'Resend',
+        name: 'Resend API',
+        type: 'api',
+        apiKey: process.env.RESEND_API_KEY,
+        baseUrl: 'https://api.resend.com'
+      });
+    }
+
+    // Provider 2: Resend SMTP (backup)
+    if (process.env.RESEND_API_KEY) {
+      const nodemailer = require('nodemailer');
+      this.providers.push({
+        name: 'Resend SMTP',
+        type: 'smtp',
         transporter: nodemailer.createTransport({
           host: 'smtp.resend.com',
           port: 465,
-          secure: true, // SSL obrigatório
+          secure: true,
           auth: {
             user: 'resend',
             pass: process.env.RESEND_API_KEY
           },
-          connectionTimeout: 30000,
-          greetingTimeout: 20000,
-          socketTimeout: 20000
+          connectionTimeout: 45000,
+          greetingTimeout: 30000,
+          socketTimeout: 30000
         })
       });
     }
 
-    // Provider 2: SendGrid (backup)
+    // Provider 3: SendGrid (backup)
     if (process.env.SENDGRID_API_KEY) {
+      const nodemailer = require('nodemailer');
       this.providers.push({
         name: 'SendGrid',
+        type: 'smtp',
         transporter: nodemailer.createTransport({
           host: 'smtp.sendgrid.net',
           port: 587,
@@ -47,50 +60,9 @@ class EmailService {
       });
     }
 
-    // Provider 3: Mailgun (alternativa)
-    if (process.env.MAILGUN_API_KEY) {
-      this.providers.push({
-        name: 'Mailgun',
-        transporter: nodemailer.createTransport({
-          host: 'smtp.mailgun.org',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.MAILGUN_USER,
-            pass: process.env.MAILGUN_API_KEY
-          },
-          connectionTimeout: 30000,
-          greetingTimeout: 20000,
-          socketTimeout: 20000
-        })
-      });
-    }
-
-    // Provider 4: Outlook (fallback)
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      this.providers.push({
-        name: 'Outlook',
-        transporter: nodemailer.createTransport({
-          host: 'smtp-mail.outlook.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-          },
-          tls: {
-            rejectUnauthorized: false
-          },
-          connectionTimeout: 30000,
-          greetingTimeout: 20000,
-          socketTimeout: 20000
-        })
-      });
-    }
-
     console.log(`✅ Configurados ${this.providers.length} provedores de e-mail`);
     this.providers.forEach((provider, index) => {
-      console.log(`${index + 1}. ${provider.name}`);
+      console.log(`${index + 1}. ${provider.name} (${provider.type})`);
     });
   }
 
@@ -109,22 +81,13 @@ class EmailService {
       try {
         console.log(`📧 Tentando enviar via ${provider.name}...`);
         
-        // Verificar conexão
-        await provider.transporter.verify();
-        console.log(`✅ Conexão ${provider.name} verificada`);
+        let result;
+        if (provider.type === 'api') {
+          result = await this.sendViaAPI(provider, mailOptions);
+        } else {
+          result = await this.sendViaSMTP(provider, mailOptions);
+        }
         
-        // Enviar e-mail
-        const enhancedOptions = {
-          ...mailOptions,
-          from: mailOptions.from || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@controlefinanceiro.com',
-          priority: 'high',
-          headers: {
-            'X-Priority': '1',
-            'X-MSMail-Priority': 'High'
-          }
-        };
-
-        const result = await provider.transporter.sendMail(enhancedOptions);
         console.log(`✅ E-mail enviado com sucesso via ${provider.name}:`, result.messageId);
         
         // Salvar log de sucesso
@@ -155,6 +118,54 @@ class EmailService {
       success: false,
       error: 'Todos os provedores de e-mail falharam',
       providers: this.providers.map(p => p.name)
+    };
+  }
+
+  async sendViaAPI(provider, mailOptions) {
+    const axios = require('axios');
+    
+    const emailData = {
+      from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
+      to: [mailOptions.to],
+      subject: mailOptions.subject,
+      html: mailOptions.html || mailOptions.text
+    };
+
+    const response = await axios.post(`${provider.baseUrl}/emails`, emailData, {
+      headers: {
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    return {
+      messageId: response.data.id,
+      provider: provider.name
+    };
+  }
+
+  async sendViaSMTP(provider, mailOptions) {
+    // Verificar conexão
+    await provider.transporter.verify();
+    console.log(`✅ Conexão ${provider.name} verificada`);
+    
+    // Enviar e-mail
+    const enhancedOptions = {
+      ...mailOptions,
+      from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
+      priority: 'high',
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High'
+      }
+    };
+
+    const result = await provider.transporter.sendMail(enhancedOptions);
+    
+    return {
+      messageId: result.messageId,
+      provider: provider.name
     };
   }
 
@@ -201,9 +212,23 @@ class EmailService {
     
     for (const provider of this.providers) {
       try {
-        await provider.transporter.verify();
-        results.push({ provider: provider.name, status: 'success' });
-        console.log(`✅ ${provider.name}: Conectado`);
+        if (provider.type === 'api') {
+          // Testar API com uma requisição simples
+          const axios = require('axios');
+          await axios.get(`${provider.baseUrl}/domains`, {
+            headers: {
+              'Authorization': `Bearer ${provider.apiKey}`
+            },
+            timeout: 10000
+          });
+          results.push({ provider: provider.name, status: 'success' });
+          console.log(`✅ ${provider.name}: API conectada`);
+        } else {
+          // Testar SMTP
+          await provider.transporter.verify();
+          results.push({ provider: provider.name, status: 'success' });
+          console.log(`✅ ${provider.name}: SMTP conectado`);
+        }
       } catch (error) {
         results.push({ provider: provider.name, status: 'failed', error: error.message });
         console.log(`❌ ${provider.name}: ${error.message}`);
