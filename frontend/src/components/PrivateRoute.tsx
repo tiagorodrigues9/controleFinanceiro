@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { CircularProgress, Box } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 
 interface PrivateRouteProps {
@@ -8,21 +7,9 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth(); // Removido loading
 
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
+  // Redireciona para login se não estiver autenticado
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 };
 

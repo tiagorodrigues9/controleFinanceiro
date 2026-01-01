@@ -31,24 +31,31 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false); // Começa como false
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Verificar se já existe usuário logado (sem bloquear)
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
     if (token && userData) {
-      setUser(JSON.parse(userData));
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      try {
+        setUser(JSON.parse(userData));
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        console.error('Erro ao carregar usuário do localStorage:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
-    setLoading(false);
+    // Não precisa setLoading(false) aqui pois já começa como false
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      setLoading(true); // Inicia loading
-      setError(''); // Limpa erros anteriores
+      setLoading(true);
+      setError(null);
       
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
@@ -60,15 +67,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { success: true };
     } catch (error: any) {
-      // Garante que loading seja desativado mesmo em caso de erro
-      setLoading(false);
+      const errorMessage = error.response?.data?.message || 'Erro ao fazer login';
+      setError(errorMessage);
       
       return {
         success: false,
-        message: error.response?.data?.message || 'Erro ao fazer login',
+        message: errorMessage,
       };
     } finally {
-      setLoading(false); // Garante que loading seja sempre desativado
+      setLoading(false);
     }
   };
 
