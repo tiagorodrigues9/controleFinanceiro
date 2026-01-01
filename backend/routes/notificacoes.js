@@ -83,6 +83,27 @@ router.put('/marcar-todas-lidas', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/notificacoes/limpar-todas
+// @desc    Limpar todas as notificações
+// @access  Private
+router.delete('/limpar-todas', async (req, res) => {
+  try {
+    console.log('🗑️ Tentando limpar notificações do usuário:', req.user._id);
+    console.log('🔑 Token recebido:', req.header('Authorization')?.substring(0, 20) + '...');
+    
+    const resultado = await Notificacao.deleteMany({ usuario: req.user._id });
+    console.log('📊 Resultado da exclusão:', resultado);
+
+    res.json({ 
+      message: 'Todas as notificações excluídas com sucesso',
+      deletadas: resultado.deletedCount 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao limpar notificações:', error);
+    res.status(500).json({ message: 'Erro ao limpar notificações' });
+  }
+});
+
 // @route   DELETE /api/notificacoes/:id
 // @desc    Excluir notificação
 // @access  Private
@@ -103,27 +124,6 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao excluir notificação' });
-  }
-});
-
-// @route   DELETE /api/notificacoes/limpar-todas
-// @desc    Limpar todas as notificações
-// @access  Private
-router.delete('/limpar-todas', async (req, res) => {
-  try {
-    console.log('🗑️ Tentando limpar notificações do usuário:', req.user._id);
-    console.log('🔑 Token recebido:', req.header('Authorization')?.substring(0, 20) + '...');
-    
-    const resultado = await Notificacao.deleteMany({ usuario: req.user._id });
-    console.log('📊 Resultado da exclusão:', resultado);
-
-    res.json({ 
-      message: 'Todas as notificações excluídas com sucesso',
-      deletadas: resultado.deletedCount 
-    });
-  } catch (error) {
-    console.error('❌ Erro ao limpar notificações:', error);
-    res.status(500).json({ message: 'Erro ao limpar notificações' });
   }
 });
 
