@@ -113,13 +113,57 @@ const usePushNotifications = () => {
 
   // Enviar notificação local (para testes)
   const sendLocalNotification = (title, body, url = '/notificacoes') => {
+    console.log('📱 Enviando notificação local:', { title, body, permission });
+    
+    // Tentar mostrar notificação diretamente primeiro
+    if (permission === 'granted' && 'Notification' in window) {
+      try {
+        const notification = new Notification(title, {
+          body: body,
+          icon: '/logo192.png',
+          badge: '/logo192.png',
+          tag: 'controle-financeiro',
+          requireInteraction: true,
+          vibrate: [100, 50, 100],
+          data: { url, timestamp: Date.now() }
+        });
+
+        // Adicionar evento de clique
+        notification.onclick = () => {
+          console.log('📱 Notificação clicada, abrindo:', url);
+          window.open(url, '_blank');
+          notification.close();
+        };
+
+        // Auto-fechar após 5 segundos
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
+
+        console.log('✅ Notificação local mostrada diretamente');
+        return;
+      } catch (error) {
+        console.error('❌ Erro ao mostrar notificação diretamente:', error);
+      }
+    }
+
+    // Fallback: tentar via service worker
     if (permission === 'granted' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
-        registration.active.postMessage({
-          type: 'NOTIFICATION',
-          payload: { title, body, url, timestamp: Date.now() }
-        });
+        if (registration.active) {
+          registration.active.postMessage({
+            type: 'NOTIFICATION',
+            payload: { title, body, url, timestamp: Date.now() }
+          });
+          console.log('✅ Mensagem enviada para service worker');
+        } else {
+          console.error('❌ Service worker não está ativo');
+        }
+      }).catch(error => {
+        console.error('❌ Erro ao acessar service worker:', error);
       });
+    } else {
+      console.warn('⚠️ Permissão não concedida ou service worker não disponível');
     }
   };
 

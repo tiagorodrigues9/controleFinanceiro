@@ -32,44 +32,68 @@ const PWAInstallBanner: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Não mostrar em desktop ou se já foi dispensado
-    if (!isMobile || dismissed) return;
+    if (!isMobile) return;
+
+    // Verificar se o app já está instalado
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+    if (isInstalled) {
+      console.log(' App já está instalado, não mostrar banner');
+      return;
+    }
+
+    // Verificar se já foi dispensado nesta sessão
+    const dismissed = sessionStorage.getItem('pwa-banner-dismissed');
+    if (dismissed) {
+      console.log(' Banner já foi dispensado nesta sessão');
+      return;
+    }
+
+    // Verificar se o prompt principal já foi mostrado ou está ativo
+    const promptShown = sessionStorage.getItem('pwa-prompt-shown');
+    const promptDismissed = sessionStorage.getItem('pwa-prompt-dismissed');
+    if (promptShown || promptDismissed) {
+      console.log(' Prompt principal já foi mostrado/dispensado, não mostrar banner');
+      return;
+    }
 
     // Detectar iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
     setIsIOS(isIOSDevice);
 
-    // Detectar se já está instalado
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-    if (isInstalled) return;
-
-    // Verificar se já foi dispensado nesta sessão
-    if (sessionStorage.getItem('pwa-banner-dismissed')) return;
-
-    // Verificar se o prompt principal já foi mostrado
-    if (sessionStorage.getItem('pwa-prompt-shown')) return;
-
     // Capturar evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowBanner(true);
+      console.log(' Banner: Evento beforeinstallprompt capturado');
+      
+      // Verificar se o prompt principal não está ativo
+      const promptActive = sessionStorage.getItem('pwa-prompt-shown') && !sessionStorage.getItem('pwa-prompt-dismissed');
+      if (!promptActive) {
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
+        setShowBanner(true);
+        console.log(' Banner será mostrado');
+      } else {
+        console.log(' Prompt principal está ativo, não mostrar banner');
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Mostrar banner após 2 segundos no mobile (só se o prompt principal não tiver sido mostrado)
+    // Mostrar banner após 3 segundos no mobile (só se nenhum outro prompt estiver ativo)
     const timer = setTimeout(() => {
-      if (!isInstalled && !sessionStorage.getItem('pwa-banner-dismissed') && !sessionStorage.getItem('pwa-prompt-shown')) {
+      if (!isInstalled && 
+          !sessionStorage.getItem('pwa-banner-dismissed') && 
+          !sessionStorage.getItem('pwa-prompt-shown') &&
+          !sessionStorage.getItem('pwa-prompt-dismissed')) {
         setShowBanner(true);
+        console.log(' Banner mostrado por timer');
       }
-    }, 2000);
+    }, 3000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       clearTimeout(timer);
     };
-  }, [isMobile, dismissed]);
+  }, [isMobile]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
