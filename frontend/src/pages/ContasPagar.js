@@ -250,11 +250,47 @@ const ContasPagar = () => {
   const handleSubmitFornecedor = async (e) => {
     e.preventDefault();
     try {
+      console.log('🔄 Cadastrando fornecedor:', fornecedorData);
+      
+      // Desabilitar botão para evitar cliques duplicados
+      const submitButton = e.target.querySelector('[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Salvando...';
+      }
+
       const response = await api.post('/fornecedores', fornecedorData);
-      await fetchFornecedores();
+      
+      console.log('✅ Fornecedor cadastrado com sucesso:', response.data);
+      
+      // Atualizar lista de fornecedores localmente (mais rápido)
+      setFornecedores(prev => [...prev, response.data]);
+      
+      // Atualizar formulário com o novo fornecedor
       setFormData({ ...formData, fornecedor: response.data._id });
+      
+      // Fechar diálogo imediatamente
       handleCloseFornecedor();
+      
+      // Buscar fornecedores em background (para garantir consistência)
+      fetchFornecedores().catch(console.error);
+      
+      // Reabilitar botão
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Salvar';
+      }
+      
     } catch (err) {
+      console.error('❌ Erro ao cadastrar fornecedor:', err);
+      
+      // Reabilitar botão em caso de erro
+      const submitButton = e.target.querySelector('[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Salvar';
+      }
+      
       setError(err.response?.data?.message || 'Erro ao cadastrar fornecedor');
     }
   };
@@ -330,12 +366,56 @@ const ContasPagar = () => {
 
   const handlePagar = async () => {
     try {
+      // Verificar se a conta ainda está pendente antes de pagar
+      const responseCheck = await api.get(`/contas/${contaSelecionada._id}`);
+      if (responseCheck.data.status === 'Pago') {
+        setError('Esta conta já foi paga por outro usuário ou em outra aba.');
+        handleClosePagamento();
+        return;
+      }
+
+      console.log('🔄 Iniciando pagamento da conta:', contaSelecionada._id);
+      
+      // Desabilitar botão para evitar cliques duplicados
+      const originalButton = document.querySelector('[type="submit"]');
+      if (originalButton) {
+        originalButton.disabled = true;
+        originalButton.textContent = 'Processando...';
+      }
+
       await api.post(`/contas/${contaSelecionada._id}/pagar`, pagamentoData);
+      
+      console.log('✅ Pagamento concluído com sucesso');
+      
+      // Pequeno delay para garantir que o backend processou
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       fetchContas();
       handleClosePagamento();
       setError('');
+      
+      // Reabilitar botão
+      if (originalButton) {
+        originalButton.disabled = false;
+        originalButton.textContent = 'Pagar';
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao pagar conta');
+      console.error('❌ Erro ao pagar conta:', err);
+      
+      // Reabilitar botão em caso de erro
+      const originalButton = document.querySelector('[type="submit"]');
+      if (originalButton) {
+        originalButton.disabled = false;
+        originalButton.textContent = 'Pagar';
+      }
+      
+      if (err.response?.status === 400 && err.response?.data?.message?.includes('já foi paga')) {
+        setError('Esta conta já foi paga. Atualizando a lista...');
+        fetchContas();
+        handleClosePagamento();
+      } else {
+        setError(err.response?.data?.message || 'Erro ao pagar conta');
+      }
     }
   };
 

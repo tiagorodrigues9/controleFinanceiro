@@ -31,25 +31,31 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(false); // Começa como false
+  const [loading, setLoading] = useState<boolean>(true); // Começa como true para verificar token
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Verificar se já existe usuário logado (sem bloquear)
+    // Verificar se já existe usuário logado ao carregar a página
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        console.log('✅ Usuário restaurado do localStorage:', parsedUser.email);
       } catch (error) {
-        console.error('Erro ao carregar usuário do localStorage:', error);
+        console.error('❌ Erro ao carregar usuário do localStorage:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+    } else {
+      console.log('🔍 Nenhum token encontrado, usuário não está logado');
     }
-    // Não precisa setLoading(false) aqui pois já começa como false
+    
+    // Finaliza verificação inicial
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
