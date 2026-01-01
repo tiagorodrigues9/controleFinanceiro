@@ -154,12 +154,33 @@ const Notificacoes = () => {
     }
   };
 
-  const testNotification = () => {
-    sendLocalNotification(
-      'Notificação de Teste',
-      'Esta é uma notificação de teste do sistema!',
-      '/notificacoes'
-    );
+  const testNotification = async () => {
+    try {
+      // Enviar notificação local primeiro
+      sendLocalNotification(
+        'Notificação de Teste',
+        'Esta é uma notificação de teste do sistema!',
+        '/notificacoes'
+      );
+
+      // Criar notificação no banco também
+      const response = await api.post('/notificacoes/teste-criacao');
+      
+      setSnackbar({ 
+        open: true, 
+        message: 'Notificação de teste criada com sucesso!' 
+      });
+
+      // Atualizar lista de notificações
+      carregarNotificacoes();
+      
+    } catch (error) {
+      console.error('Erro ao criar notificação de teste:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Erro ao criar notificação de teste' 
+      });
+    }
   };
 
   const getIcon = (tipo) => {
