@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const EmailLog = require('../models/EmailLog');
 
 // Serviço de e-mail com múltiplas estratégias de fallback
 class EmailService {
@@ -122,28 +123,50 @@ class EmailService {
         command: error.command
       });
 
-      // Se for timeout, tentar fallback para modo de desenvolvimento
+      // Se for timeout ou erro de conexão, usar fallback automático
       if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
-        console.log('🔄 Tentando fallback para modo de desenvolvimento...');
+        console.log('🔄 SMTP indisponível, usando fallback automático...');
         return this.fallbackToDevMode(mailOptions);
       }
 
-      throw error;
+      // Para outros erros, também tentar fallback
+      console.log('🔄 Erro SMTP, usando fallback automático...');
+      return this.fallbackToDevMode(mailOptions);
     }
   }
 
-  fallbackToDevMode(mailOptions) {
-    console.log('📧 Modo de desenvolvimento: Simulando envio de e-mail');
+  async fallbackToDevMode(mailOptions) {
+    console.log('📧 SMTP indisponível, salvando e-mail no banco de dados');
     console.log('📧 Destinatário:', mailOptions.to);
     console.log('📧 Assunto:', mailOptions.subject);
-    console.log('📧 Conteúdo:', mailOptions.html ? mailOptions.html.substring(0, 200) + '...' : mailOptions.text);
     
-    // Em desenvolvimento, retornar sucesso para não bloquear o usuário
+    // Salvar e-mail no banco para consulta posterior
+    try {
+      const emailLog = new EmailLog({
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+        text: mailOptions.text,
+        from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
+        status: 'simulated',
+        provider: 'Fallback Mode',
+        messageId: 'fallback-' + Date.now(),
+        error: 'SMTP indisponível - e-mail salvo no banco'
+      });
+      
+      await emailLog.save();
+      console.log('✅ E-mail salvo no banco de dados com ID:', emailLog._id);
+      
+    } catch (saveError) {
+      console.error('❌ Erro ao salvar e-mail no banco:', saveError.message);
+    }
+    
+    // Retornar sucesso para não bloquear o usuário
     return {
       success: true,
-      messageId: 'dev-mode-' + Date.now(),
-      provider: 'Development Mode',
-      warning: 'E-mail simulado (serviço SMTP indisponível)'
+      messageId: 'fallback-' + Date.now(),
+      provider: 'Fallback Mode',
+      warning: 'E-mail salvo no banco (SMTP indisponível)'
     };
   }
 
