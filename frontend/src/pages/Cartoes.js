@@ -108,7 +108,7 @@ const Cartoes = () => {
         banco: '',
         limite: '',
         diaFatura: '',
-        diaVencimento: '',
+        dataVencimento: '',
       });
     }
     setOpenDialog(true);

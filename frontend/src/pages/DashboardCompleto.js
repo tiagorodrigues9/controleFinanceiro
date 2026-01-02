@@ -112,17 +112,25 @@ const DashboardCompleto = () => {
 
   return (
     <Box sx={{ 
-      width: '100%',
+      pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
+      px: isMobile ? 1 : 2,
+      pt: isMobile ? 1 : 3,
+      minHeight: '100vh',
+      bgcolor: 'background.default',
       maxWidth: '100vw',
       overflowX: 'hidden',
       boxSizing: 'border-box',
     }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: 'nowrap', gap: 2 }}>
         <Typography variant="h4">Dashboard</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Mês</InputLabel>
-            <Select value={mes} onChange={(e) => setMes(e.target.value)}>
+            <Select 
+              value={mes} 
+              onChange={(e) => setMes(e.target.value)}
+              label="Mês"
+            >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <MenuItem key={m} value={m}>
                   {m}
@@ -132,7 +140,11 @@ const DashboardCompleto = () => {
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Ano</InputLabel>
-            <Select value={ano} onChange={(e) => setAno(e.target.value)}>
+            <Select 
+              value={ano} 
+              onChange={(e) => setAno(e.target.value)}
+              label="Ano"
+            >
               {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((a) => (
                 <MenuItem key={a} value={a}>
                   {a}

@@ -17,9 +17,6 @@ import {
   TextField,
   CircularProgress,
   Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   IconButton,
   Card,
   CardContent,
@@ -29,7 +26,6 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
 
@@ -42,8 +38,6 @@ const ContasBancarias = () => {
   const [formData, setFormData] = useState({
     nome: '',
     banco: '',
-    numeroConta: '',
-    agencia: '',
   });
   const [error, setError] = useState('');
   const [openConfirm, setOpenConfirm] = useState(false);
@@ -106,7 +100,7 @@ const ContasBancarias = () => {
   };
 
   const handleOpenCadastro = () => {
-    setFormData({ nome: '', banco: '', numeroConta: '', agencia: '' });
+    setFormData({ nome: '', banco: '' });
     setOpenCadastro(true);
   };
 
@@ -141,10 +135,10 @@ const ContasBancarias = () => {
         
         <Box mb={1}>
           <Typography variant="body2" color="text.secondary">
-            Agência: {conta.agencia || 'N/A'}
+            Agência: {conta.agencia || 'Não informada'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Conta: {conta.numeroConta || 'N/A'}
+            Conta: {conta.numeroConta || 'Não informada'}
           </Typography>
         </Box>
         
@@ -244,8 +238,8 @@ const ContasBancarias = () => {
                 <TableRow key={conta._id}>
                   <TableCell>{conta.nome}</TableCell>
                   <TableCell>{conta.banco}</TableCell>
-                  <TableCell>{conta.agencia || '-'}</TableCell>
-                  <TableCell>{conta.numeroConta || '-'}</TableCell>
+                  <TableCell>{conta.agencia || 'Não informada'}</TableCell>
+                  <TableCell>{conta.numeroConta || 'Não informada'}</TableCell>
                   <TableCell>
                     R$ {conta.saldo?.toFixed(2).replace('.', ',') || '0,00'}
                   </TableCell>
@@ -296,27 +290,6 @@ const ContasBancarias = () => {
               value={formData.banco}
               onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
             />
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography>Cadastro Avançado</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <TextField
-                  fullWidth
-                  label="Número da Conta"
-                  margin="normal"
-                  value={formData.numeroConta}
-                  onChange={(e) => setFormData({ ...formData, numeroConta: e.target.value })}
-                />
-                <TextField
-                  fullWidth
-                  label="Agência"
-                  margin="normal"
-                  value={formData.agencia}
-                  onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
-                />
-              </AccordionDetails>
-            </Accordion>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseCadastro}>Cancelar</Button>

@@ -230,10 +230,12 @@ const Notificacoes = () => {
   return (
     <Box sx={{ 
       pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
-      px: isMobile ? 1 : 3,
+      px: isMobile ? 1 : 2,
       pt: isMobile ? 1 : 3,
       minHeight: '100vh',
-      bgcolor: 'background.default'
+      bgcolor: 'background.default',
+      maxWidth: '100vw',
+      overflowX: 'hidden'
     }}>
       {/* Header responsivo */}
       {isMobile ? (
@@ -362,13 +364,16 @@ const Notificacoes = () => {
                     {getIcon(notificacao.tipo)}
                   </Box>
                   
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
                     <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
                       <Typography 
                         variant={isMobile ? 'body2' : 'subtitle2'} 
                         sx={{ 
                           fontWeight: !notificacao.lida ? 'bold' : 'normal',
-                          color: !notificacao.lida ? 'primary.main' : 'text.primary'
+                          color: !notificacao.lida ? 'primary.main' : 'text.primary',
+                          wordBreak: 'break-word',
+                          flex: 1,
+                          minWidth: 0
                         }}
                       >
                         {notificacao.titulo}
@@ -397,7 +402,9 @@ const Notificacoes = () => {
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                        maxWidth: '100%'
                       }}
                     >
                       {notificacao.mensagem}

@@ -534,7 +534,7 @@ const Extrato = () => {
       </Paper>
 
       {/* Dialog Lançamento */}
-      <Dialog open={openLancamento} onClose={handleCloseLancamento} maxWidth="sm" fullScreen={isMobile} fullWidth>
+      <Dialog open={openLancamento} onClose={handleCloseLancamento} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmitLancamento}>
           <DialogTitle>Lançamento</DialogTitle>
           <DialogContent>
@@ -614,7 +614,7 @@ const Extrato = () => {
         </form>
       </Dialog>
 
-      <Dialog open={openSaldoInicial} onClose={handleCloseSaldoInicial} maxWidth="sm" fullScreen={isMobile} fullWidth>
+      <Dialog open={openSaldoInicial} onClose={handleCloseSaldoInicial} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmitSaldoInicial}>
           <DialogTitle>Lançar Saldo Inicial</DialogTitle>
           <DialogContent>
