@@ -134,17 +134,10 @@ const ContasBancarias = () => {
         </Box>
         
         <Box mb={1}>
-          <Typography variant="body2" color="text.secondary">
-            Agência: {conta.agencia || 'Não informada'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Conta: {conta.numeroConta || 'Não informada'}
+          <Typography variant="h6" color="primary" fontWeight="bold">
+            Saldo: R$ {(conta.saldo || 0).toFixed(2).replace('.', ',')}
           </Typography>
         </Box>
-        
-        <Typography variant="h6" color="primary" fontWeight="bold">
-          Saldo: R$ {(conta.saldo || 0).toFixed(2).replace('.', ',')}
-        </Typography>
       </CardContent>
       
       <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
@@ -227,8 +220,6 @@ const ContasBancarias = () => {
               <TableRow>
                 <TableCell>Nome</TableCell>
                 <TableCell>Banco</TableCell>
-                <TableCell>Agência</TableCell>
-                <TableCell>Conta</TableCell>
                 <TableCell>Saldo</TableCell>
                 <TableCell>Ações</TableCell>
               </TableRow>
@@ -238,8 +229,6 @@ const ContasBancarias = () => {
                 <TableRow key={conta._id}>
                   <TableCell>{conta.nome}</TableCell>
                   <TableCell>{conta.banco}</TableCell>
-                  <TableCell>{conta.agencia || 'Não informada'}</TableCell>
-                  <TableCell>{conta.numeroConta || 'Não informada'}</TableCell>
                   <TableCell>
                     R$ {conta.saldo?.toFixed(2).replace('.', ',') || '0,00'}
                   </TableCell>
