@@ -113,17 +113,28 @@ const DashboardCompleto = () => {
   return (
     <Box sx={{ 
       pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
-      px: isMobile ? 1 : 2,
+      px: isMobile ? 0.5 : 2,
       pt: isMobile ? 1 : 3,
       minHeight: '100vh',
       bgcolor: 'background.default',
       maxWidth: '100vw',
       overflowX: 'hidden',
       boxSizing: 'border-box',
+      width: '100%'
     }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: 'nowrap', gap: 2 }}>
-        <Typography variant="h4">Dashboard</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ 
+        flexWrap: isMobile ? 'wrap' : 'nowrap', 
+        gap: 2,
+        maxWidth: '100%'
+      }}>
+        <Typography variant={isMobile ? "h5" : "h4"}>Dashboard</Typography>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          flexShrink: 0,
+          minWidth: isMobile ? '200px' : 'auto'
+        }}>
           <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Mês</InputLabel>
             <Select 
@@ -155,10 +166,10 @@ const DashboardCompleto = () => {
         </Box>
       </Box>
 
-      <Grid container spacing={{ xs: 2, sm: 3 }} mb={2}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ minWidth: 0, maxWidth: '100%', margin: 0, padding: 0, width: '100%' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Total de Contas a Pagar
               </Typography>
@@ -166,9 +177,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Valor Contas a Pagar
               </Typography>
@@ -178,9 +189,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pagas
               </Typography>
@@ -190,9 +201,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Valor Contas Pagas (Mês)
               </Typography>
@@ -202,9 +213,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Contas Pendentes
               </Typography>
@@ -214,9 +225,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Total de Contas (Mês)
               </Typography>
@@ -224,9 +235,9 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Valor Contas Vencidas
               </Typography>
@@ -236,13 +247,13 @@ const DashboardCompleto = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+            <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
                 Próximo Mês — Contas
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, minWidth: 0 }}>
                 <Typography variant="h4">{data?.totalContasNextMonth || 0}</Typography>
                 <Typography color="textSecondary" variant="subtitle2" sx={{ whiteSpace: 'nowrap' }}>
                   R$ {(data?.totalValorContasNextMonth || 0).toFixed(2).replace('.', ',')}
@@ -253,8 +264,8 @@ const DashboardCompleto = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ minWidth: 0 }}>
-        <Grid item xs={12} md={6}>
+      <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ minWidth: 0, maxWidth: '100%', margin: 0, padding: 0, width: '100%' }}>
+        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
           <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Comparação de Meses
@@ -272,7 +283,7 @@ const DashboardCompleto = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
           <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Top 10 Categorias com Mais Gastos
@@ -299,7 +310,7 @@ const DashboardCompleto = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
           <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Evolução do Saldo por Conta Bancária
@@ -341,7 +352,7 @@ const DashboardCompleto = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
           <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Percentual de Gastos por Categoria
