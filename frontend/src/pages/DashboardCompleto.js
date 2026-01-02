@@ -181,7 +181,7 @@ const DashboardCompleto = () => {
           <Card sx={{ minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <CardContent sx={{ minHeight: 120, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
               <Typography color="textSecondary" gutterBottom>
-                Valor Contas a Pagar
+                Valor Contas a Pagar (Mês)
               </Typography>
               <Typography variant="h4" color="warning.main">
                 R$ {safeNum(data?.totalValorContasPendentes).toFixed(2).replace('.', ',')}
@@ -220,7 +220,7 @@ const DashboardCompleto = () => {
                 Contas Pendentes
               </Typography>
               <Typography variant="h4" color="warning.main">
-                {Math.max(0, safeNum(data?.totalContasPagar) - safeNum(data?.totalContasPagas))}
+                {safeNum(data?.totalContasPendentesMes)}
               </Typography>
             </CardContent>
           </Card>
@@ -276,16 +276,21 @@ const DashboardCompleto = () => {
           <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
             <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
               <Typography variant="h6" gutterBottom>
-                Comparação de Meses
+                Comparação de Meses: Contas vs Gastos
               </Typography>
               <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
                 <BarChart data={data?.mesesComparacao || []}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
+                  <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(0).replace('.', ',')}`} />
+                  <Tooltip 
+                    formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, '']}
+                    labelFormatter={(label) => `Mês: ${label}`}
+                  />
                   <Legend />
-                  <Bar dataKey="total" fill="#8884d8" />
+                  <Bar dataKey="contas" fill="#8884d8" name="Contas Pagas" />
+                  <Bar dataKey="gastos" fill="#00C49F" name="Gastos" />
+                  <Bar dataKey="total" fill="#FF8042" name="Total" />
                 </BarChart>
               </ResponsiveContainer>
             </Paper>

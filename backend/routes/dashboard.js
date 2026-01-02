@@ -73,11 +73,12 @@ router.get('/', async (req, res) => {
     });
     const totalValorContasPagas = contasPagas.reduce((acc, conta) => acc + conta.valor, 0);
 
-    // Valor total de contas pendentes
+    // Valor total de contas pendentes no mês
     const contasPendentes = await Conta.find({
       usuario: req.user._id,
       ativo: { $ne: false },
-      status: { $in: ['Pendente', 'Vencida'] }
+      status: { $in: ['Pendente', 'Vencida'] },
+      dataVencimento: { $gte: startDate, $lte: endDate }
     });
     const totalValorContasPendentes = contasPendentes.reduce((acc, conta) => acc + conta.valor, 0);
 
@@ -101,23 +102,32 @@ router.get('/', async (req, res) => {
     const totalContasNextMonth = contasNextMonth.length;
     const totalValorContasNextMonth = contasNextMonth.reduce((acc, conta) => acc + conta.valor, 0);
 
-    // Gráfico de comparação de meses
+    // Gráfico de comparação de meses (contas vs gastos)
     const mesesComparacao = [];
     for (let i = 0; i < 6; i++) {
       const mesRef = new Date(anoAtual, mesAtual - 1 - i, 1);
       const mesRefEnd = new Date(anoAtual, mesAtual - i, 0, 23, 59, 59);
       
+      // Buscar contas pagas no mês
       const contasMes = await Conta.find({
         usuario: req.user._id,
         status: 'Pago',
         dataPagamento: { $gte: mesRef, $lte: mesRefEnd }
       });
+      const totalContas = contasMes.reduce((acc, conta) => acc + conta.valor, 0);
 
-      const totalGasto = contasMes.reduce((acc, conta) => acc + conta.valor, 0);
+      // Buscar gastos no mês
+      const gastosMes = await Gasto.find({
+        usuario: req.user._id,
+        data: { $gte: mesRef, $lte: mesRefEnd }
+      });
+      const totalGastos = gastosMes.reduce((acc, gasto) => acc + parseFloat(gasto.valor), 0);
       
       mesesComparacao.push({
         mes: mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }),
-        total: totalGasto
+        contas: totalContas,
+        gastos: totalGastos,
+        total: totalContas + totalGastos
       });
     }
     mesesComparacao.reverse();
