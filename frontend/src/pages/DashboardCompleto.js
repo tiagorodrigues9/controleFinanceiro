@@ -22,7 +22,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-useTheme,
+  useTheme,
   useMediaQuery,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -111,10 +111,15 @@ const DashboardCompleto = () => {
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }} className="dashboard-page">
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: { xs: 1, sm: 2 } }}>
-        <Typography variant="h4" sx={{ flexGrow: 1, minWidth: { xs: 'auto', sm: 200 } }}>Dashboard</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+    <Box sx={{ 
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      boxSizing: 'border-box',
+    }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} sx={{ flexWrap: 'nowrap', gap: 2 }}>
+        <Typography variant="h4">Dashboard</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
           <FormControl size="small" sx={{ minWidth: 100 }}>
             <InputLabel>Mês</InputLabel>
             <Select value={mes} onChange={(e) => setMes(e.target.value)}>
@@ -236,13 +241,13 @@ const DashboardCompleto = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ minWidth: 0 }}>
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Comparação de Meses
             </Typography>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
               <BarChart data={data?.mesesComparacao || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
@@ -256,11 +261,11 @@ const DashboardCompleto = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Top 10 Categorias com Mais Gastos
             </Typography>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
               <BarChart data={data?.graficoBarrasTiposDespesa || []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -283,11 +288,11 @@ const DashboardCompleto = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Evolução do Saldo por Conta Bancária
             </Typography>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
@@ -325,11 +330,11 @@ const DashboardCompleto = () => {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Percentual de Gastos por Categoria
             </Typography>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
               <PieChart>
                 <Pie
                   data={data?.graficoPizzaTiposDespesa || []}
@@ -354,7 +359,7 @@ const DashboardCompleto = () => {
       {/* Relatório de Formas de Pagamento */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
         <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Relatório de Formas de Pagamento
             </Typography>
@@ -363,72 +368,132 @@ const DashboardCompleto = () => {
             </Typography>
             
             {data?.relatorioFormasPagamento?.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Forma de Pagamento</TableCell>
-                      <TableCell align="right">Gastos</TableCell>
-                      <TableCell align="right">Contas Pagas</TableCell>
-                      <TableCell align="right">Total</TableCell>
-                      <TableCell align="right">% do Total</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {data.relatorioFormasPagamento.map((forma) => (
-                      <TableRow key={forma.formaPagamento}>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="bold">
-                            {forma.formaPagamento}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" color="text.secondary">
-                            R$ {forma.totalGastos.toFixed(2).replace('.', ',')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" color="text.secondary">
-                            R$ {forma.totalContas.toFixed(2).replace('.', ',')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight="bold">
-                            R$ {forma.totalGeral.toFixed(2).replace('.', ',')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
+              <Box>
+                {data.relatorioFormasPagamento.map((forma, index) => (
+                  <Accordion key={forma.formaPagamento} sx={{ mb: 1 }}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mr: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                          {forma.formaPagamento}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Chip 
+                            label={`R$ ${forma.totalGeral.toFixed(2).replace('.', ',')}`}
+                            color="primary" 
+                            variant="outlined"
+                            size="small"
+                          />
                           <Chip 
                             label={`${forma.percentualGeral.toFixed(1)}%`}
+                            color="secondary" 
+                            variant="filled"
                             size="small"
-                            color="primary"
-                            variant="outlined"
                           />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={3}>
-                        <Typography variant="body2" fontWeight="bold">
-                          Total Geral
+                        </Box>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <TableContainer size="small">
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Tipo</TableCell>
+                              <TableCell align="right">Valor</TableCell>
+                              <TableCell align="right">% do Total</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>Gastos</TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                  R$ {forma.totalGastos.toFixed(2).replace('.', ',')}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" color="text.secondary">
+                                  {forma.totalGeral > 0 ? ((forma.totalGastos / forma.totalGeral) * 100).toFixed(1) : 0}%
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Contas Pagas</TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                  R$ {forma.totalContas.toFixed(2).replace('.', ',')}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="body2" color="text.secondary">
+                                  {forma.totalGeral > 0 ? ((forma.totalContas / forma.totalGeral) * 100).toFixed(1) : 0}%
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                            <TableRow sx={{ bgcolor: 'grey.50' }}>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight="bold">
+                                  Total
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                                  R$ {forma.totalGeral.toFixed(2).replace('.', ',')}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Chip 
+                                  label="100.0%"
+                                  size="small"
+                                  color="success"
+                                />
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+                
+                {/* Resumo Total */}
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Resumo Total do Período
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Total Movimentado
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="h6" color="primary" fontWeight="bold">
-                          R$ {data.relatorioFormasPagamento.reduce((sum, forma) => sum + forma.totalGeral, 0).toFixed(2).replace('.', ',')}
+                        <Typography variant="h5" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          R$ {data.relatorioFormasPagamento.reduce((acc, forma) => acc + forma.totalGeral, 0).toFixed(2).replace('.', ',')}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Chip 
-                          label="100.0%"
-                          size="small"
-                          color="success"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Número de Formas
+                        </Typography>
+                        <Typography variant="h5" color="secondary.main" sx={{ fontWeight: 'bold' }}>
+                          {data.relatorioFormasPagamento.length}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <Box textAlign="center">
+                        <Typography variant="body2" color="text.secondary">
+                          Média por Forma
+                        </Typography>
+                        <Typography variant="h5" color="success.main" sx={{ fontWeight: 'bold' }}>
+                          R$ {(data.relatorioFormasPagamento.reduce((acc, forma) => acc + forma.totalGeral, 0) / data.relatorioFormasPagamento.length).toFixed(2).replace('.', ',')}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Box>
             ) : (
               <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
                 Nenhuma forma de pagamento encontrada no período
@@ -441,7 +506,7 @@ const DashboardCompleto = () => {
       {/* Relatórios Detalhados por Tipo de Despesa */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
         <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Relatório Detalhado por Tipo de Despesa
             </Typography>
@@ -567,7 +632,7 @@ const DashboardCompleto = () => {
       {/* Relatório de Gastos por Cartão */}
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
         <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             <Typography variant="h6" gutterBottom>
               Comparação de Gastos por Cartão
             </Typography>
