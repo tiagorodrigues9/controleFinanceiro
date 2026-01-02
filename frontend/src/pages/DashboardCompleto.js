@@ -288,7 +288,17 @@ const DashboardCompleto = () => {
                     dataKey="month"
                     tickFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
                   />
-                  <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(2).replace('.', ',')}`} />
+                  <YAxis 
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) {
+                        return `R$ ${(value / 1000000).toFixed(1)}M`;
+                      } else if (value >= 1000) {
+                        return `R$ ${(value / 1000).toFixed(0)}K`;
+                      } else {
+                        return `R$ ${value.toFixed(0)}`;
+                      }
+                    }}
+                  />
                   <Tooltip
                     labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                     formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Saldo']}
@@ -331,6 +341,93 @@ const DashboardCompleto = () => {
                 <Tooltip formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']} />
               </PieChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Relatório de Formas de Pagamento */}
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
+        <Grid item xs={12}>
+          <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+            <Typography variant="h6" gutterBottom>
+              Relatório de Formas de Pagamento
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Valores movimentados no mês/ano selecionados, organizados por forma de pagamento
+            </Typography>
+            
+            {data?.relatorioFormasPagamento?.length > 0 ? (
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Forma de Pagamento</TableCell>
+                      <TableCell align="right">Gastos</TableCell>
+                      <TableCell align="right">Contas Pagas</TableCell>
+                      <TableCell align="right">Total</TableCell>
+                      <TableCell align="right">% do Total</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.relatorioFormasPagamento.map((forma) => (
+                      <TableRow key={forma.formaPagamento}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            {forma.formaPagamento}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="text.secondary">
+                            R$ {forma.totalGastos.toFixed(2).replace('.', ',')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="text.secondary">
+                            R$ {forma.totalContas.toFixed(2).replace('.', ',')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" fontWeight="bold">
+                            R$ {forma.totalGeral.toFixed(2).replace('.', ',')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip 
+                            label={`${forma.percentualGeral.toFixed(1)}%`}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={3}>
+                        <Typography variant="body2" fontWeight="bold">
+                          Total Geral
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="h6" color="primary" fontWeight="bold">
+                          R$ {data.relatorioFormasPagamento.reduce((sum, forma) => sum + forma.totalGeral, 0).toFixed(2).replace('.', ',')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip 
+                          label="100.0%"
+                          size="small"
+                          color="success"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                Nenhuma forma de pagamento encontrada no período
+              </Typography>
+            )}
           </Paper>
         </Grid>
       </Grid>

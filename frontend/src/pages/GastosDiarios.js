@@ -192,10 +192,63 @@ const GastosDiarios = () => {
       return dataGasto === dataHoje;
     });
 
-    const totalDoDia = gastosDoDia.reduce((sum, gasto) => sum + (gasto.valor || 0), 0);
+    const totalDoDia = gastosDoDia.reduce((sum, gasto) => {
+      const valor = parseCurrency(gasto.valor);
+      // Usar precisão de centavos para evitar erros de ponto flutuante
+      return Math.round((sum + valor) * 100) / 100;
+    }, 0);
     const quantidadeDoDia = gastosDoDia.length;
 
     return { totalDoDia, quantidadeDoDia };
+  };
+
+  // Função auxiliar para tratamento seguro de valores financeiros (ultra-robusta para valores gigantescos)
+  const parseCurrency = (value) => {
+    // Verificar se o valor é extremamente grande ou inválido
+    if (!value || value === 'undefined' || value === 'null') return 0;
+    
+    const valueString = String(value);
+    
+    // Verificar se o valor é extremamente grande (além do limite do JavaScript)
+    if (valueString.includes('e') || parseFloat(value) > Number.MAX_SAFE_INTEGER) {
+      // Valor muito grande - usar manipulação de string pura
+      console.log('🔍 Frontend: Valor extremamente grande detectado');
+      
+      // Remover caracteres não numéricos exceto ponto e vírgula
+      const valorLimpo = valueString.replace(/[^0-9.,]/g, '');
+      
+      // Substituir vírgula por ponto para padronizar
+      const valorPadronizado = valorLimpo.replace(',', '.');
+      
+      // Separar parte inteira e decimal
+      const partes = valorPadronizado.split('.');
+      let parteInteira = partes[0] || '0';
+      const parteDecimal = partes[1] ? partes[1].substring(0, 2) : '00';
+      
+      // Limitar parte inteira para evitar problemas (truncar se necessário)
+      if (parteInteira.length > 15) {
+        parteInteira = parteInteira.substring(0, 15);
+      }
+      
+      // Construir valor final como string
+      const valorFinalString = `${parteInteira}.${parteDecimal}`;
+      return parseFloat(valorFinalString);
+      
+    } else {
+      // Valor normal - usar abordagem padrão
+      const parsed = parseFloat(value) || 0;
+      
+      if (Math.abs(parsed) > 1000000) { // Se for maior que 1 milhão
+        // Converter para string, manipular como centavos, depois voltar para número
+        const valorString = parsed.toFixed(2);
+        const [parteInteira, parteDecimal] = valorString.split('.');
+        const centavos = parseInt(parteInteira) * 100 + parseInt(parteDecimal || '00');
+        return centavos / 100;
+      } else {
+        // Para valores normais, usar Math.round
+        return Math.round(parsed * 100) / 100;
+      }
+    }
   };
 
   const { totalDoDia, quantidadeDoDia } = calcularTotais();
@@ -209,7 +262,7 @@ const GastosDiarios = () => {
             {gasto.tipoDespesa?.subgrupo || gasto.tipoDespesa?.grupo || 'Sem categoria'}
           </Typography>
           <Typography variant="h6" color="primary" fontWeight="bold">
-            R$ {gasto.valor.toFixed(2).replace('.', ',')}
+            R$ {parseCurrency(gasto.valor).toFixed(2).replace('.', ',')}
           </Typography>
         </Box>
         
@@ -357,7 +410,7 @@ const GastosDiarios = () => {
                     {gasto.tipoDespesa?.grupo?.nome} - {gasto.tipoDespesa?.subgrupo}
                   </TableCell>
                   <TableCell>{gasto.local || '-'}</TableCell>
-                  <TableCell>R$ {gasto.valor.toFixed(2).replace('.', ',')}</TableCell>
+                  <TableCell>R$ {parseCurrency(gasto.valor).toFixed(2).replace('.', ',')}</TableCell>
                   <TableCell>{gasto.formaPagamento}</TableCell>
                   <TableCell>
                     <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto._id); setOpenDeleteConfirm(true); }}>

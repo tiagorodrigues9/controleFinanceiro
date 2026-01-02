@@ -51,6 +51,7 @@ const ContasPagar = () => {
   const [contasBancarias, setContasBancarias] = useState([]);
   const [formasPagamento, setFormasPagamento] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [subgrupos, setSubgrupos] = useState([]);
   const [cartoes, setCartoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const today = new Date();
@@ -76,6 +77,7 @@ const ContasPagar = () => {
     totalParcelas: '1',
     parcelMode: 'dividir', // dividir, mesmo_valor, manual
     tipoControle: '',
+    subgrupo: '',
   });
   const [pagamentoData, setPagamentoData] = useState({
     formaPagamento: '',
@@ -182,6 +184,22 @@ const ContasPagar = () => {
     }
   };
 
+  // Carregar subgrupos quando um grupo é selecionado
+  const handleTipoControleChange = (value) => {
+    setFormData({ ...formData, tipoControle: value, subgrupo: '' }); // Limpar subgrupo ao mudar grupo
+    
+    if (value) {
+      const grupoSelecionado = grupos.find(g => g.nome === value);
+      if (grupoSelecionado && grupoSelecionado.subgrupos) {
+        setSubgrupos(grupoSelecionado.subgrupos);
+      } else {
+        setSubgrupos([]);
+      }
+    } else {
+      setSubgrupos([]);
+    }
+  };
+
   const fetchCartoes = async () => {
     try {
       const response = await api.get('/cartoes');
@@ -218,7 +236,7 @@ const ContasPagar = () => {
     setParcelasList(parcelasList.filter((_, i) => i !== index));
   };
 
-  const handleOpenCadastro = () => {
+  const resetForm = () => {
     setFormData({
       nome: '',
       dataVencimento: '',
@@ -228,9 +246,15 @@ const ContasPagar = () => {
       totalParcelas: '1',
       parcelMode: 'dividir',
       tipoControle: '',
+      subgrupo: '',
     });
     setParcelasList([]);
     setParcelaData({ valor: '', data: '' });
+    setSubgrupos([]); // Limpar subgrupos ao resetar
+  };
+
+  const handleOpenCadastro = () => {
+    resetForm();
     setOpenCadastro(true);
   };
 
@@ -936,7 +960,7 @@ const ContasPagar = () => {
               <InputLabel>Tipo de Controle</InputLabel>
               <Select
                 value={formData.tipoControle}
-                onChange={(e) => setFormData({ ...formData, tipoControle: e.target.value })}
+                onChange={(e) => handleTipoControleChange(e.target.value)}
                 label="Tipo de Controle"
               >
                 <MenuItem value="">
@@ -949,6 +973,25 @@ const ContasPagar = () => {
                 ))}
               </Select>
             </FormControl>
+            {formData.tipoControle && subgrupos.length > 0 && (
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Subgrupo</InputLabel>
+                <Select
+                  value={formData.subgrupo}
+                  onChange={(e) => setFormData({ ...formData, subgrupo: e.target.value })}
+                  label="Subgrupo"
+                >
+                  <MenuItem value="">
+                    <em>Nenhum</em>
+                  </MenuItem>
+                  {subgrupos.map((subgrupo, index) => (
+                    <MenuItem key={index} value={subgrupo.nome}>
+                      {subgrupo.nome}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             {formData.parcelMode === 'manual' && (
               <>
                 <Typography variant="h6" sx={{ mt: 2 }}>Adicionar Parcelas</Typography>
@@ -1146,9 +1189,9 @@ const ContasPagar = () => {
               fullWidth
               label="Tipo"
               margin="normal"
-              required
-              value={fornecedorData.tipo}
-              onChange={(e) => setFornecedorData({ ...fornecedorData, tipo: e.target.value })}
+              helperText="Opcional - se não informado, será 'Geral'"
+              value={fornecedorData.tipo || ''}
+              onChange={(e) => setFornecedorData({ ...fornecedorData, nome: fornecedorData.nome, tipo: e.target.value })}
             />
           </DialogContent>
           <DialogActions>

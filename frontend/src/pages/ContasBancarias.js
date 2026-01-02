@@ -24,6 +24,7 @@ import {
   Card,
   CardContent,
   CardActions,
+  Grid,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -74,6 +75,16 @@ const ContasBancarias = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calcular saldo total de todas as contas
+  const calcularSaldoTotal = () => {
+    return contas
+      .filter(conta => isActive(conta)) // Apenas contas ativas
+      .reduce((total, conta) => {
+        const saldo = parseFloat(conta.saldo) || 0;
+        return total + saldo;
+      }, 0);
   };
 
   const cancelInactivate = () => {
@@ -182,6 +193,31 @@ const ContasBancarias = () => {
           {error}
         </Alert>
       )}
+
+      {/* Quadro de Saldo Total */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper
+            sx={{
+              p: 2,
+              backgroundColor: '#1976d2', // Azul Material-UI
+              color: 'white',
+              borderRadius: 2,
+              boxShadow: 3
+            }}
+          >
+            <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Saldo Total
+            </Typography>
+            <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+              R$ {calcularSaldoTotal().toFixed(2).replace('.', ',')}
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+              {contas.filter(conta => isActive(conta)).length} conta(s) ativa(s)
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
 
       {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
       {isMobile ? (

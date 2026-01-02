@@ -131,7 +131,8 @@ router.get('/', async (req, res) => {
     const gastosPorGrupo = {};
     gastos.forEach(gasto => {
       const grupoNome = gasto.tipoDespesa?.grupo?.nome || 'Sem grupo';
-      gastosPorGrupo[grupoNome] = (gastosPorGrupo[grupoNome] || 0) + gasto.valor;
+      const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100; // Precisão de centavos
+      gastosPorGrupo[grupoNome] = (gastosPorGrupo[grupoNome] || 0) + valorGasto;
     });
 
     const tipoDespesaMaisGasto = Object.entries(gastosPorGrupo)
@@ -183,7 +184,10 @@ router.get('/', async (req, res) => {
     const grupos = await Grupo.find({ usuario: req.user._id });
     
     // Calcular total geral de gastos no período
-    const totalGeral = gastos.reduce((acc, gasto) => acc + gasto.valor, 0);
+    const totalGeral = gastos.reduce((acc, gasto) => {
+      const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100; // Precisão de centavos
+      return acc + valorGasto;
+    }, 0);
     
     const percentualPorCategoria = await Promise.all(
       grupos.map(async (grupo) => {
@@ -193,7 +197,10 @@ router.get('/', async (req, res) => {
           data: { $gte: startDate, $lte: endDate }
         });
 
-        const totalGrupo = gastosGrupo.reduce((acc, gasto) => acc + gasto.valor, 0);
+        const totalGrupo = gastosGrupo.reduce((acc, gasto) => {
+          const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100; // Precisão de centavos
+          return acc + valorGasto;
+        }, 0);
         const percentual = totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0;
 
         return {
@@ -218,7 +225,8 @@ router.get('/', async (req, res) => {
         const gastosPorSubgrupo = {};
         gastosGrupo.forEach(gasto => {
           const subgrupoNome = gasto.tipoDespesa.subgrupo || 'Não categorizado';
-          gastosPorSubgrupo[subgrupoNome] = (gastosPorSubgrupo[subgrupoNome] || 0) + gasto.valor;
+          const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100; // Precisão de centavos
+          gastosPorSubgrupo[subgrupoNome] = (gastosPorSubgrupo[subgrupoNome] || 0) + valorGasto;
         });
 
         const totalGrupo = Object.values(gastosPorSubgrupo).reduce((acc, valor) => acc + valor, 0);
@@ -283,7 +291,10 @@ router.get('/', async (req, res) => {
         });
 
         // Calcular totais
-        const totalGastos = gastosCartao.reduce((acc, gasto) => acc + gasto.valor, 0);
+        const totalGastos = gastosCartao.reduce((acc, gasto) => {
+          const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100; // Precisão de centavos
+          return acc + valorGasto;
+        }, 0);
         const totalContas = contasPagasCartao.reduce((acc, conta) => acc + conta.valor + (conta.jurosPago || 0), 0);
         const totalGeral = totalGastos + totalContas;
         const quantidadeTransacoes = gastosCartao.length + contasPagasCartao.length;
@@ -312,6 +323,53 @@ router.get('/', async (req, res) => {
       .filter(item => item.totalGeral > 0)
       .sort((a, b) => b.totalGeral - a.totalGeral);
 
+    // Relatório de formas de pagamento
+    const gastosPorFormaPagamento = {};
+    const contasPorFormaPagamento = {};
+
+    // Processar gastos por forma de pagamento
+    gastos.forEach(gasto => {
+      const formaPagamento = gasto.formaPagamento || 'Não informado';
+      const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
+      gastosPorFormaPagamento[formaPagamento] = (gastosPorFormaPagamento[formaPagamento] || 0) + valorGasto;
+    });
+
+    // Processar contas pagas por forma de pagamento
+    const contasPagasFormas = await Conta.find({
+      usuario: req.user._id,
+      status: 'Pago',
+      dataPagamento: { $gte: startDate, $lte: endDate }
+    });
+
+    contasPagasFormas.forEach(conta => {
+      const formaPagamento = conta.formaPagamento || 'Não informado';
+      const valorConta = Math.round(parseFloat(conta.valor) * 100) / 100 + (conta.jurosPago || 0);
+      contasPorFormaPagamento[formaPagamento] = (contasPorFormaPagamento[formaPagamento] || 0) + valorConta;
+    });
+
+    // Combinar gastos e contas por forma de pagamento
+    const relatorioFormasPagamento = [];
+    const todasFormas = new Set([...Object.keys(gastosPorFormaPagamento), ...Object.keys(contasPorFormaPagamento)]);
+
+    todasFormas.forEach(forma => {
+      const totalGastos = gastosPorFormaPagamento[forma] || 0;
+      const totalContas = contasPorFormaPagamento[forma] || 0;
+      const totalGeral = totalGastos + totalContas;
+      
+      if (totalGeral > 0) {
+        relatorioFormasPagamento.push({
+          formaPagamento: forma,
+          totalGastos: totalGastos,
+          totalContas: totalContas,
+          totalGeral: totalGeral,
+          percentualGeral: totalGeral > 0 ? (totalGeral / (totalGastos + Object.values(contasPorFormaPagamento).reduce((a, b) => a + b, 0) + Object.values(gastosPorFormaPagamento).reduce((a, b) => a + b, 0))) * 100 : 0
+        });
+      }
+    });
+
+    // Ordenar por valor total
+    relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
+
     res.json({
       totalContasPagar,
       totalValorContasPagarMes,
@@ -331,7 +389,8 @@ router.get('/', async (req, res) => {
       relatorioTiposDespesa: relatorioTiposDespesaFiltrado,
       graficoBarrasTiposDespesa,
       graficoPizzaTiposDespesa,
-      relatorioCartoes: relatorioCartoesFiltrado
+      relatorioCartoes: relatorioCartoesFiltrado,
+      relatorioFormasPagamento
     });
   } catch (error) {
     console.error(error);

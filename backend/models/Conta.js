@@ -51,7 +51,7 @@ const contaSchema = new mongoose.Schema({
   },
   formaPagamento: {
     type: String,
-    enum: ['Pix', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro', 'Transferência', 'Boleto']
+    trim: true
   },
   cartao: {
     type: mongoose.Schema.Types.ObjectId,

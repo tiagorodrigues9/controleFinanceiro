@@ -105,9 +105,62 @@ router.post('/', [
     const [year, month, day] = data.split('-').map(Number);
     const dataParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
+    // Processar valor com precisão de centavos (abordagem ultra-robusta para valores gigantescos)
+    let valorProcessado;
+    
+    // Verificar se o valor é extremamente grande (além do limite do JavaScript)
+    if (valor.includes('e') || parseFloat(valor) > Number.MAX_SAFE_INTEGER) {
+      // Valor muito grande - usar manipulação de string pura
+      console.log('🔍 Valor extremamente grande detectado, usando manipulação de string');
+      
+      // Remover caracteres não numéricos exceto ponto e vírgula
+      const valorLimpo = valor.replace(/[^0-9.,]/g, '');
+      
+      // Substituir vírgula por ponto para padronizar
+      const valorPadronizado = valorLimpo.replace(',', '.');
+      
+      // Separar parte inteira e decimal
+      const partes = valorPadronizado.split('.');
+      let parteInteira = partes[0] || '0';
+      const parteDecimal = partes[1] ? partes[1].substring(0, 2) : '00';
+      
+      // Limitar parte inteira para evitar problemas (truncar se necessário)
+      if (parteInteira.length > 15) {
+        parteInteira = parteInteira.substring(0, 15);
+        console.log('🔍 Parte inteira truncada para:', parteInteira);
+      }
+      
+      // Construir valor final como string
+      const valorFinalString = `${parteInteira}.${parteDecimal}`;
+      valorProcessado = parseFloat(valorFinalString);
+      
+      console.log('🔍 Valor processado (string):', valorFinalString);
+      console.log('🔍 Valor processado (número):', valorProcessado);
+      
+    } else {
+      // Valor normal - usar abordagem padrão
+      const valorOriginal = parseFloat(valor);
+      
+      if (Math.abs(valorOriginal) > 1000000) { // Se for maior que 1 milhão
+        // Converter para string, manipular como centavos, depois voltar para número
+        const valorString = valorOriginal.toFixed(2);
+        const [parteInteira, parteDecimal] = valorString.split('.');
+        const centavos = parseInt(parteInteira) * 100 + parseInt(parteDecimal || '00');
+        valorProcessado = centavos / 100;
+      } else {
+        // Para valores normais, usar Math.round
+        valorProcessado = Math.round(valorOriginal * 100) / 100;
+      }
+    }
+    
+    console.log('🔍 Debug - Processamento de valor:');
+    console.log('  Valor recebido:', valor);
+    console.log('  Valor processado final:', valorProcessado);
+    console.log('  Tipo do valor processado:', typeof valorProcessado);
+    
     const gasto = await Gasto.create({
       tipoDespesa,
-      valor: parseFloat(valor),
+      valor: valorProcessado,
       data: dataParsed,
       local,
       observacao,
@@ -116,13 +169,18 @@ router.post('/', [
       cartao: cartaoObj ? cartaoObj._id : null,
       usuario: req.user._id
     });
+    
+    console.log('🔍 Debug - Gasto salvo:');
+    console.log('  ID:', gasto._id);
+    console.log('  Valor no objeto:', gasto.valor);
+    console.log('  Tipo do valor:', typeof gasto.valor);
 
     // Criar registro no extrato
     await Extrato.create({
       contaBancaria,
       cartao: cartaoObj ? cartaoObj._id : null,
       tipo: 'Saída',
-      valor: parseFloat(valor),
+      valor: Math.round(parseFloat(valor) * 100) / 100, // Precisão de centavos
       data: new Date(data),
       motivo: `Gasto: ${local || 'Sem local'}`,
       referencia: {

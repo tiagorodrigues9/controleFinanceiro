@@ -50,8 +50,8 @@ router.get('/:id', async (req, res) => {
 // @desc    Criar novo fornecedor
 // @access  Private
 router.post('/', [
-  body('nome').notEmpty().withMessage('Nome é obrigatório'),
-  body('tipo').notEmpty().withMessage('Tipo é obrigatório')
+  body('nome').notEmpty().withMessage('Nome é obrigatório')
+  // Tipo não é mais obrigatório
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -63,7 +63,7 @@ router.post('/', [
 
     const fornecedor = await Fornecedor.create({
       nome,
-      tipo,
+      tipo: tipo || 'Geral', // Tipo padrão se não informado
       usuario: req.user._id
     });
 
@@ -78,8 +78,8 @@ router.post('/', [
 // @desc    Atualizar fornecedor
 // @access  Private
 router.put('/:id', [
-  body('nome').notEmpty().withMessage('Nome é obrigatório'),
-  body('tipo').notEmpty().withMessage('Tipo é obrigatório')
+  body('nome').optional().notEmpty().withMessage('Nome não pode ser vazio')
+  // Tipo não é mais obrigatório para atualização
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -97,8 +97,12 @@ router.put('/:id', [
     }
 
     const { nome, tipo } = req.body;
-    fornecedor.nome = nome;
-    fornecedor.tipo = tipo;
+    
+    // Atualizar apenas os campos fornecidos
+    if (nome) fornecedor.nome = nome;
+    if (tipo) fornecedor.tipo = tipo;
+    // Se tipo não for informado, mantém o valor atual
+    
     await fornecedor.save();
 
     res.json(fornecedor);

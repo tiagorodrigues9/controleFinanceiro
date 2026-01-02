@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
   try {
     const grupos = await Grupo.find({
       usuario: req.user._id
-    }).sort({ nome: 1 });
+    }).sort({ createdAt: 1 }); // Ordenar por data de criação (mais antigo primeiro)
 
     res.json(grupos);
   } catch (error) {

@@ -36,7 +36,7 @@ const Fornecedores = () => {
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
-  const [formData, setFormData] = useState({ nome: '', tipo: '' });
+  const [formData, setFormData] = useState({ nome: '' });
   const [error, setError] = useState('');
   const [openConfirm, setOpenConfirm] = useState(false);
   const [selectedFornecedor, setSelectedFornecedor] = useState(null);
@@ -70,7 +70,7 @@ const Fornecedores = () => {
   };
 
   const handleOpenCadastro = () => {
-    setFormData({ nome: '', tipo: '' });
+    setFormData({ nome: '' });
     setOpenCadastro(true);
   };
 
@@ -255,8 +255,8 @@ const Fornecedores = () => {
               fullWidth
               label="Tipo"
               margin="normal"
-              required
-              value={formData.tipo}
+              helperText="Opcional - se não informado, será 'Geral'"
+              value={formData.tipo || ''}
               onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
             />
           </DialogContent>
