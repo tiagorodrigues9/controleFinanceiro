@@ -322,7 +322,7 @@ const Cartoes = () => {
                   </TableCell>
                   <TableCell>
                     {(cartao.tipo === 'Crédito' || cartao.tipo === 'Débito') 
-                      ? `Dia Fatura: ${cartao.diaFatura || 'Não definido'} | Vencimento: ${cartao.dataVencimento ? new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Não definido'}`
+                      ? `Dia Fatura: ${cartao.diaFatura || 'Não definido'} | Vencimento: ${cartao.dataVencimento ? new Date(cartao.dataVencimento + '-01').toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Não definido'}`
                       : '-'
                     }
                   </TableCell>

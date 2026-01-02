@@ -264,131 +264,139 @@ const DashboardCompleto = () => {
         </Grid>
       </Grid>
 
-      <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ minWidth: 0, maxWidth: '100%', margin: 0, padding: 0, width: '100%' }}>
-        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Comparação de Meses
-            </Typography>
-            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
-              <BarChart data={data?.mesesComparacao || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="total" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Top 10 Categorias com Mais Gastos
-            </Typography>
-            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
-              <BarChart data={data?.graficoBarrasTiposDespesa || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="nome" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  interval={0}
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(0).replace('.', ',')}`} />
-                <Tooltip 
-                  formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']}
-                  labelFormatter={(label) => `Categoria: ${label}`}
-                />
-                <Bar dataKey="valor" fill="#00C49F" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Evolução do Saldo por Conta Bancária
-            </Typography>
-            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
-                <LineChart data={chartData}>
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          Análise e Comparativos
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Visualizações detalhadas dos seus dados financeiros
+        </Typography>
+        
+        <Grid container spacing={{ xs: 1, sm: 3 }} sx={{ minWidth: 0, maxWidth: '100%', margin: 0, padding: 0, width: '100%' }}>
+          <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
+            <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+              <Typography variant="h6" gutterBottom>
+                Comparação de Meses
+              </Typography>
+              <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
+                <BarChart data={data?.mesesComparacao || []}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
-                  />
-                  <YAxis 
-                    tickFormatter={(value) => {
-                      if (value >= 1000000) {
-                        return `R$ ${(value / 1000000).toFixed(1)}M`;
-                      } else if (value >= 1000) {
-                        return `R$ ${(value / 1000).toFixed(0)}K`;
-                      } else {
-                        return `R$ ${value.toFixed(0)}`;
-                      }
-                    }}
-                  />
-                  <Tooltip
-                    labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                    formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Saldo']}
-                  />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip />
                   <Legend />
-                  {data?.evolucaoSaldo?.map((conta, index) => (
-                    <Line
-                      key={index}
-                      type="monotone"
-                      dataKey={conta.conta}
-                      name={conta.conta}
-                      stroke={COLORS[index % COLORS.length]}
+                  <Bar dataKey="total" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
+            <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+              <Typography variant="h6" gutterBottom>
+                Top 10 Categorias com Mais Gastos
+              </Typography>
+              <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
+                <BarChart data={data?.graficoBarrasTiposDespesa || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="nome" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis tickFormatter={(value) => `R$ ${Number(value).toFixed(0).replace('.', ',')}`} />
+                  <Tooltip 
+                    formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']}
+                    labelFormatter={(label) => `Categoria: ${label}`}
+                  />
+                  <Bar dataKey="valor" fill="#00C49F" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
+            <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+              <Typography variant="h6" gutterBottom>
+                Evolução do Saldo por Conta Bancária
+              </Typography>
+              <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="month"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
                     />
-                  ))}
-                </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
+                    <YAxis 
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) {
+                          return `R$ ${(value / 1000000).toFixed(1)}M`;
+                        } else if (value >= 1000) {
+                          return `R$ ${(value / 1000).toFixed(0)}K`;
+                        } else {
+                          return `R$ ${value.toFixed(0)}`;
+                        }
+                      }}
+                    />
+                    <Tooltip
+                      labelFormatter={(value) => new Date(value).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                      formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Saldo']}
+                    />
+                    <Legend />
+                    {data?.evolucaoSaldo?.map((conta, index) => (
+                      <Line
+                        key={index}
+                        type="monotone"
+                        dataKey={conta.conta}
+                        name={conta.conta}
+                        stroke={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </LineChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
 
-        <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Percentual de Gastos por Categoria
-            </Typography>
-            <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
-              <PieChart>
-                <Pie
-                  data={data?.graficoPizzaTiposDespesa || []}
-                  cx="50%"
-                  cy="50%"
-                  label={({ categoria, percentual }) => `${categoria}: ${percentual.toFixed(1)}%`}
-                  outerRadius={60}
-                  fill="#8884d8"
-                  dataKey="valor"
-                >
-                  {(data?.graficoPizzaTiposDespesa || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
+          <Grid item xs={12} md={6} sx={{ minWidth: 0, maxWidth: '100%' }}>
+            <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
+              <Typography variant="h6" gutterBottom>
+                Percentual de Gastos por Categoria
+              </Typography>
+              <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
+                <PieChart>
+                  <Pie
+                    data={data?.graficoPizzaTiposDespesa || []}
+                    cx="50%"
+                    cy="50%"
+                    label={({ categoria, percentual }) => `${categoria}: ${percentual.toFixed(1)}%`}
+                    outerRadius={60}
+                    fill="#8884d8"
+                    dataKey="valor"
+                  >
+                    {(data?.graficoPizzaTiposDespesa || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
+          </Grid>
         </Grid>
-      </Grid>
+      </Box>
 
-      {/* Relatório de Formas de Pagamento */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Relatório de Formas de Pagamento
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Valores movimentados no mês/ano selecionados, organizados por forma de pagamento
-            </Typography>
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          Relatório de Formas de Pagamento
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Valores movimentados no mês/ano selecionados, organizados por forma de pagamento
+        </Typography>
+        
+        <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             
             {data?.relatorioFormasPagamento?.length > 0 ? (
               <Box>
@@ -523,19 +531,17 @@ const DashboardCompleto = () => {
               </Typography>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+      </Box>
 
-      {/* Relatórios Detalhados por Tipo de Despesa */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Relatório Detalhado por Tipo de Despesa
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Valores gastos no mês/ano selecionados, organizados por categoria do plano de contas
-            </Typography>
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          Relatório Detalhado por Tipo de Despesa
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Valores gastos no mês/ano selecionados, organizados por categoria do plano de contas
+        </Typography>
+        
+        <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             
             {data?.relatorioTiposDespesa?.length > 0 ? (
               <Box>
@@ -649,19 +655,17 @@ const DashboardCompleto = () => {
               </Typography>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+      </Box>
 
-      {/* Relatório de Gastos por Cartão */}
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-            <Typography variant="h6" gutterBottom>
-              Comparação de Gastos por Cartão
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Valores gastos no mês/ano selecionados, organizados por cartão
-            </Typography>
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+          Comparação de Gastos por Cartão
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Valores gastos no mês/ano selecionados, organizados por cartão
+        </Typography>
+        
+        <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
             
             {data?.relatorioCartoes?.length > 0 ? (
               <>
@@ -780,8 +784,7 @@ const DashboardCompleto = () => {
               </Box>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+      </Box>
     </Box>
   );
 };
