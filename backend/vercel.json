@@ -1,26 +1,26 @@
 {
   "version": 2,
   "name": "controle-financeiro-backend",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth.js"
+      "source": "/api/auth/(.*)",
+      "destination": "/api/auth.js"
     },
     {
-      "src": "/api/dashboard/(.*)",
-      "dest": "/api/dashboard.js"
+      "source": "/api/dashboard/(.*)",
+      "destination": "/api/dashboard.js"
     },
     {
-      "src": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|notificacoes|emails)(.*)",
-      "dest": "/api/crud.js"
+      "source": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|notificacoes|emails)(.*)",
+      "destination": "/api/crud.js"
     },
     {
-      "src": "/(health|ping)",
-      "dest": "/api/index.js"
+      "source": "/(health|ping)",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/api/index.js"
+      "source": "/(.*)",
+      "destination": "/api/index.js"
     }
   ],
   "env": {
