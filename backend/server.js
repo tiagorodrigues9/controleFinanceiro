@@ -11,12 +11,15 @@ const { keepAlive } = require('./utils/keepAlive');
 const app = express();
 
 // Middleware CORS mais seguro
-const allowedOrigins = [
-  'https://controle-financeiro-web.onrender.com',
-  'https://controlefinanceiro-i7s6.onrender.com',
-  'http://localhost:3000',
-  'http://localhost:3001'
-];
+app.use(cors({
+  origin: [
+    'https://controlefinanceiro-i7s6.onrender.com',
+    'http://localhost:3000'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 const corsOptions = {
   origin: function (origin, callback) {
