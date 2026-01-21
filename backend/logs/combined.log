@@ -728,3 +728,16 @@
 {"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
 {"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
 {"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-21 13:17:38"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-21 13:25:50","ttl":300}
+{"ano":2026,"duration":"1529ms","level":"warn","mes":1,"message":"Slow Operation","operation":"dashboard_load","service":"controle-financeiro","timestamp":"2026-01-21 13:25:50","userId":"6956f5edca85096ad6c7d995"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-21 13:25:51"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-21 13:36:37","ttl":300}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-21 13:36:37"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-21 13:37:01","userId":"6956f5edca85096ad6c7d995"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-21 13:37:01"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-21 13:37:02","userId":"6956f5edca85096ad6c7d995"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-21 13:37:02"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-21 13:45:36","ttl":300}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-21 13:45:36"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-21 13:45:49"}
+{"cacheType":"dashboard","key":"6956f5edca85096ad6c7d995:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-21 13:45:49"}
