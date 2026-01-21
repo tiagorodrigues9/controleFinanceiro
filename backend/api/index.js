@@ -1,16 +1,25 @@
 const { connectDB } = require('./lib/mongodb');
-const { logger } = require('../utils/logger');
 
 // Handler principal para Vercel
 module.exports = async (req, res) => {
   try {
     // Configurar headers CORS manualmente
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://controlefinanceiro-i7s6.onrender.com',
+      'https://controle-financeiro-web.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
     
-    // Handle OPTIONS requests
+    // Handle OPTIONS requests (preflight)
     if (req.method === 'OPTIONS') {
       res.status(200).end();
       return;
@@ -19,8 +28,12 @@ module.exports = async (req, res) => {
     // Conectar ao MongoDB
     await connectDB();
     
+    // Extrair path da URL
+    const url = req.url || '';
+    const path = url.split('?')[0]; // Remover query params
+    
     // Rota raiz
-    if (req.url === '/' || req.url === '') {
+    if (path === '/' || path === '') {
       res.json({ 
         message: 'API do Controle Financeiro está rodando no Vercel!',
         version: '1.0.0',
@@ -30,7 +43,7 @@ module.exports = async (req, res) => {
     }
     
     // Health check para Vercel
-    if (req.url === '/health' || req.url === '/ping') {
+    if (path === '/health' || path === '/ping') {
       res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
@@ -43,7 +56,8 @@ module.exports = async (req, res) => {
     // Se nenhuma rota corresponder, retorna 404
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
-      path: req.url
+      path: path,
+      url: url
     });
     
   } catch (error) {
