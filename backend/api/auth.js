@@ -4,18 +4,7 @@ const { connectDB } = require('./lib/mongodb');
 module.exports = async (req, res) => {
   try {
     // Configurar headers CORS manualmente
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'https://controlefinanceiro-i7s6.onrender.com',
-      'https://controle-financeiro-web.onrender.com',
-      'http://localhost:3000',
-      'http://localhost:3001'
-    ];
-    
-    if (allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    
+    res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     

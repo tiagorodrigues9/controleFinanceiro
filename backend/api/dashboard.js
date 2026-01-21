@@ -1,28 +1,35 @@
-const { connectDB } = require('../lib/mongodb');
-const { logger } = require('../../utils/logger');
+const { connectDB } = require('./lib/mongodb');
 
 // Handler específico para dashboard
 module.exports = async (req, res) => {
   try {
+    // Configurar headers CORS manualmente
+    res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    
+    // Handle OPTIONS requests (preflight)
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
+    
     // Conectar ao MongoDB
     await connectDB();
     
-    // Importar rota do dashboard
-    const dashboardRoutes = require('../../routes/dashboard');
+    // Extrair path da URL
+    const url = req.url || '';
+    const path = url.split('?')[0]; // Remover query params
     
-    // Aplicar middleware
-    const { setupMiddleware } = require('../lib/middleware');
-    setupMiddleware(req.app);
-    
-    // Roteamento para dashboard
-    if (req.method === 'GET') {
-      return dashboardRoutes(req, res);
-    }
-    
-    res.status(405).json({ message: 'Método não permitido' });
+    // Resposta simples por enquanto
+    res.json({ 
+      message: 'Dashboard endpoint funcionando',
+      method: req.method,
+      path: path
+    });
     
   } catch (error) {
-    logger.error('Erro no handler do dashboard:', error);
+    console.error('Erro no handler do dashboard:', error);
     res.status(500).json({ 
       message: 'Erro interno do servidor',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
