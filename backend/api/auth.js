@@ -22,12 +22,29 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Content-Type', 'application/json');
   
   try {
     // Handle OPTIONS requests
     if (req.method === 'OPTIONS') {
       res.status(200).end();
       return;
+    }
+    
+    // Parse do body manualmente (Vercel não faz automaticamente)
+    let body = {};
+    if (req.method === 'POST' && req.headers['content-type']?.includes('application/json')) {
+      try {
+        const rawBody = await new Promise((resolve, reject) => {
+          let data = '';
+          req.on('data', chunk => data += chunk);
+          req.on('end', () => resolve(data));
+          req.on('error', reject);
+        });
+        body = JSON.parse(rawBody);
+      } catch (parseError) {
+        console.log('Erro ao parsear body:', parseError);
+      }
     }
     
     // Conectar ao MongoDB
@@ -42,22 +59,19 @@ module.exports = async (req, res) => {
     console.log('req.method:', req.method);
     console.log('req.url:', url);
     console.log('path calculado:', path);
-    console.log('req.body:', req.body);
+    console.log('req.headers:', req.headers);
+    console.log('body parseado:', body);
     
     // Roteamento baseado no path - mais flexível
     if (req.method === 'POST' && (path === '/login' || path === '')) {
       console.log('Roteando para login');
-      // Validação
-      const errors = validationResult([
-        { body: 'email', value: req.body.email },
-        { body: 'password', value: req.body.password }
-      ]);
       
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      const { email, password } = body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
       }
 
-      const { email, password } = req.body;
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -82,18 +96,12 @@ module.exports = async (req, res) => {
     
     if (req.method === 'POST' && (path === '/register' || path === '')) {
       console.log('Roteando para register');
-      // Validação
-      const errors = validationResult([
-        { body: 'nome', value: req.body.nome },
-        { body: 'email', value: req.body.email },
-        { body: 'password', value: req.body.password }
-      ]);
       
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+      const { nome, email, password } = body;
+      
+      if (!nome || !email || !password) {
+        return res.status(400).json({ message: 'Nome, email e senha são obrigatórios' });
       }
-
-      const { nome, email, password } = req.body;
 
       const userExists = await User.findOne({ email });
       if (userExists) {
@@ -121,7 +129,8 @@ module.exports = async (req, res) => {
         method: req.method,
         url: url,
         path: path,
-        body: req.body,
+        body: body,
+        headers: req.headers,
         available_endpoints: ['/login', '/register'],
         note: 'Tente POST /api/auth ou POST /api/auth/login'
       }
