@@ -1,5 +1,6 @@
 const { createLogger, format, transports } = require('winston');
 
+// Configuração para ambiente serverless (Vercel)
 const logger = createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: format.combine(
@@ -11,38 +12,22 @@ const logger = createLogger({
   ),
   defaultMeta: { service: 'controle-financeiro' },
   transports: [
-    // Arquivo de logs de erro
-    new transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
-    // Arquivo de logs combinados
-    new transports.File({
-      filename: 'logs/combined.log',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    }),
+    // Em serverless, apenas console log
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.simple()
+      )
+    })
   ],
 });
-
-// Em desenvolvimento, também log no console
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    format: format.combine(
-      format.colorize(),
-      format.simple()
-    )
-  }));
-}
 
 // Logger específico para erros de API
 const logApiError = (error, req, additionalInfo = {}) => {
   logger.error('API Error', {
     message: error.message,
     stack: error.stack,
-    url: req.originalUrl,
+    url: req.originalUrl || req.url,
     method: req.method,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
