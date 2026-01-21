@@ -37,8 +37,16 @@ module.exports = async (req, res) => {
     const url = req.url || '';
     const path = url.split('?')[0]; // Remover query params
     
-    // Roteamento baseado no path
-    if (req.method === 'POST' && path === '/login') {
+    // Debug extensivo
+    console.log('=== DEBUG AUTH ===');
+    console.log('req.method:', req.method);
+    console.log('req.url:', url);
+    console.log('path calculado:', path);
+    console.log('req.body:', req.body);
+    
+    // Roteamento baseado no path - mais flexível
+    if (req.method === 'POST' && (path === '/login' || path === '')) {
+      console.log('Roteando para login');
       // Validação
       const errors = validationResult([
         { body: 'email', value: req.body.email },
@@ -72,7 +80,8 @@ module.exports = async (req, res) => {
       });
     }
     
-    if (req.method === 'POST' && path === '/register') {
+    if (req.method === 'POST' && (path === '/register' || path === '')) {
+      console.log('Roteando para register');
       // Validação
       const errors = validationResult([
         { body: 'nome', value: req.body.nome },
@@ -105,9 +114,17 @@ module.exports = async (req, res) => {
     }
     
     // Resposta padrão para outros endpoints
+    console.log('Nenhuma rota correspondente encontrada');
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
-      available_endpoints: ['/login', '/register']
+      debug: {
+        method: req.method,
+        url: url,
+        path: path,
+        body: req.body,
+        available_endpoints: ['/login', '/register'],
+        note: 'Tente POST /api/auth ou POST /api/auth/login'
+      }
     });
     
   } catch (error) {
