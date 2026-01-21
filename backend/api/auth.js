@@ -1,4 +1,5 @@
-const { connectDB } = require('./lib/mongodb');
+const { connectDB } = require('../lib/mongodb');
+
 
 // Handler específico para autenticação
 module.exports = async (req, res) => {
