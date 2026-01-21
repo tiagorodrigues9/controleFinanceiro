@@ -7,7 +7,6 @@ const Fornecedor = require('../models/Fornecedor');
 const Gasto = require('../models/Gasto');
 const ContaBancaria = require('../models/ContaBancaria');
 const Extrato = require('../models/Extrato');
-const Transferencia = require('../models/Transferencia');
 const FormaPagamento = require('../models/FormaPagamento');
 const Cartao = require('../models/Cartao');
 const Notificacao = require('../models/Notificacao');
