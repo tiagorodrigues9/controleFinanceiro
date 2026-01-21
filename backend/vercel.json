@@ -3,12 +3,12 @@
   "name": "controle-financeiro-backend",
   "rewrites": [
     {
-      "source": "/api/auth",
-      "destination": "/api/auth.js"
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login.js"
     },
     {
-      "source": "/api/auth/(.*)",
-      "destination": "/api/auth.js"
+      "source": "/api/auth/register",
+      "destination": "/api/auth/register.js"
     },
     {
       "source": "/api/dashboard",
@@ -43,7 +43,11 @@
       "maxDuration": 10,
       "memory": 512
     },
-    "api/auth.js": {
+    "api/auth/login.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/auth/register.js": {
       "maxDuration": 10,
       "memory": 512
     },

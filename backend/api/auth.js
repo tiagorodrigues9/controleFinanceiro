@@ -62,62 +62,78 @@ module.exports = async (req, res) => {
     console.log('req.headers:', req.headers);
     console.log('body parseado:', body);
     
-    // Roteamento baseado no path - mais flexível
-    if (req.method === 'POST' && (path === '/login' || path === '')) {
-      console.log('Roteando para login');
+    // Roteamento baseado no path - mais específico
+    if (req.method === 'POST') {
+      console.log('Detectado POST request');
+      console.log('Path:', path);
+      console.log('URL completa:', url);
       
-      const { email, password } = body;
-      
-      if (!email || !password) {
-        return res.status(400).json({ message: 'Email e senha são obrigatórios' });
-      }
-
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(401).json({ message: 'Credenciais inválidas' });
-      }
-
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Credenciais inválidas' });
-      }
-
-      const token = generateToken(user._id);
-
-      return res.json({
-        token,
-        user: {
-          id: user._id,
-          nome: user.nome,
-          email: user.email
+      // Tentar login/register primeiro
+      if (path === '/login' || path.includes('login')) {
+        console.log('Roteando para login');
+        
+        const { email, password } = body;
+        
+        if (!email || !password) {
+          return res.status(400).json({ message: 'Email e senha são obrigatórios' });
         }
-      });
-    }
-    
-    if (req.method === 'POST' && (path === '/register' || path === '')) {
-      console.log('Roteando para register');
-      
-      const { nome, email, password } = body;
-      
-      if (!nome || !email || !password) {
-        return res.status(400).json({ message: 'Nome, email e senha são obrigatórios' });
-      }
 
-      const userExists = await User.findOne({ email });
-      if (userExists) {
-        return res.status(400).json({ message: 'Usuário já cadastrado' });
-      }
-
-      const user = await User.create({ nome, email, password });
-      const token = generateToken(user._id);
-
-      return res.status(201).json({
-        token,
-        user: {
-          id: user._id,
-          nome: user.nome,
-          email: user.email
+        const user = await User.findOne({ email });
+        if (!user) {
+          return res.status(401).json({ message: 'Credenciais inválidas' });
         }
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+          return res.status(401).json({ message: 'Credenciais inválidas' });
+        }
+
+        const token = generateToken(user._id);
+
+        return res.json({
+          token,
+          user: {
+            id: user._id,
+            nome: user.nome,
+            email: user.email
+          }
+        });
+      }
+      
+      if (path === '/register' || path.includes('register')) {
+        console.log('Roteando para register');
+        
+        const { nome, email, password } = body;
+        
+        if (!nome || !email || !password) {
+          return res.status(400).json({ message: 'Nome, email e senha são obrigatórios' });
+        }
+
+        const userExists = await User.findOne({ email });
+        if (userExists) {
+          return res.status(400).json({ message: 'Usuário já cadastrado' });
+        }
+
+        const user = await User.create({ nome, email, password });
+        const token = generateToken(user._id);
+
+        return res.status(201).json({
+          token,
+          user: {
+            id: user._id,
+            nome: user.nome,
+            email: user.email
+          }
+        });
+      }
+      
+      // Se não for login/register, mas for POST
+      console.log('POST não reconhecido, path:', path);
+      return res.status(404).json({ 
+        message: 'Endpoint POST não encontrado',
+        path: path,
+        url: url,
+        available_endpoints: ['/login', '/register']
       });
     }
     
