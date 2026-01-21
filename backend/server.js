@@ -21,6 +21,8 @@ app.use(cors({
   credentials: true
 }));
 
+app.options('*', cors());
+
 const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requisições sem origin (mobile apps, Postman, etc)

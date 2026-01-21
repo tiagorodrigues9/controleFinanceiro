@@ -17,35 +17,44 @@ module.exports = async (req, res) => {
     // Conectar ao MongoDB
     await connectDB();
     
-    // Extrair path da URL
+    // No Vercel, req.url contém o path completo após o nome do arquivo
+    // Para api/auth.js, se a URL for /api/auth/login, req.url será /login
     const url = req.url || '';
     const path = url.split('?')[0]; // Remover query params
     
+    // Debug para entender o que o Vercel está enviando
+    console.log('Debug - req.url:', url);
+    console.log('Debug - req.method:', req.method);
+    console.log('Debug - path:', path);
+    
     // Roteamento básico
-    if (req.method === 'POST' && path === '/login') {
+    if (req.method === 'POST' && (path === '/login' || path === '')) {
       res.json({ 
         message: 'Login endpoint - em desenvolvimento',
         method: req.method,
-        path: path
+        path: path,
+        debug: { url, method: req.method }
       });
       return;
     }
     
-    if (req.method === 'POST' && path === '/register') {
+    if (req.method === 'POST' && (path === '/register' || path === '')) {
       res.json({ 
         message: 'Register endpoint - em desenvolvimento',
         method: req.method,
-        path: path
+        path: path,
+        debug: { url, method: req.method }
       });
       return;
     }
     
     // Resposta padrão para outros endpoints
-    res.status(404).json({ 
-      message: 'Endpoint não encontrado',
+    res.json({ 
+      message: 'Auth endpoint funcionando',
       method: req.method,
       path: path,
-      url: url
+      url: url,
+      debug: { url, method: req.method }
     });
     
   } catch (error) {
