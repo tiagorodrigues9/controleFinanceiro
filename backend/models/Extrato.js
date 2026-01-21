@@ -17,7 +17,12 @@ const extratoSchema = new mongoose.Schema({
   },
   valor: {
     type: Number,
-    required: true
+    required: true,
+    set: v => {
+      const parsed = parseFloat(v);
+      if (isNaN(parsed)) return 0;
+      return parseFloat(parsed.toFixed(2));
+    }
   },
   data: {
     type: Date,
@@ -32,7 +37,7 @@ const extratoSchema = new mongoose.Schema({
   referencia: {
     tipo: {
       type: String,
-      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial']
+      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial', 'Transferencia']
     },
     id: {
       type: mongoose.Schema.Types.ObjectId
@@ -50,6 +55,12 @@ const extratoSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Índices para performance
+extratoSchema.index({ usuario: 1, contaBancaria: 1, data: 1 });
+extratoSchema.index({ usuario: 1, tipo: 1, data: 1 });
+extratoSchema.index({ contaBancaria: 1, estornado: 1, data: 1 });
+extratoSchema.index({ 'referencia.tipo': 1, 'referencia.id': 1 });
 
 module.exports = mongoose.model('Extrato', extratoSchema);
 

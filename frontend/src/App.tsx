@@ -13,6 +13,7 @@ import ContasPagar from './pages/ContasPagar';
 import Fornecedores from './pages/Fornecedores';
 import GastosDiarios from './pages/GastosDiarios';
 import ContasBancarias from './pages/ContasBancarias';
+import Transferencias from './pages/Transferencias';
 import ControleContas from './pages/ControleContas';
 import Extrato from './pages/Extrato';
 import DashboardCompleto from './pages/DashboardCompleto';
@@ -22,6 +23,7 @@ import Cartoes from './pages/Cartoes';
 import Notificacoes from './pages/Notificacoes';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAInstallBanner from './components/PWAInstallBanner';
+import UpdateNotification from './components/UpdateNotification';
 
 const theme = createTheme({
   palette: {
@@ -66,6 +68,7 @@ function AppContent() {
                 <Route path="/fornecedores" element={<Fornecedores />} />
                 <Route path="/gastos-diarios" element={<GastosDiarios />} />
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="/transferencias" element={<Transferencias />} />
                 <Route path="/controle-contas" element={<ControleContas />} />
                 <Route path="/extrato" element={<Extrato />} />
                 <Route path="/perfil" element={<Perfil />} />
@@ -93,6 +96,7 @@ function App() {
       </AuthProvider>
       <PWAInstallPrompt />
       <PWAInstallBanner />
+      <UpdateNotification />
     </ThemeProvider>
   );
 }

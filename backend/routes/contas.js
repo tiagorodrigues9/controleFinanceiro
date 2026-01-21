@@ -6,9 +6,11 @@ const Conta = require('../models/Conta');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const Cartao = require('../models/Cartao');
+const Fornecedor = require('../models/Fornecedor');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
-const logger = require('../utils/logger');
+const sanitizeNumericFields = require('../middleware/sanitizeNumeric');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -26,6 +28,7 @@ const upload = multer({ storage });
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
+router.use(sanitizeNumericFields);
 
 // @route   GET /api/contas
 // @desc    Obter todas as contas do usuário
@@ -402,6 +405,61 @@ router.delete('/:id/hard', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Erro ao inativar conta' });
+  }
+});
+
+// @route   DELETE /api/contas/:id/permanent
+// @desc    Excluir permanentemente conta inativa (apenas usuário dono)
+// @access  Private
+router.delete('/:id/permanent', async (req, res) => {
+  try {
+    const conta = await Conta.findOne({ 
+      _id: req.params.id, 
+      usuario: req.user._id,
+      ativo: false // Apenas pode excluir se já estiver inativa
+    });
+    
+    if (!conta) {
+      return res.status(404).json({ 
+        message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.' 
+      });
+    }
+
+    // Verificar se há parcelas restantes
+    if (conta.parcelaId) {
+      const remainingInstallments = await Conta.find({
+        parcelaId: conta.parcelaId,
+        usuario: req.user._id,
+        ativo: { $ne: false },
+        _id: { $ne: conta._id }
+      });
+      
+      if (remainingInstallments.length > 0) {
+        return res.status(400).json({
+          message: `Existem ${remainingInstallments.length} parcela(s) restantes. Cancele todas as parcelas primeiro.`,
+          remainingInstallments: remainingInstallments.length
+        });
+      }
+    }
+
+    // Excluir permanentemente
+    await Conta.deleteOne({ _id: req.params.id, usuario: req.user._id });
+    
+    logger.info('Conta excluída permanentemente', { 
+      contaId: conta._id, 
+      nome: conta.nome,
+      userId: req.user._id 
+    });
+    
+    res.json({ message: 'Conta excluída permanentemente com sucesso' });
+  } catch (error) {
+    logger.error('Erro ao excluir conta permanentemente', { 
+      error: error.message, 
+      stack: error.stack,
+      contaId: req.params.id,
+      userId: req.user._id
+    });
+    res.status(500).json({ message: 'Erro ao excluir conta' });
   }
 });
 

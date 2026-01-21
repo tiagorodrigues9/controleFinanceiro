@@ -13,7 +13,12 @@ const contaSchema = new mongoose.Schema({
   valor: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
+    set: v => {
+      const parsed = parseFloat(v);
+      if (isNaN(parsed)) return 0;
+      return parseFloat(parsed.toFixed(2));
+    }
   },
   fornecedor: {
     type: mongoose.Schema.Types.ObjectId,
@@ -77,6 +82,12 @@ const contaSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Índices para performance
+contaSchema.index({ usuario: 1, dataVencimento: 1, status: 1 });
+contaSchema.index({ usuario: 1, status: 1, ativo: 1 });
+contaSchema.index({ fornecedor: 1, usuario: 1 });
+contaSchema.index({ dataVencimento: 1, status: 1 });
 
 contaSchema.pre('save', function(next) {
   if (this.status === 'Pendente' && this.dataVencimento < new Date()) {

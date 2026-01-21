@@ -478,9 +478,9 @@ const GastosDiarios = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                {grupoSelecionado && (
+                {grupoSelecionado && grupoSelecionado.subgrupos && grupoSelecionado.subgrupos.length > 0 && (
                   <Grid item xs={12}>
-                    <FormControl fullWidth required variant="outlined">
+                    <FormControl fullWidth variant="outlined">
                       <InputLabel>Subgrupo</InputLabel>
                       <Select
                         value={formData.tipoDespesa.subgrupo}

@@ -15,7 +15,12 @@ const gastoSchema = new mongoose.Schema({
   valor: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
+    set: v => {
+      const parsed = parseFloat(v);
+      if (isNaN(parsed)) return 0;
+      return parseFloat(parsed.toFixed(2));
+    }
   },
   data: {
     type: Date,
@@ -53,6 +58,12 @@ const gastoSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Índices para performance
+gastoSchema.index({ usuario: 1, data: 1, 'tipoDespesa.grupo': 1 });
+gastoSchema.index({ usuario: 1, contaBancaria: 1, data: 1 });
+gastoSchema.index({ usuario: 1, cartao: 1, data: 1 });
+gastoSchema.index({ 'tipoDespesa.grupo': 1, data: 1 });
 
 module.exports = mongoose.model('Gasto', gastoSchema);
 

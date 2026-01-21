@@ -12,9 +12,12 @@ const generateToken = (id) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET não configurado');
   }
+  
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '7d',
-    algorithm: 'HS256'
+    algorithm: 'HS256',
+    issuer: 'controle-financeiro',
+    audience: 'controle-financeiro-users'
   });
 };
 

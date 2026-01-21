@@ -4,13 +4,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
-const logger = require('./utils/logger');
+const { logger } = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { keepAlive } = require('./utils/keepAlive');
 
 const app = express();
 
-// Middleware CORS mais flexível
+// Middleware CORS mais seguro
 const allowedOrigins = [
   'https://controle-financeiro-web.onrender.com',
   'https://controlefinanceiro-i7s6.onrender.com',
@@ -18,35 +18,64 @@ const allowedOrigins = [
   'http://localhost:3001'
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requisições sem origin (mobile apps, Postman, etc)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    // Em desenvolvimento, permitir qualquer origem local
+    if (process.env.NODE_ENV === 'development' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      logger.warn('CORS blocked', { origin, userAgent: req.get('User-Agent') });
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['X-Total-Count']
-}));
-// Middleware para preflight requests
+  exposedHeaders: ['X-Total-Count'],
+  maxAge: 86400 // 24 horas
+};
+
+app.use(cors(corsOptions));
+
+// Security headers
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-Frame-Options', 'DENY');
+  res.header('X-XSS-Protection', '1; mode=block');
+  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
 });
+
+// Rate limiting básico
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, // limite cada IP a 1000 requisições por windowMs
+  message: 'Muitas requisições deste IP, tente novamente mais tarde',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', limiter);
+
+// Limitador mais restrito para auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // limite cada IP a 5 tentativas de login por windowMs
+  message: 'Muitas tentativas de login, tente novamente mais tarde',
+  skipSuccessfulRequests: true,
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,7 +94,8 @@ app.get('/', (req, res) => {
       contasBancarias: '/api/contas-bancarias',
       grupos: '/api/grupos',
       extrato: '/api/extrato',
-      dashboard: '/api/dashboard'
+      dashboard: '/api/dashboard',
+      transferencias: '/api/transferencias'
     }
   });
 });
@@ -79,6 +109,7 @@ app.use('/api/contas-bancarias', require('./routes/contasBancarias'));
 app.use('/api/grupos', require('./routes/grupos'));
 app.use('/api/extrato', require('./routes/extrato'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/transferencias', require('./routes/transferencias'));
 app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
 app.use('/api/cartoes', require('./routes/cartoes'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));

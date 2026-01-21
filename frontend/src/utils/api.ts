@@ -1,9 +1,8 @@
-import axios from 'axios';
+import axios, { AxiosResponse, AxiosError } from 'axios';
 
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`,
 });
-
 
 // Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
@@ -21,8 +20,8 @@ api.interceptors.request.use(
 
 // Interceptor para tratar erros de autenticação
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: AxiosResponse) => response,
+  (error: AxiosError) => {
     if (error.response?.status === 401) {
       // Só redirecionar se não estiver na página de login
       if (window.location.pathname !== '/login') {

@@ -493,11 +493,23 @@ const ContasPagar = () => {
         setOpenConfirmParcelas(true);
         setOpenConfirmHardDelete(false);
       } else {
-        // Se não tiver parcelas restantes, exclui permanentemente mesmo
-        await api.delete(`/contas/${contaToHardDelete}/hard`);
-        await fetchContas();
-        setOpenConfirmHardDelete(false);
-        setContaToHardDelete(null);
+        // Se não tiver parcelas restantes, tenta excluir permanentemente
+        try {
+          await api.delete(`/contas/${contaToHardDelete}/permanent`);
+          await fetchContas();
+          setOpenConfirmHardDelete(false);
+          setContaToHardDelete(null);
+        } catch (err) {
+          // Se a rota permanent falhar (conta ainda ativa), usa a rota normal
+          if (err.response?.status === 404) {
+            await api.delete(`/contas/${contaToHardDelete}/hard`);
+            await fetchContas();
+            setOpenConfirmHardDelete(false);
+            setContaToHardDelete(null);
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err) {
       console.error('Erro ao excluir conta:', err);

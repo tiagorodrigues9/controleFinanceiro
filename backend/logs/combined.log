@@ -1,0 +1,730 @@
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-02 16:46:15"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-02 16:46:16"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-02 17:16:57"}
+{"ano":2026,"duration":"1527ms","level":"warn","mes":1,"message":"Slow Operation","operation":"dashboard_load","service":"controle-financeiro","timestamp":"2026-01-02 17:17:30","userId":"6956f28a505719b875ad752e"}
+{"level":"error","message":"ReferenceError: mesAtual is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\dashboard.js:456:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","service":"controle-financeiro","timestamp":"2026-01-02 17:17:30"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-02 17:18:14","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-02 17:18:14"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-02 17:18:15","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-02 17:18:15"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 09:31:09"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 09:31:10"}
+{"level":"error","message":"ReferenceError: mesAtual is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\dashboard.js:456:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","service":"controle-financeiro","timestamp":"2026-01-03 09:47:57"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 09:48:07","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 09:48:07"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 09:48:07","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 09:48:07"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 09:50:37"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 09:50:38"}
+{"level":"error","message":"ReferenceError: mesAtual is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\dashboard.js:456:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","service":"controle-financeiro","timestamp":"2026-01-03 09:52:40"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:02:48"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:02:48"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:02:49"}
+{"level":"error","message":"ReferenceError: mesAtual is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\dashboard.js:456:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","service":"controle-financeiro","timestamp":"2026-01-03 10:03:00"}
+{"level":"error","message":"ReferenceError: mesAtual is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\dashboard.js:456:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","service":"controle-financeiro","timestamp":"2026-01-03 10:03:00"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:11:17"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:11:18"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:12:48"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:14:35"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:14:36"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:16:10"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:16:11"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:25:21"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:25:22"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:25:30"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:25:31"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:25:37"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:25:41"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:25:42"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:25:42"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:25:50"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:25:51"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:25:51"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:26:00"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:26:15"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:26:16"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:26:20"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:26:37"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:28:18"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:28:19"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:28:23"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:28:27"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:28:43"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:28:44"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:29:06"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:32:18"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:33:35"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:33:36"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:33:39"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:33:40"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:36:44"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:37:59"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:38:00"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:38:00"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:38:15"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:38:16"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:39:16"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:39:17"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:45:21"}
+{"errorType":"Object","ip":"::1","level":"error","message":"API Error Bad escaped character in JSON at position 9","method":"POST","service":"controle-financeiro","timestamp":"2026-01-03 10:45:50","url":"/api/auth/login","userAgent":"Mozilla/5.0 (Windows NT; Windows NT 10.0; pt-BR) WindowsPowerShell/5.1.19041.6456"}
+{"errorType":"Object","ip":"::1","level":"error","message":"API Error Bad escaped character in JSON at position 9","method":"POST","service":"controle-financeiro","timestamp":"2026-01-03 10:46:14","url":"/api/auth/login","userAgent":"Mozilla/5.0 (Windows NT; Windows NT 10.0; pt-BR) WindowsPowerShell/5.1.19041.6456"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:47:06"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:47:53"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:47:54"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:49:58"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:50:12"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:50:13"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:50:37"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:50:38"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:50:46"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:50:47"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-03 10:51:10","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 10:51:10"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 10:52:16","userId":"6956f28a505719b875ad752e"}
+{"error":"Cast to Number failed for value \"NaN\" (type number) at path \"valor\" for model \"Conta\"","level":"error","message":"Erro ao buscar contas","service":"controle-financeiro","stack":"CastError: Cast to Number failed for value \"NaN\" (type number) at path \"valor\" for model \"Conta\"\n    at SchemaNumber.cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:401:11)\n    at SchemaType.applySetters (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schemaType.js:1288:12)\n    at SchemaNumber.castForQuery (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:470:16)\n    at SchemaNumber.handleSingle (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schemaType.js:1647:15)\n    at SchemaNumber.castForQuery (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:466:20)\n    at cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\cast.js:367:39)\n    at Query.cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:5060:12)\n    at Query._castConditions (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:2374:10)\n    at model.Query._find (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:2401:8)\n    at model.Query.exec (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:4627:80)","timestamp":"2026-01-03 10:52:16"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 10:52:16","userId":"6956f28a505719b875ad752e"}
+{"error":"Cast to Number failed for value \"NaN\" (type number) at path \"valor\" for model \"Conta\"","level":"error","message":"Erro ao buscar contas","service":"controle-financeiro","stack":"CastError: Cast to Number failed for value \"NaN\" (type number) at path \"valor\" for model \"Conta\"\n    at SchemaNumber.cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:401:11)\n    at SchemaType.applySetters (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schemaType.js:1288:12)\n    at SchemaNumber.castForQuery (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:470:16)\n    at SchemaNumber.handleSingle (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schemaType.js:1647:15)\n    at SchemaNumber.castForQuery (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schema\\number.js:466:20)\n    at cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\cast.js:367:39)\n    at Query.cast (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:5060:12)\n    at Query._castConditions (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:2374:10)\n    at model.Query._find (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:2401:8)\n    at model.Query.exec (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\query.js:4627:80)","timestamp":"2026-01-03 10:52:16"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:53:58"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:54:04"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:54:05"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:54:26"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:55:25"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:55:26"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:55:26"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:59:00"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:59:10"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:59:19"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:59:20"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 10:59:30"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 10:59:31"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:03:13","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:03:13"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:03:13","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:03:13"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-03 11:03:31","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 11:03:31"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:00","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:00"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:00","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:00"}
+{"dataVencimento":"2026-01-04","fornecedor":"695710d0a605c271e3941cd5","level":"info","message":"Cadastrando conta","nome":"EMAIL_HOST","service":"controle-financeiro","timestamp":"2026-01-03 11:04:23","userId":"6956f28a505719b875ad752e","valor":"160"}
+{"contaId":"695921e7467c2a7a3da028e3","level":"info","message":"Conta criada com sucesso","service":"controle-financeiro","timestamp":"2026-01-03 11:04:23"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:23","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:23"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:36","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:36"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:41","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:41"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:43","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:43"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:46","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:04:46"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:06:11"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:06:12"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:06:58"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:07:04","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:07:04"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:07:48"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:07:49"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:18","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:18"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:18","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:18"}
+{"contaId":"69580c996e0cbc791cf80146","level":"info","message":"Conta excluída permanentemente","nome":"teste - Parcela 1 de 2","service":"controle-financeiro","timestamp":"2026-01-03 11:09:22","userId":"6956f28a505719b875ad752e"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:22","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 11:09:22"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:12:18"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:12:19"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:12:54"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:12:56"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:18:19"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:18:20"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:18:30"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:30"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:30"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:30"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:30"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:18:31"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:18:31"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:18:31"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:18:38"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:18:39"}
+{"body":{"contaDestino":"69571361402d5e772720faf8","contaOrigem":"6956f3af505719b875ad7578","motivo":"teste","valor":199},"error":"Extrato validation failed: referencia.tipo: `Transferencia` is not a valid enum value for path `referencia.tipo`.","level":"error","message":"Erro ao realizar transferência","service":"controle-financeiro","stack":"ValidationError: Extrato validation failed: referencia.tipo: `Transferencia` is not a valid enum value for path `referencia.tipo`.\n    at Document.invalidate (C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\document.js:3373:32)\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\document.js:3134:17\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\node_modules\\mongoose\\lib\\schemaType.js:1446:9\n    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)","timestamp":"2026-01-03 11:33:14","userId":"6956f28a505719b875ad752e"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:33:57"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:33:58"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:35:00"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:35:01"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:35:23"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:35:24"}
+{"contaDestino":"conta caixa","contaOrigem":"treara","level":"info","message":"Transferência realizada com sucesso","motivo":"sdqw","service":"controle-financeiro","timestamp":"2026-01-03 11:40:21","userId":"6956f28a505719b875ad752e","valor":123}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 11:40:42"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 11:40:43"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 12:04:09"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 12:04:10"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:36"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:04:37"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:45","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:45"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:46","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:46"}
+{"filters":{"ano":"2026","mes":"2"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:49","userId":"6956f28a505719b875ad752e"}
+{"count":1,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:49"}
+{"filters":{"ano":"2026","mes":"2"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:53","userId":"6956f28a505719b875ad752e"}
+{"count":1,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:53"}
+{"filters":{"ano":"2026","mes":"3"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:55","userId":"6956f28a505719b875ad752e"}
+{"count":0,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:55"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:57","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:04:57"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:05:01","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:05:02"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-03 12:05:02","userId":"6956f28a505719b875ad752e"}
+{"count":5,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-03 12:05:02"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:05:05"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-03 12:05:05"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 12:06:36"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 12:06:37"}
+{"error":"mongoose is not defined","level":"error","message":"Erro ao excluir transferência","service":"controle-financeiro","stack":"ReferenceError: mongoose is not defined\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\transferencias.js:219:21\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","timestamp":"2026-01-03 12:07:08","transferenciaId":"69592a55329517a7f9e87458","userId":"6956f28a505719b875ad752e"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 12:07:31"}
+{"contaDestino":"conta caixa","contaOrigem":"conta caixa","excluidos":1,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-03 12:08:19","transferenciaId":"69592a55329517a7f9e87458","userId":"6956f28a505719b875ad752e","valor":123}
+{"contaDestino":"treara","contaOrigem":"treara","excluidos":1,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-03 12:08:38","transferenciaId":"69592a55329517a7f9e87456","userId":"6956f28a505719b875ad752e","valor":123}
+{"contaDestino":"treara","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-03 12:08:48","userId":"6956f28a505719b875ad752e","valor":900}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 12:10:41"}
+{"contaDestino":"treara","contaOrigem":"conta caixa","excluidos":1,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-03 12:11:32","transferenciaId":"69593100d2f6a3fc09ac694c","userId":"6956f28a505719b875ad752e","valor":900}
+{"contaDestino":"treara","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-03 12:11:41","userId":"6956f28a505719b875ad752e","valor":19845}
+{"contaDestino":"treara","contaOrigem":"conta caixa","excluidos":1,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-03 12:11:55","transferenciaId":"695931ade46b875923deef3e","userId":"6956f28a505719b875ad752e","valor":19845}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-03 12:12:25"}
+{"contaDestino":"treara","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-03 12:13:22","userId":"6956f28a505719b875ad752e","valor":10}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 11:24:16"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 11:25:21","ttl":300}
+{"ano":2026,"duration":"1031ms","level":"warn","mes":1,"message":"Slow Operation","operation":"dashboard_load","service":"controle-financeiro","timestamp":"2026-01-05 11:25:21","userId":"6956f28a505719b875ad752e"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 11:25:21"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 11:25:26"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 11:25:27"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 11:25:27"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 11:27:05","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 11:27:06"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 11:27:06","userId":"6956f28a505719b875ad752e"}
+{"count":6,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 11:27:06"}
+{"dataVencimento":"2026-01-06","fornecedor":"6956f449505719b875ad759a","level":"info","message":"Cadastrando conta","nome":"comida","service":"controle-financeiro","timestamp":"2026-01-05 11:59:25","userId":"6956f28a505719b875ad752e","valor":"10.00"}
+{"contaId":"695bd1cde21873f24b408997","level":"info","message":"Conta criada com sucesso","service":"controle-financeiro","timestamp":"2026-01-05 11:59:25"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 11:59:26","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 11:59:26"}
+{"error":"Assignment to constant variable.","level":"error","message":"Erro ao excluir transferência","service":"controle-financeiro","stack":"TypeError: Assignment to constant variable.\n    at C:\\Users\\Keilla\\Desktop\\Programação\\controleFinanceiro\\backend\\routes\\transferencias.js:220:32\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)","timestamp":"2026-01-05 12:32:54","transferenciaId":"695932128cf66ca9fad33dc8","userId":"6956f28a505719b875ad752e"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 12:35:26"}
+{"contaDestino":"treara","contaOrigem":"conta caixa","excluidos":2,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-05 12:36:28","transferenciaId":"695932128cf66ca9fad33dc8","userId":"6956f28a505719b875ad752e","valor":10}
+{"contaDestino":"teste","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"testes","service":"controle-financeiro","timestamp":"2026-01-05 12:36:55","userId":"6956f28a505719b875ad752e","valor":10}
+{"contaDestino":"conta caixa","contaOrigem":"conta caixa","excluidos":1,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-05 12:37:02","transferenciaId":"695bda97942441ce2657511f","userId":"6956f28a505719b875ad752e","valor":10}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 12:38:09"}
+{"contaDestino":"teste","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-05 13:58:01","userId":"6956f28a505719b875ad752e","valor":10}
+{"contaDestino":"teste","contaOrigem":"conta caixa","excluidos":2,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-05 13:58:21","transferenciaId":"695bed992b8c054c345dd731","userId":"6956f28a505719b875ad752e","valor":10}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 13:59:52","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 13:59:52"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 14:00:25","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 14:00:25"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 14:00:25","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 14:00:25"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 14:03:50"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 14:03:51"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 14:11:15","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:11:15"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 14:20:30","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:20:30"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:23:56"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:23:56"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 14:31:23","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:31:23"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:32:26"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:32:26"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:33:27"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:33:27"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:33:38"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:33:38"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 14:48:14","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 14:48:14"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 14:48:14","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 14:48:14"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 14:48:26","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:48:26"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:48:29"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 14:48:29"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 15:30:21","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 15:30:21"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 15:46:43","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 15:46:43"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 15:46:43","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 15:46:43"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 15:51:31","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 15:51:31"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 15:55:24"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 15:55:24"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 16:08:49","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 16:08:49"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 16:08:50","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 16:08:50"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 16:22:47","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 16:22:47"}
+{"contaDestino":"teste","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-05 16:42:14","userId":"6956f28a505719b875ad752e","valor":50}
+{"contaDestino":"conta caixa","contaOrigem":"treara","level":"info","message":"Transferência realizada com sucesso","motivo":"testes","service":"controle-financeiro","timestamp":"2026-01-05 16:42:32","userId":"6956f28a505719b875ad752e","valor":90}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 16:44:13"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 16:44:14"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 16:44:14"}
+{"contaDestino":"testes","contaOrigem":"conta caixa","level":"info","message":"Transferência realizada com sucesso","motivo":"","service":"controle-financeiro","timestamp":"2026-01-05 16:56:58","userId":"6956f28a505719b875ad752e","valor":123}
+{"contaDestino":"testes","contaOrigem":"conta caixa","excluidos":2,"level":"info","message":"Transferência excluída com sucesso","service":"controle-financeiro","timestamp":"2026-01-05 16:57:01","transferenciaId":"695c178a88e7bf27bfa1a318","userId":"6956f28a505719b875ad752e","valor":123}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 16:58:27","ttl":300}
+{"ano":2026,"duration":"1330ms","level":"warn","mes":1,"message":"Slow Operation","operation":"dashboard_load","service":"controle-financeiro","timestamp":"2026-01-05 16:58:27","userId":"6956f28a505719b875ad752e"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 16:58:27"}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Data cached","service":"controle-financeiro","timestamp":"2026-01-05 17:08:39","ttl":300}
+{"cacheType":"dashboard","key":"6956f28a505719b875ad752e:/api/dashboard?mes=1&ano=2026:{\"mes\":\"1\",\"ano\":\"2026\"}","level":"info","message":"Cache hit","service":"controle-financeiro","timestamp":"2026-01-05 17:08:39"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 17:19:53","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 17:19:53"}
+{"filters":{"ano":"2026","mes":"1"},"level":"info","message":"Buscando contas","service":"controle-financeiro","timestamp":"2026-01-05 17:19:53","userId":"6956f28a505719b875ad752e"}
+{"count":7,"level":"info","message":"Contas encontradas","service":"controle-financeiro","timestamp":"2026-01-05 17:19:53"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 17:26:19"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 17:26:20"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-05 17:26:54"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:54"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:54"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:54"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-05 17:26:54"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-05 17:26:55"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-05 17:26:55"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-05 17:26:55"}
+{"level":"info","message":"\n=== Configuração MongoDB ===","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"MONGO_USER: %s","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"MONGO_PASS: %s","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"MONGO_DB: %s","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"MONGO_HOST: %s","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"============================\n","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"Servidor rodando na porta 5000","service":"controle-financeiro","timestamp":"2026-01-21 13:17:37"}
+{"level":"info","message":"MongoDB conectado","service":"controle-financeiro","timestamp":"2026-01-21 13:17:38"}
