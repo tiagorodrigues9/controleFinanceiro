@@ -1,10 +1,11 @@
-// Handler específico para autenticação - versão debug
+// Handler específico para autenticação - versão com MongoDB
+const { connectDB } = require('./lib/mongodb');
+
 module.exports = async (req, res) => {
   try {
     console.log('=== DEBUG AUTH HANDLER ===');
     console.log('req.method:', req.method);
     console.log('req.url:', req.url);
-    console.log('req.headers:', req.headers);
     
     // Configurar headers CORS primeiro
     res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
@@ -18,13 +19,19 @@ module.exports = async (req, res) => {
       return;
     }
     
-    // Resposta simples para testar
+    // Tentar conectar ao MongoDB
+    console.log('Tentando conectar ao MongoDB...');
+    await connectDB();
+    console.log('MongoDB conectado com sucesso!');
+    
+    // Resposta com sucesso
     console.log('Respondendo sucesso');
     res.json({ 
-      message: 'Auth handler funcionando!',
+      message: 'Auth handler funcionando com MongoDB!',
       method: req.method,
       url: req.url,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      mongodb: 'connected'
     });
     
   } catch (error) {
