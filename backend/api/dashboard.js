@@ -2,31 +2,32 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // Models
+const Conta = require('../models/Conta');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const auth = require('../middleware/auth');
 
-// Handler simplificado para dashboard
+// Handler específico para dashboard - VERSÃO CORRIGIDA
 module.exports = async (req, res) => {
-  // Configurar headers CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Configurar headers CORS primeiro, antes de qualquer coisa
+  res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Content-Type', 'application/json');
   
-  // Handle OPTIONS
+  // Configurar timeout para evitar problemas no Vercel
+  req.setTimeout(8000);
+  
+  // Handle OPTIONS requests (preflight) - responder imediatamente SEM autenticação
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
   
-  // Aplicar autenticação
+  // Aplicar middleware de autenticação apenas para outros métodos
   auth(req, res, async () => {
     try {
-      console.log('=== DASHBOARD SIMPLES ===');
-      console.log('User ID:', req.user._id);
-      
       // Conectar ao MongoDB
       const mongoUser = process.env.MONGO_USER || '';
       const mongoPass = process.env.MONGO_PASS || '';
@@ -45,7 +46,7 @@ module.exports = async (req, res) => {
         await mongoose.connect(mongoUri);
       }
       
-      // Extrair parâmetros
+      // Extrair query params
       const url = req.url || '';
       const queryString = url.split('?')[1] || '';
       const params = new URLSearchParams(queryString);
@@ -55,15 +56,87 @@ module.exports = async (req, res) => {
       const mesAtual = mes ? parseInt(mes) : new Date().getMonth() + 1;
       const anoAtual = ano ? parseInt(ano) : new Date().getFullYear();
 
-      console.log('Mês/Ano:', mesAtual, anoAtual);
+      // Validação dos parâmetros
+      if (isNaN(mesAtual) || mesAtual < 1 || mesAtual > 12) {
+        return res.status(400).json({ message: 'Mês inválido. Deve estar entre 1 e 12.' });
+      }
 
-      // Criar datas para o período correto
+      if (isNaN(anoAtual) || anoAtual < 2020 || anoAtual > 2030) {
+        return res.status(400).json({ message: 'Ano inválido. Deve estar entre 2020 e 2030.' });
+      }
+
+      // Criar datas para o período correto usando strings ISO
       const startDate = new Date(`${anoAtual}-${mesAtual.toString().padStart(2, '0')}-01T12:00:00.000Z`);
       const endDate = new Date(`${anoAtual}-${mesAtual.toString().padStart(2, '0')}-31T12:00:00.000Z`);
       
-      console.log('Período:', startDate.toISOString(), 'a', endDate.toISOString());
+      console.log('DEBUG - startDate:', startDate.toISOString());
+      console.log('DEBUG - endDate:', endDate.toISOString());
 
-      // Buscar gastos do mês
+      console.log('=== DASHBOARD DEBUG CORRIGIDO ===');
+      console.log('req.user._id:', req.user._id);
+      console.log('mesAtual:', mesAtual, 'anoAtual:', anoAtual);
+      console.log('startDate:', startDate);
+      console.log('endDate:', endDate);
+
+      // Filtro base para todas as queries
+      const baseFilter = {
+        usuario: new mongoose.Types.ObjectId(req.user._id)
+      };
+
+      // Contas a pagar
+      const totalContasPagar = await Conta.countDocuments({
+        ...baseFilter,
+        status: { $in: ['Pendente', 'Vencida'] }
+      });
+
+      // Valor total de contas a pagar no mês
+      const totalValorContasPagarMes = await Conta.aggregate([
+        { 
+          $match: { 
+            ...baseFilter, 
+            status: { $in: ['Pendente', 'Vencida'] }, 
+            dataVencimento: { $gte: startDate, $lte: endDate } 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: "$valor" } } }
+      ]);
+
+      // Contas pagas no mês
+      const totalContasPagas = await Conta.countDocuments({
+        ...baseFilter,
+        status: 'Pago',
+        dataPagamento: { $gte: startDate, $lte: endDate }
+      });
+
+      // Valor total de contas pagas no mês
+      const totalValorContasPagas = await Conta.aggregate([
+        { 
+          $match: { 
+            ...baseFilter, 
+            status: 'Pago', 
+            dataPagamento: { $gte: startDate, $lte: endDate } 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: "$valor" } } }
+      ]);
+
+      // Saldo total em contas bancárias
+      const saldoTotalContas = await ContaBancaria.aggregate([
+        { $match: { usuario: req.user._id } },
+        { $group: { _id: null, total: { $sum: "$saldo" } } }
+      ]);
+
+      // Total de contas bancárias
+      const totalContasBancarias = await ContaBancaria.countDocuments({
+        usuario: req.user._id
+      });
+
+      // Gastos do mês
+      console.log('DEBUG - Buscando gastos com filtro:', {
+        usuario: new mongoose.Types.ObjectId(req.user._id),
+        data: { $gte: startDate, $lte: endDate }
+      });
+      
       const gastosMes = await Gasto.aggregate([
         {
           $match: {
@@ -74,7 +147,14 @@ module.exports = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
 
-      // Buscar extratos do mês
+      console.log('gastosMes:', gastosMes);
+
+      // Extrato do mês (entradas e saídas)
+      console.log('DEBUG - Buscando extratos com filtro:', {
+        usuario: new mongoose.Types.ObjectId(req.user._id),
+        data: { $gte: startDate, $lte: endDate }
+      });
+      
       const extratoMes = await Extrato.aggregate([
         {
           $match: {
@@ -90,7 +170,9 @@ module.exports = async (req, res) => {
         }
       ]);
 
-      // Processar extratos
+      console.log('extratoMes:', extratoMes);
+
+      // Processar resultados do extrato
       let totalEntradas = 0;
       let totalSaidas = 0;
 
@@ -102,34 +184,40 @@ module.exports = async (req, res) => {
         }
       });
 
-      // Buscar contas bancárias
-      const contasBancarias = await ContaBancaria.find({ usuario: req.user._id });
-
       // Montar resposta
       const dashboardData = {
         periodo: {
           mes: mesAtual,
           ano: anoAtual
         },
+        contas: {
+          totalPagar: totalContasPagar,
+          valorPagarMes: totalValorContasPagarMes[0]?.total || 0,
+          pagasMes: totalContasPagas,
+          valorPagasMes: totalValorContasPagas[0]?.total || 0
+        },
+        financeiro: {
+          saldoTotal: saldoTotalContas[0]?.total || 0,
+          totalContasBancarias: totalContasBancarias,
+          totalGastosMes: gastosMes[0]?.total || 0,
+          totalEntradasMes: totalEntradas,
+          totalSaidasMes: totalSaidas,
+          saldoMes: totalEntradas - totalSaidas
+        },
+        // Campos diretos para compatibilidade com frontend
         totalGastosMes: gastosMes[0]?.total || 0,
         totalEntradasMes: totalEntradas,
         totalSaidasMes: totalSaidas,
         saldoMes: totalEntradas - totalSaidas,
-        totalContasBancarias: contasBancarias.length,
-        contasBancarias: contasBancarias.map(conta => ({
-          nome: conta.nome,
-          saldo: conta.saldo,
-          banco: conta.banco
-        })),
         timestamp: new Date().toISOString()
       };
 
-      console.log('Dashboard Data:', JSON.stringify(dashboardData, null, 2));
+      console.log('Dashboard data gerada (CORRIGIDA):', JSON.stringify(dashboardData, null, 2));
       
       res.json(dashboardData);
       
     } catch (error) {
-      console.error('Erro no dashboard simples:', error);
+      console.error('Erro no handler do dashboard:', error);
       res.status(500).json({ 
         message: 'Erro interno do servidor',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined

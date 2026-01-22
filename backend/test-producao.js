@@ -4,14 +4,37 @@ async function testProducao() {
   try {
     console.log('🔐 Testando API de Produção...');
     
-    // URL de produção
-    const BASE_URL = 'https://controlefinanceiro-i7s6.onrender.com/api';
+    // URL de produção - tentando diferentes URLs
+    const URLs = [
+      'https://controlefinanceiro-i7s6.onrender.com/api',
+      'https://controlefinanceiro.onrender.com/api',
+      'https://controlefinanceiro.vercel.app/api'
+    ];
     
-    // Fazer login
-    const loginResponse = await axios.post(`${BASE_URL}/auth/login`, {
-      email: 'tr364634@gmail.com',
-      password: '194850Actdf!'
-    });
+    let BASE_URL = '';
+    let loginResponse = null;
+    
+    for (const url of URLs) {
+      try {
+        console.log(`🌐 Testando URL: ${url}`);
+        
+        loginResponse = await axios.post(`${url}/auth/login`, {
+          email: 'tr364634@gmail.com',
+          password: '194850Actdf!'
+        });
+        
+        BASE_URL = url;
+        console.log('✅ Login bem-sucedido na URL:', url);
+        console.log('Resposta do login:', JSON.stringify(loginResponse.data, null, 2));
+        break;
+      } catch (error) {
+        console.log(`❌ Falha na URL ${url}:`, error.response?.status || error.message);
+      }
+    }
+    
+    if (!BASE_URL) {
+      throw new Error('Nenhuma URL de produção funcionou');
+    }
     
     console.log('✅ Login realizado com sucesso');
     console.log('Token:', loginResponse.data.token ? loginResponse.data.token.substring(0, 50) + '...' : 'Token não encontrado');
