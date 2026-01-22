@@ -2,45 +2,34 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const auth = async (req, res, next) => {
+  console.log('🔍 Backend Auth - Verificando autenticação para:', req.method, req.url);
+  
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
-    // Logs apenas em desenvolvimento
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Middleware auth - Rota:', req.method, req.path);
-      console.log('🔑 Token recebido:', token ? token.substring(0, 20) + '...' : 'NENHUM');
-    }
+    console.log('🔍 Backend Auth - Token recebido:', token ? 'SIM' : 'NÃO');
+    console.log('🔍 Backend Auth - Header Authorization:', req.header('Authorization') ? 'SIM' : 'NÃO');
     
     if (!token) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('❌ Token não fornecido');
-      }
-      return res.status(401).json({ message: 'Token não fornecido' });
+      console.log('❌ Backend Auth - Nenhum token fornecido');
+      return res.status(401).json({ message: 'Acesso negado. Token não fornecido.' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
-      issuer: 'controle-financeiro',
-      audience: 'controle-financeiro-users'
-    });
-    const user = await User.findById(decoded.id).select('-password');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Backend Auth - Token decodificado com sucesso, user ID:', decoded.id);
     
+    const user = await User.findById(decoded.id).select('-password');
     if (!user) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('❌ Usuário não encontrado para ID:', decoded.id);
-      }
-      return res.status(401).json({ message: 'Usuário não encontrado' });
+      console.log('❌ Backend Auth - Usuário não encontrado no banco');
+      return res.status(401).json({ message: 'Token inválido.' });
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Usuário autenticado:', user.email);
-    }
+    console.log('✅ Backend Auth - Usuário autenticado:', user.email);
     req.user = user;
     next();
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('❌ Erro na verificação do token:', error.message);
-    }
-    res.status(401).json({ message: 'Token inválido' });
+    console.error('❌ Backend Auth - Erro na verificação:', error.message);
+    res.status(401).json({ message: 'Token inválido.' });
   }
 };
 

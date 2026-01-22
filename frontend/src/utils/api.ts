@@ -31,12 +31,22 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       console.log('❌ Erro 401 - Token inválido ou expirado');
+      console.log('📍 URL que causou 401:', error.config?.url);
+      console.log('📍 Método que causou 401:', error.config?.method);
+      
+      // NÃO limpar o localStorage imediatamente para manter os logs visíveis
+      // localStorage.removeItem('token');
+      // localStorage.removeItem('user');
+      
       // Só redirecionar se não estiver na página de login
       if (window.location.pathname !== '/login') {
         console.log('🔄 Redirecionando para login...');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Limpar apenas após mostrar os logs
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }, 1000); // 1 segundo para poder ver os logs
       }
     }
     return Promise.reject(error);
