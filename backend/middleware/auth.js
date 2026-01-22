@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const auth = async (req, res, next) => {
   console.log('🔍 Backend Auth - Verificando autenticação para:', req.method, req.url);
+  console.log('🔍 Backend Auth - Headers:', Object.keys(req.headers));
   
   try {
     const token = req.headers && req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null;
@@ -25,6 +26,7 @@ const auth = async (req, res, next) => {
     };
     
     console.log('✅ Backend Auth - Usuário autenticado via JWT:', req.user.email);
+    console.log('✅ Backend Auth - Chamando next()...');
     next();
   } catch (error) {
     console.error('❌ Backend Auth - Erro na verificação:', error.message);
