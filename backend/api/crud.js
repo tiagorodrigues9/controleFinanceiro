@@ -186,13 +186,32 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/notificacoes' || path.includes('notificacoes')) {
+      if (req.method === 'GET') {
+        const notificacoes = await Notificacao.find().sort({ data: -1 });
+        return res.json(notificacoes);
+      }
+      
+      if (req.method === 'POST') {
+        const notificacao = await Notificacao.create(body);
+        return res.status(201).json(notificacao);
+      }
+    }
+    
+    if (path === '/notificacoes/nao-lidas' || path.includes('notificacoes/nao-lidas')) {
+      if (req.method === 'GET') {
+        const notificacoesNaoLidas = await Notificacao.find({ lida: false }).sort({ data: -1 });
+        return res.json(notificacoesNaoLidas);
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas']
     });
     
   } catch (error) {
