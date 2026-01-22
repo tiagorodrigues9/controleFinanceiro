@@ -35,8 +35,13 @@ router.use(sanitizeNumericFields);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
+    console.log('🔍 Rotas Contas - GET /api/contas chamado');
+    console.log('🔍 Rotas Contas - req.user._id:', req.user._id);
+    
     const { mes, ano, ativo, status, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, valor: { $ne: null } };
+
+    console.log('🔍 Rotas Contas - Query params:', { mes, ano, ativo, status });
 
     // filtro por mês/ano (dataVencimento)
     if (mes && ano) {
