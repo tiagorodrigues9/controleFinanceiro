@@ -62,9 +62,13 @@ const ContasBancarias = () => {
 
   const fetchContas = async () => {
     try {
+      console.log('🔍 ContasBancarias - Buscando contas bancárias...');
       const response = await api.get('/contas-bancarias');
+      console.log('📊 ContasBancarias - Dados recebidos:', response.data);
+      console.log('📊 ContasBancarias - Quantidade:', response.data?.length || 0);
       setContas(response.data);
     } catch (err) {
+      console.error('❌ ContasBancarias - Erro:', err);
       setError('Erro ao carregar contas bancárias');
     } finally {
       setLoading(false);
