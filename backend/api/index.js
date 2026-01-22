@@ -21,6 +21,30 @@ module.exports = async (req, res) => {
     const url = req.url || '';
     const path = url.split('?')[0]; // Remover query params
     
+    // Se for uma rota específica, não processar aqui (deixar o vercel.json redirecionar)
+    if (path.startsWith('/api/auth/') || 
+        path.startsWith('/api/dashboard') || 
+        path.startsWith('/api/contas') || 
+        path.startsWith('/api/fornecedores') || 
+        path.startsWith('/api/gastos') || 
+        path.startsWith('/api/contas-bancarias') || 
+        path.startsWith('/api/grupos') || 
+        path.startsWith('/api/extrato') || 
+        path.startsWith('/api/transferencias') || 
+        path.startsWith('/api/formas-pagamento') || 
+        path.startsWith('/api/cartoes') || 
+        path.startsWith('/api/notificacoes') || 
+        path.startsWith('/api/emails')) {
+      
+      // Deixar o vercel.json redirecionar para o handler específico
+      res.status(404).json({ 
+        message: 'Endpoint não encontrado - deveria ser redirecionado',
+        path: path,
+        url: url
+      });
+      return;
+    }
+    
     // Rota raiz
     if (path === '/' || path === '') {
       res.json({ 
