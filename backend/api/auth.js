@@ -24,9 +24,15 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Content-Type', 'application/json');
   
+  console.log('=== AUTH DEBUG ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', req.headers);
+  
   try {
     // Handle OPTIONS requests
     if (req.method === 'OPTIONS') {
+      console.log('OPTIONS request - returning 200');
       res.status(200).end();
       return;
     }
@@ -42,6 +48,7 @@ module.exports = async (req, res) => {
           req.on('error', reject);
         });
         body = JSON.parse(rawBody);
+        console.log('Body parsed:', body);
       } catch (parseError) {
         console.log('Erro ao parsear body:', parseError);
       }
@@ -74,30 +81,42 @@ module.exports = async (req, res) => {
         
         const { email, password } = body;
         
+        console.log('Login attempt:', { email, password: '***' });
+        
         if (!email || !password) {
+          console.log('Email ou senha vazios');
           return res.status(400).json({ message: 'Email e senha são obrigatórios' });
         }
 
         const user = await User.findOne({ email });
         if (!user) {
+          console.log('Usuário não encontrado:', email);
           return res.status(401).json({ message: 'Credenciais inválidas' });
         }
+
+        console.log('Usuário encontrado:', user._id);
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+          console.log('Senha incorreta');
           return res.status(401).json({ message: 'Credenciais inválidas' });
         }
 
+        console.log('Senha correta, gerando token...');
         const token = generateToken(user._id);
+        console.log('Token gerado:', token.substring(0, 50) + '...');
 
-        return res.json({
+        const responseData = {
           token,
           user: {
             id: user._id,
             nome: user.nome,
             email: user.email
           }
-        });
+        };
+        
+        console.log('Enviando resposta:', responseData);
+        return res.json(responseData);
       }
       
       if (path === '/register' || path.includes('register')) {
