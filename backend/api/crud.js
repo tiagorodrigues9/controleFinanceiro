@@ -59,15 +59,18 @@ module.exports = async (req, res) => {
       const url = req.url || '';
       const path = url.split('?')[0]; // Remover query params
       
+      // Roteamento baseado no path (removendo prefixo /api)
+      const cleanPath = path.replace('/api', '');
+      
       console.log('=== DEBUG CRUD ===');
       console.log('req.method:', req.method);
       console.log('req.url:', url);
       console.log('path:', path);
+      console.log('cleanPath:', cleanPath);
       console.log('body:', body);
       console.log('req.user._id:', req.user._id);
       
-      // Roteamento baseado no path
-      if (path === '/grupos' || path.includes('grupos')) {
+      if (cleanPath === '/grupos' || cleanPath.includes('grupos')) {
         if (req.method === 'GET') {
           console.log('Buscando grupos do usuário...');
           const grupos = await Grupo.find({ usuario: req.user._id }).sort({ nome: 1 });
@@ -82,7 +85,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (path === '/contas-bancarias') {
+      if (cleanPath === '/contas-bancarias') {
         if (req.method === 'GET') {
           console.log('Buscando contas bancárias do usuário...');
           const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
@@ -98,7 +101,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (path === '/contas') {
+      if (cleanPath === '/contas') {
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
           // Otimizado: usar lean() para performance e limit para evitar timeout
@@ -116,7 +119,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (path === '/fornecedores') {
+      if (cleanPath === '/fornecedores') {
         if (req.method === 'GET') {
           console.log('Buscando fornecedores do usuário...');
           const fornecedores = await Fornecedor.find({ usuario: req.user._id })
@@ -132,7 +135,7 @@ module.exports = async (req, res) => {
         }
       }
     
-    if (path === '/formas-pagamento') {
+    if (cleanPath === '/formas-pagamento') {
       if (req.method === 'GET') {
         const formasPagamento = await FormaPagamento.find({ usuario: req.user._id })
           .sort({ nome: 1 })
@@ -147,7 +150,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/cartoes') {
+    if (cleanPath === '/cartoes') {
       if (req.method === 'GET') {
         const cartoes = await Cartao.find({ usuario: req.user._id })
           .sort({ nome: 1 })
@@ -162,7 +165,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/contas-bancarias' || path.includes('contas-bancarias')) {
+    if (cleanPath === '/contas-bancarias' || cleanPath.includes('contas-bancarias')) {
       if (req.method === 'GET') {
         console.log('Buscando contas bancárias do usuário...');
         const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
@@ -178,7 +181,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/gastos' || path.includes('gastos')) {
+    if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
       if (req.method === 'GET') {
         const gastos = await Gasto.find({ usuario: req.user._id }).sort({ data: -1 });
         return res.json(gastos);
@@ -190,7 +193,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/transferencias' || path.includes('transferencias')) {
+    if (cleanPath === '/transferencias' || cleanPath.includes('transferencias')) {
       if (req.method === 'GET') {
         // Buscar transferências (extratos com referência tipo 'Transferencia' e tipo 'Saída')
         const transferenciasSaida = await Extrato.find({
@@ -232,7 +235,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/notificacoes' || path.includes('notificacoes')) {
+    if (cleanPath === '/notificacoes' || cleanPath.includes('notificacoes')) {
       if (req.method === 'GET') {
         const notificacoes = await Notificacao.find({ usuario: req.user._id }).sort({ data: -1 });
         return res.json(notificacoes);
@@ -244,14 +247,14 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/notificacoes/nao-lidas' || path.includes('notificacoes/nao-lidas')) {
+    if (cleanPath === '/notificacoes/nao-lidas' || cleanPath.includes('notificacoes/nao-lidas')) {
       if (req.method === 'GET') {
         const notificacoesNaoLidas = await Notificacao.find({ usuario: req.user._id, lida: false }).sort({ data: -1 });
         return res.json(notificacoesNaoLidas);
       }
     }
     
-    if (path === '/notificacoes/teste-criacao' || path.includes('notificacoes/teste-criacao')) {
+    if (cleanPath === '/notificacoes/teste-criacao' || cleanPath.includes('notificacoes/teste-criacao')) {
       if (req.method === 'POST') {
         console.log('=== DEBUG TESTE CRIACAO ===');
         console.log('req.headers:', req.headers);
@@ -270,7 +273,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/extrato' || path.includes('extrato')) {
+    if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
       if (req.method === 'GET') {
         const extratos = await Extrato.find({ usuario: req.user._id })
           .populate('contaBancaria', 'nome banco')
@@ -285,10 +288,10 @@ module.exports = async (req, res) => {
     }
     
     // Resposta padrão para endpoints não implementados
-    console.log('Endpoint não implementado:', path);
+    console.log('Endpoint não implementado:', cleanPath);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
-      path: path,
+      path: cleanPath,
       method: req.method,
       available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/extrato']
     });
