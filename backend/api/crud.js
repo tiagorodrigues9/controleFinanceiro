@@ -82,7 +82,23 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (path === '/contas' || path.includes('contas')) {
+      if (path === '/contas-bancarias') {
+        if (req.method === 'GET') {
+          console.log('Buscando contas bancárias do usuário...');
+          const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
+            .sort({ nome: 1 })
+            .limit(50)
+            .lean();
+          return res.json(contasBancarias);
+        }
+        
+        if (req.method === 'POST') {
+          const contaBancaria = await ContaBancaria.create({ ...body, usuario: req.user._id });
+          return res.status(201).json(contaBancaria);
+        }
+      }
+      
+      if (path === '/contas') {
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
           // Otimizado: usar lean() para performance e limit para evitar timeout
@@ -100,7 +116,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (path === '/fornecedores' || path.includes('fornecedores')) {
+      if (path === '/fornecedores') {
         if (req.method === 'GET') {
           console.log('Buscando fornecedores do usuário...');
           const fornecedores = await Fornecedor.find({ usuario: req.user._id })
@@ -116,7 +132,7 @@ module.exports = async (req, res) => {
         }
       }
     
-    if (path === '/formas-pagamento' || path.includes('formas-pagamento')) {
+    if (path === '/formas-pagamento') {
       if (req.method === 'GET') {
         const formasPagamento = await FormaPagamento.find({ usuario: req.user._id })
           .sort({ nome: 1 })
@@ -131,7 +147,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (path === '/cartoes' || path.includes('cartoes')) {
+    if (path === '/cartoes') {
       if (req.method === 'GET') {
         const cartoes = await Cartao.find({ usuario: req.user._id })
           .sort({ nome: 1 })
