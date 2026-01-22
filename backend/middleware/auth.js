@@ -1,9 +1,4 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-
-// Cache simples para usuários (evita múltiplas buscas no MongoDB)
-const userCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 const auth = async (req, res, next) => {
   console.log('🔍 Backend Auth - Verificando autenticação para:', req.method, req.url);
@@ -19,35 +14,17 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Acesso negado. Token não fornecido.' });
     }
 
+    // Apenas decodificar o token, sem buscar no MongoDB (evita timeouts)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ Backend Auth - Token decodificado com sucesso, user ID:', decoded.id);
     
-    // Verificar cache primeiro
-    const cacheKey = decoded.id.toString();
-    const cachedUser = userCache.get(cacheKey);
+    // Criar objeto user mínimo com dados do JWT
+    req.user = {
+      _id: decoded.id,
+      email: decoded.email || 'user@example.com'
+    };
     
-    if (cachedUser && (Date.now() - cachedUser.timestamp) < CACHE_TTL) {
-      console.log('🚀 Backend Auth - Usuário encontrado no cache:', cachedUser.user.email);
-      req.user = cachedUser.user;
-      return next();
-    }
-    
-    console.log('💾 Backend Auth - Buscando usuário no MongoDB...');
-    const user = await User.findById(decoded.id).select('-password').lean(); // lean() para performance
-    
-    if (!user) {
-      console.log('❌ Backend Auth - Usuário não encontrado no banco');
-      return res.status(401).json({ message: 'Token inválido.' });
-    }
-
-    // Adicionar ao cache
-    userCache.set(cacheKey, {
-      user: user,
-      timestamp: Date.now()
-    });
-    
-    console.log('✅ Backend Auth - Usuário autenticado e cacheado:', user.email);
-    req.user = user;
+    console.log('✅ Backend Auth - Usuário autenticado via JWT:', req.user.email);
     next();
   } catch (error) {
     console.error('❌ Backend Auth - Erro na verificação:', error.message);
