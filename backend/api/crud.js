@@ -146,13 +146,53 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/transferencias' || path.includes('transferencias')) {
+      if (req.method === 'GET') {
+        // Buscar transferências (extratos com referência tipo 'Transferencia' e tipo 'Saída')
+        const transferenciasSaida = await Extrato.find({
+          'referencia.tipo': 'Transferencia',
+          tipo: 'Saída'
+        })
+        .populate('contaBancaria', 'nome banco')
+        .sort({ data: -1 })
+        .limit(20)
+        .skip(0);
+
+        // Para cada transferência de saída, buscar a entrada correspondente
+        const transferencias = await Promise.all(
+          transferenciasSaida.map(async (saida) => {
+            const entrada = await Extrato.findOne({
+              'referencia.tipo': 'Transferencia',
+              'referencia.id': saida.referencia.id,
+              tipo: 'Entrada'
+            }).populate('contaBancaria', 'nome banco');
+
+            return {
+              ...saida.toObject(),
+              contaDestino: entrada?.contaBancaria || null
+            };
+          })
+        );
+
+        return res.json({
+          transferencias,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: transferencias.length,
+            pages: Math.ceil(transferencias.length / 20)
+          }
+        });
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias']
     });
     
   } catch (error) {
