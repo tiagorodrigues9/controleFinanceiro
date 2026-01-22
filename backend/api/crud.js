@@ -225,13 +225,27 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/extrato' || path.includes('extrato')) {
+      if (req.method === 'GET') {
+        const extratos = await Extrato.find()
+          .populate('contaBancaria', 'nome banco')
+          .sort({ data: -1 });
+        return res.json(extratos);
+      }
+      
+      if (req.method === 'POST') {
+        const extrato = await Extrato.create(body);
+        return res.status(201).json(extrato);
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/extrato']
     });
     
   } catch (error) {
