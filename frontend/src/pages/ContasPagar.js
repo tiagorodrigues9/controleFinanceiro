@@ -210,12 +210,22 @@ const ContasPagar = () => {
   };
 
   useEffect(() => {
-    fetchContas();
-    fetchFornecedores();
-    fetchContasBancarias();
-    fetchGrupos();
-    fetchFormasPagamento();
-    fetchCartoes();
+    const carregarDados = async () => {
+      try {
+        console.log('🔄 Iniciando carregamento sequencial de dados...');
+        await fetchContas();
+        await fetchFornecedores();
+        await fetchContasBancarias();
+        await fetchGrupos();
+        await fetchFormasPagamento();
+        await fetchCartoes();
+        console.log('✅ Todos os dados carregados com sucesso!');
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados iniciais:', error);
+      }
+    };
+    
+    carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
