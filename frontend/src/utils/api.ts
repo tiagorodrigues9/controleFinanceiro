@@ -34,19 +34,14 @@ api.interceptors.response.use(
       console.log('📍 URL que causou 401:', error.config?.url);
       console.log('📍 Método que causou 401:', error.config?.method);
       
-      // NÃO limpar o localStorage imediatamente para manter os logs visíveis
-      // localStorage.removeItem('token');
-      // localStorage.removeItem('user');
+      // Limpar localStorage imediatamente
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       
-      // Só redirecionar se não estiver na página de login
+      // Redirecionar para login se não estiver na página de login
       if (window.location.pathname !== '/login') {
         console.log('🔄 Redirecionando para login...');
-        // Limpar apenas após mostrar os logs
-        setTimeout(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }, 1000); // 1 segundo para poder ver os logs
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);

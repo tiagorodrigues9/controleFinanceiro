@@ -23,6 +23,12 @@ app.use(cors({
 
 app.options('*', cors());
 
+const allowedOrigins = [
+  'https://controlefinanceiro-i7s6.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requisições sem origin (mobile apps, Postman, etc)
@@ -113,7 +119,7 @@ app.use('/api/gastos', require('./routes/gastos'));
 app.use('/api/contas-bancarias', require('./routes/contasBancarias'));
 app.use('/api/grupos', require('./routes/grupos'));
 app.use('/api/extrato', require('./routes/extrato'));
-app.use('/api/dashboard', require('./api/dashboard'));
+app.use('/api/dashboard', require('./api/dashboard')); // VOLTAR PARA ORIGINAL
 app.use('/api/transferencias', require('./routes/transferencias'));
 app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
 app.use('/api/cartoes', require('./routes/cartoes'));

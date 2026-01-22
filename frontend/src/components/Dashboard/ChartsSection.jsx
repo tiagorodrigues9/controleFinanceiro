@@ -9,6 +9,8 @@ import EvolucaoSaldo from '../Charts/EvolucaoSaldo';
 import CategoriasGastos from '../Charts/CategoriasGastos';
 
 const ChartsSection = ({ data }) => {
+  console.log(' CHARTS SECTION - Dados recebidos:', data);
+
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
@@ -21,7 +23,7 @@ const ChartsSection = ({ data }) => {
       <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: '100%' }}>
         <Grid item xs={12} lg={6}>
           <Box sx={{ height: '100%', minHeight: 300 }}>
-            <ComparacaoMeses data={data?.mesesComparacao} />
+            <ComparacaoMeses data={data?.comparacaoMeses || data?.mesesComparacao} />
           </Box>
         </Grid>
 

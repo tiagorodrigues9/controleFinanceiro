@@ -18,10 +18,23 @@ const generateToken = (id) => {
 };
 
 module.exports = async (req, res) => {
-  // Configurar headers CORS primeiro
-  res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
+  // Configurar headers CORS primeiro - permitir desenvolvimento e produção
+  const allowedOrigins = [
+    'https://controlefinanceiro-i7s6.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ];
+  const origin = req.headers.origin;
+  
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]); // fallback para produção
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Content-Type', 'application/json');
   
   console.log('=== AUTH DEBUG ===');
