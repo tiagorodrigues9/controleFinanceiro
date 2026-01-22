@@ -134,13 +134,25 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/gastos' || path.includes('gastos')) {
+      if (req.method === 'GET') {
+        const gastos = await Gasto.find().sort({ data: -1 });
+        return res.json(gastos);
+      }
+      
+      if (req.method === 'POST') {
+        const gasto = await Gasto.create(body);
+        return res.status(201).json(gasto);
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos']
     });
     
   } catch (error) {
