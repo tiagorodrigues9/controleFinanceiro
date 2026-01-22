@@ -22,6 +22,9 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Content-Type', 'application/json');
   
+  // Configurar timeout para evitar problemas no Vercel
+  req.setTimeout(8000); // 8 segundos
+  
   // Handle OPTIONS requests (preflight) - responder imediatamente SEM autenticação
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -81,7 +84,13 @@ module.exports = async (req, res) => {
       
       if (path === '/contas' || path.includes('contas')) {
         if (req.method === 'GET') {
-          const contas = await Conta.find({ usuario: req.user._id }).populate('fornecedor').sort({ dataVencimento: 1 });
+          console.log('Buscando contas do usuário...');
+          // Otimizado: usar lean() para performance e limit para evitar timeout
+          const contas = await Conta.find({ usuario: req.user._id })
+            .populate('fornecedor', 'nome')
+            .sort({ dataVencimento: 1 })
+            .limit(100) // Limitar para evitar timeout
+            .lean(); // Mais rápido
           return res.json(contas);
         }
         
@@ -93,7 +102,11 @@ module.exports = async (req, res) => {
       
       if (path === '/fornecedores' || path.includes('fornecedores')) {
         if (req.method === 'GET') {
-          const fornecedores = await Fornecedor.find({ usuario: req.user._id }).sort({ nome: 1 });
+          console.log('Buscando fornecedores do usuário...');
+          const fornecedores = await Fornecedor.find({ usuario: req.user._id })
+            .sort({ nome: 1 })
+            .limit(100)
+            .lean();
           return res.json(fornecedores);
         }
         
@@ -105,7 +118,10 @@ module.exports = async (req, res) => {
     
     if (path === '/formas-pagamento' || path.includes('formas-pagamento')) {
       if (req.method === 'GET') {
-        const formasPagamento = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+        const formasPagamento = await FormaPagamento.find({ usuario: req.user._id })
+          .sort({ nome: 1 })
+          .limit(50)
+          .lean();
         return res.json(formasPagamento);
       }
       
@@ -117,7 +133,10 @@ module.exports = async (req, res) => {
     
     if (path === '/cartoes' || path.includes('cartoes')) {
       if (req.method === 'GET') {
-        const cartoes = await Cartao.find({ usuario: req.user._id }).sort({ nome: 1 });
+        const cartoes = await Cartao.find({ usuario: req.user._id })
+          .sort({ nome: 1 })
+          .limit(50)
+          .lean();
         return res.json(cartoes);
       }
       
@@ -129,7 +148,11 @@ module.exports = async (req, res) => {
     
     if (path === '/contas-bancarias' || path.includes('contas-bancarias')) {
       if (req.method === 'GET') {
-        const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).sort({ nome: 1 });
+        console.log('Buscando contas bancárias do usuário...');
+        const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
+          .sort({ nome: 1 })
+          .limit(50)
+          .lean();
         return res.json(contasBancarias);
       }
       
