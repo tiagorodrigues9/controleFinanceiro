@@ -9,8 +9,6 @@ import EvolucaoSaldo from '../Charts/EvolucaoSaldo';
 import CategoriasGastos from '../Charts/CategoriasGastos';
 
 const ChartsSection = ({ data }) => {
-  console.log(' CHARTS SECTION - Dados recebidos:', data);
-
   return (
     <Box sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>

@@ -119,7 +119,7 @@ app.use('/api/gastos', require('./routes/gastos'));
 app.use('/api/contas-bancarias', require('./routes/contasBancarias'));
 app.use('/api/grupos', require('./routes/grupos'));
 app.use('/api/extrato', require('./routes/extrato'));
-app.use('/api/dashboard', require('./api/dashboard')); // VOLTAR PARA ORIGINAL
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/transferencias', require('./routes/transferencias'));
 app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
 app.use('/api/cartoes', require('./routes/cartoes'));

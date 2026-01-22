@@ -17,21 +17,15 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const ComparacaoMeses = ({ data }) => {
-  console.log('🔍 COMPARACAO MESES - Props recebidas:', data);
-  console.log('🔍 COMPARACAO MESES - Tipo de data:', typeof data);
-  
   // Usar dados de múltiplos meses se disponível
-  const chartData = data && typeof data === 'object' && data.comparacaoMensal && Array.isArray(data.comparacaoMensal) 
-    ? data.comparacaoMensal.map(mes => ({
+  const chartData = data && Array.isArray(data) 
+    ? data.map(mes => ({
         mes: mes.mes,
-        contas: mes.totalContas || 0,
-        gastos: mes.totalGastos || 0,
+        contas: mes.contas || 0,
+        gastos: mes.gastos || 0,
         total: mes.total || 0
       }))
     : [];
-  
-  console.log('🔍 COMPARACAO MESES - Chart data final:', chartData);
-  console.log('🔍 COMPARACAO MESES - Chart data length:', chartData.length);
   
   return (
     <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>

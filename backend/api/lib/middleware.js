@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { logger } = require('../utils/logger');
+const { logger } = require('../../utils/logger');
 
 // Configuração CORS para Vercel
 const corsOptions = {

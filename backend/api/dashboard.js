@@ -7,6 +7,7 @@ const Conta = require('../models/Conta');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
+const Grupo = require('../models/Grupo');
 
 // Função para calcular dados de um mês específico
 const getDadosMes = async (usuarioId, mes, ano) => {
@@ -135,7 +136,7 @@ const getRelatorioTiposDespesa = async (usuarioId, startDate, endDate) => {
           grupoNome: grupo.nome,
           totalGrupo: totalGrupo,
           quantidade: gastosGrupo.reduce((acc, item) => acc + item.quantidade, 0),
-          percentualGrupo: totalGeralDespesas > 0 ? (totalGrupo / totalGeralDespesas) * 100 : 0,
+          percentualGrupo: totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0,
           subgrupos: subgrupos
         };
       })
@@ -898,12 +899,9 @@ module.exports = async (req, res) => {
     // Calcular dados assíncronos ANTES de montar response - VERSÃO SEGURA
     console.log('🔍 Buscando dados de comparação e evolução...');
     
-    // Comparação de meses - VERSÃO SEGURA
-    const comparacaoMensalData = [
-      { mes: 'Dezembro', totalGastos: 0, totalContas: 0, total: 0 },
-      { mes: 'Janeiro', totalGastos: 2133.9, totalContas: 550.79, total: 2684.69 },
-      { mes: 'Fevereiro', totalGastos: 0, totalContas: 0, total: 0 }
-    ];
+    // Comparação de meses - VERSÃO DINÂMICA
+    console.log('📊 Buscando comparação mensal dinâmica...');
+    const comparacaoMensalData = await getComparacaoMensal(req.user._id, mesAtual, anoAtual);
     
     // Evolução do saldo - VERSÃO SEGURA
     console.log('🏦 Buscando evolução do saldo...');

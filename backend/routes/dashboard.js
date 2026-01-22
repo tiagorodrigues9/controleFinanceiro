@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Conta = require('../models/Conta');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
@@ -17,19 +18,20 @@ console.log('🔥 Dashboard router carregado!');
 
 router.use(auth);
 
+// Endpoint para limpar cache
+router.get('/clear-cache', asyncHandler(async (req, res) => {
+  const { invalidateUserCache } = require('../utils/cache');
+  invalidateUserCache(req.user._id);
+  res.json({ message: 'Cache limpo com sucesso' });
+}));
+
 // Aplicar validação e cache na rota do dashboard
 router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   const startTime = Date.now();
   
-  console.log('=== DASHBOARD DEBUG INÍCIO ===');
-  console.log('Requisição recebida para dashboard');
-  console.log('User ID:', req.user._id);
-  
   const { mes, ano } = req.query;
   const mesAtual = mes ? parseInt(mes) : new Date().getMonth() + 1;
   const anoAtual = ano ? parseInt(ano) : new Date().getFullYear();
-  
-  console.log('Mês/Ano:', mesAtual, anoAtual);
 
   // Validação dos parâmetros
   if (isNaN(mesAtual) || mesAtual < 1 || mesAtual > 12) {
@@ -56,14 +58,14 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     usuario: req.user._id
   };
 
-    // Contas a pagar
+    // Contas a pagar (total geral - sem filtro de data)
   const totalContasPagar = await Conta.countDocuments({
     ...baseFilter,
     status: { $in: ['Pendente', 'Vencida'] }
   });
   console.log('totalContasPagar:', totalContasPagar);
 
-  // Valor total de contas a pagar no mês
+  // Valor total de contas a pagar no mês (corrigido)
   const totalValorContasPagarMes = await Conta.aggregate([
     { 
       $match: { 
@@ -76,31 +78,38 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   ]);
   console.log('totalValorContasPagarMes:', totalValorContasPagarMes);
 
-  // Contas pendentes no mês
+  // Contas pendentes no mês (corrigido - mesmo critério do valor)
   const totalContasPendentesMes = await Conta.countDocuments({
     ...baseFilter,
     status: { $in: ['Pendente', 'Vencida'] },
     dataVencimento: { $gte: startDate, $lte: endDate }
   });
 
-  // Contas pagas no mês
+  // Contas pagas no mês (corrigido - mais flexível)
   const totalContasPagas = await Conta.countDocuments({
     ...baseFilter,
     status: 'Pago',
-    dataPagamento: { $gte: startDate, $lte: endDate }
+    $or: [
+      { dataPagamento: { $gte: startDate, $lte: endDate } },
+      { dataVencimento: { $gte: startDate, $lte: endDate } }
+    ]
   });
 
-  // Valor total de contas pagas no mês
+  // Valor total de contas pagas no mês (corrigido - simplificado)
   const totalValorContasPagas = await Conta.aggregate([
     { 
       $match: { 
-        ...baseFilter, 
-        status: 'Pago', 
+        usuario: new mongoose.Types.ObjectId(req.user._id),
+        status: 'Pago',
         dataPagamento: { $gte: startDate, $lte: endDate } 
       } 
     },
     { $group: { _id: null, total: { $sum: "$valor" } } }
   ]);
+  
+  console.log('DEBUG - totalValorContasPagas query result:', JSON.stringify(totalValorContasPagas, null, 2));
+  console.log('DEBUG - startDate:', startDate.toISOString());
+  console.log('DEBUG - endDate:', endDate.toISOString());
 
   // Gastos do mês
   const gastosMes = await Gasto.aggregate([
@@ -204,25 +213,48 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     { $group: { _id: null, total: { $sum: "$valor" } } }
   ]);
 
-  // Comparação últimos 6 meses
+  // Comparação últimos 6 meses - VERSÃO CORRIGIDA
+  console.log('🔍 Iniciando comparação de meses...');
   const mesesComparacao = await Promise.all(
     Array.from({ length: 6 }, async (_, i) => {
       const mesRef = new Date(anoAtual, mesAtual - 1 - i, 1);
       const mesRefEnd = new Date(anoAtual, mesAtual - i, 0, 23, 59, 59);
       
-      const [contasMes, gastosMes] = await Promise.all([
-        Conta.aggregate([
-          { $match: { ...baseFilter, status: 'Pago', dataPagamento: { $gte: mesRef, $lte: mesRefEnd } } },
-          { $group: { _id: null, total: { $sum: "$valor" } } }
-        ]),
-        Gasto.aggregate([
-          { $match: { usuario: req.user._id, data: { $gte: mesRef, $lte: mesRefEnd } } },
-          { $group: { _id: null, total: { $sum: { $toDouble: "$valor" } } } }
-        ])
+      console.log(`📊 Processando mês: ${mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}`);
+      console.log(`  - Período: ${mesRef.toISOString()} a ${mesRefEnd.toISOString()}`);
+      console.log(`  - User ID: ${req.user._id}`);
+      
+      // Query para contas - mais flexível
+      const contasMes = await Conta.aggregate([
+        { 
+          $match: { 
+            usuario: new mongoose.Types.ObjectId(req.user._id),
+            status: 'Pago',
+            $or: [
+              { dataPagamento: { $gte: mesRef, $lte: mesRefEnd } },
+              { dataVencimento: { $gte: mesRef, $lte: mesRefEnd } }
+            ]
+          } 
+        },
+        { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
       
-      const totalContas = contasMes[0]?.total || 0;
-      const totalGastos = gastosMes[0]?.total || 0;
+      // Query para gastos - mais flexível
+      const gastosMes = await Gasto.aggregate([
+        { 
+          $match: { 
+            usuario: new mongoose.Types.ObjectId(req.user._id),
+            data: { $gte: mesRef, $lte: mesRefEnd }
+          } 
+        },
+        { $group: { _id: null, total: { $sum: "$valor" } } }
+      ]);
+      
+      console.log(`  - Contas: ${JSON.stringify(contasMes)}`);
+      console.log(`  - Gastos: ${JSON.stringify(gastosMes)}`);
+      
+      const totalContas = contasMes.length > 0 ? contasMes[0].total : 0;
+      const totalGastos = gastosMes.length > 0 ? gastosMes[0].total : 0;
       
       return {
         mes: mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }),
@@ -232,6 +264,8 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
       };
     })
   );
+  
+  console.log('📊 MesesComparação (dinâmico):', JSON.stringify(mesesComparacao, null, 2));
   
   mesesComparacao.reverse();
 
@@ -516,6 +550,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   };
 
   console.log('Dashboard data gerada:', JSON.stringify(responseData, null, 2));
+  console.log('mesesComparacao:', JSON.stringify(mesesComparacao, null, 2));
 
   // Log de performance
   const duration = Date.now() - startTime;

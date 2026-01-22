@@ -58,6 +58,14 @@
     "api/crud.js": {
       "maxDuration": 10,
       "memory": 512
+    },
+    "api/lib/middleware.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/lib/mongodb.js": {
+      "maxDuration": 10,
+      "memory": 512
     }
   }
 }
