@@ -30,7 +30,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         console.log('✅ Usuário restaurado do localStorage:', parsedUser.email);
       } catch (error) {
         console.error('❌ Erro ao carregar usuário do localStorage:', error);
@@ -54,7 +53,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
 
       return { success: true };
@@ -77,7 +75,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
 
       return { success: true };
@@ -92,7 +89,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = (): void => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 

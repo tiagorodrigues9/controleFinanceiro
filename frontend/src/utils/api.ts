@@ -10,10 +10,14 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 Token adicionado à requisição:', token.substring(0, 20) + '...');
+    } else {
+      console.log('🔍 Nenhum token encontrado no localStorage');
     }
     return config;
   },
   (error) => {
+    console.error('❌ Erro no interceptor de requisição:', error);
     return Promise.reject(error);
   }
 );
@@ -23,8 +27,10 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
+      console.log('❌ Erro 401 - Token inválido ou expirado');
       // Só redirecionar se não estiver na página de login
       if (window.location.pathname !== '/login') {
+        console.log('🔄 Redirecionando para login...');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';
