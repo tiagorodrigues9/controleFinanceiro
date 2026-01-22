@@ -15,6 +15,10 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
+    console.log('=== EXTRATO DEBUG ===');
+    console.log('req.user._id:', req.user._id);
+    console.log('req.query:', req.query);
+    
     const { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, estornado: false };
 
@@ -37,11 +41,15 @@ router.get('/', async (req, res) => {
       };
     }
 
+    console.log('Query para extratos:', query);
+
     let extratos = await Extrato.find(query)
       .populate('contaBancaria')
       .populate('cartao')
       .populate({ path: 'referencia.id', model: 'Gasto' })
       .sort({ data: -1 });
+
+    console.log('Extratos encontrados:', extratos.length);
 
     // Se filtro por tipo de despesa, filtrar gastos
     if (tipoDespesa) {
@@ -67,7 +75,7 @@ router.get('/', async (req, res) => {
     }
 
     // Calcular totais do período filtrado
-    const matchQuery = { usuario: req.user._id, estornado: false };
+    const matchQuery = { usuario: new mongoose.Types.ObjectId(req.user._id), estornado: false };
     if (contaBancaria) {
       matchQuery.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
     }
@@ -83,6 +91,8 @@ router.get('/', async (req, res) => {
       };
     }
 
+    console.log('MatchQuery para totais:', matchQuery);
+
     const totaisAgg = await Extrato.aggregate([
       { $match: matchQuery },
       { 
@@ -93,6 +103,8 @@ router.get('/', async (req, res) => {
         } 
       }
     ]);
+
+    console.log('Resultado do aggregate:', totaisAgg);
 
     if (totaisAgg.length > 0) {
       totalEntradas = totaisAgg[0].totalEntradas || 0;

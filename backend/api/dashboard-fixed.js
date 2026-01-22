@@ -65,12 +65,8 @@ module.exports = async (req, res) => {
         return res.status(400).json({ message: 'Ano inválido. Deve estar entre 2020 e 2030.' });
       }
 
-      // Criar datas para o período correto usando strings ISO
-      const startDate = new Date(`${anoAtual}-${mesAtual.toString().padStart(2, '0')}-01T12:00:00.000Z`);
-      const endDate = new Date(`${anoAtual}-${mesAtual.toString().padStart(2, '0')}-31T12:00:00.000Z`);
-      
-      console.log('DEBUG - startDate:', startDate.toISOString());
-      console.log('DEBUG - endDate:', endDate.toISOString());
+      const startDate = new Date(anoAtual, mesAtual - 1, 1);
+      const endDate = new Date(anoAtual, mesAtual, 0, 23, 59, 59, 999);
 
       console.log('=== DASHBOARD DEBUG CORRIGIDO ===');
       console.log('req.user._id:', req.user._id);
@@ -80,7 +76,7 @@ module.exports = async (req, res) => {
 
       // Filtro base para todas as queries
       const baseFilter = {
-        usuario: new mongoose.Types.ObjectId(req.user._id)
+        usuario: req.user._id
       };
 
       // Contas a pagar
@@ -132,15 +128,10 @@ module.exports = async (req, res) => {
       });
 
       // Gastos do mês
-      console.log('DEBUG - Buscando gastos com filtro:', {
-        usuario: new mongoose.Types.ObjectId(req.user._id),
-        data: { $gte: startDate, $lte: endDate }
-      });
-      
       const gastosMes = await Gasto.aggregate([
         {
           $match: {
-            usuario: new mongoose.Types.ObjectId(req.user._id),
+            usuario: req.user._id,
             data: { $gte: startDate, $lte: endDate }
           }
         },
@@ -150,15 +141,10 @@ module.exports = async (req, res) => {
       console.log('gastosMes:', gastosMes);
 
       // Extrato do mês (entradas e saídas)
-      console.log('DEBUG - Buscando extratos com filtro:', {
-        usuario: new mongoose.Types.ObjectId(req.user._id),
-        data: { $gte: startDate, $lte: endDate }
-      });
-      
       const extratoMes = await Extrato.aggregate([
         {
           $match: {
-            usuario: new mongoose.Types.ObjectId(req.user._id),
+            usuario: req.user._id,
             data: { $gte: startDate, $lte: endDate }
           }
         },

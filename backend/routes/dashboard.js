@@ -13,15 +13,23 @@ const { asyncHandler, ValidationError } = require('../utils/errors');
 
 const router = express.Router();
 
+console.log('🔥 Dashboard router carregado!');
+
 router.use(auth);
 
 // Aplicar validação e cache na rota do dashboard
 router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   const startTime = Date.now();
   
+  console.log('=== DASHBOARD DEBUG INÍCIO ===');
+  console.log('Requisição recebida para dashboard');
+  console.log('User ID:', req.user._id);
+  
   const { mes, ano } = req.query;
   const mesAtual = mes ? parseInt(mes) : new Date().getMonth() + 1;
   const anoAtual = ano ? parseInt(ano) : new Date().getFullYear();
+  
+  console.log('Mês/Ano:', mesAtual, anoAtual);
 
   // Validação dos parâmetros
   if (isNaN(mesAtual) || mesAtual < 1 || mesAtual > 12) {
@@ -122,6 +130,29 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     }
   ]);
   console.log('extratoMes:', extratoMes);
+
+  // Processar resultados do extrato
+  let totalEntradas = 0;
+  let totalSaidas = 0;
+
+  extratoMes.forEach(item => {
+    if (item._id === 'Entrada') {
+      totalEntradas = item.total;
+    } else if (item._id === 'Saída') {
+      totalSaidas = item.total;
+    }
+  });
+
+  // Calcular totais do mês
+  const totalGastosMesValor = gastosMes[0]?.total || 0;
+  const totalEntradasMesValor = totalEntradas;
+  const totalSaidasMesValor = totalSaidas;
+  const saldoMesValor = totalEntradas - totalSaidas;
+
+  console.log('gastosMes:', gastosMes);
+  console.log('totalGastosMesValor:', totalGastosMesValor);
+  console.log('totalEntradasMesValor:', totalEntradasMesValor);
+  console.log('totalSaidasMesValor:', totalSaidasMesValor);
 
   // Contas vencidas no mês
   const totalContasVencidas = await Conta.countDocuments({
@@ -354,12 +385,26 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
         dataPagamento: { $gte: startDate, $lte: endDate }
       });
 
-      const totalGastos = gastosCartao.reduce((acc, gasto) => {
+      const extratoMes = await Extrato.aggregate([
+        {
+          $match: {
+            contaBancaria: cartao.contaBancaria,
+            data: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $group: {
+            _id: "$tipo",
+            total: { $sum: "$valor" }
+          }
+        }
+      ]);
+
+      const totalGastosCartaoValor = gastosCartao.reduce((acc, gasto) => {
         const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
         return acc + valorGasto;
       }, 0);
-      const totalContas = contasPagasCartao.reduce((acc, conta) => acc + conta.valor + (conta.jurosPago || 0), 0);
-      const totalGeral = totalGastos + totalContas;
+      const totalContasCartaoValor = contasPagasCartao.reduce((acc, conta) => acc + conta.valor + (conta.jurosPago || 0), 0);
 
       return {
         cartaoId: cartao._id,
@@ -367,13 +412,18 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
         tipo: cartao.tipo,
         banco: cartao.banco,
         limite: cartao.limite,
-        totalGastos,
-        totalContas,
-        totalGeral,
+        totalGastos: totalGastosCartaoValor,
+        totalContas: totalContasCartaoValor,
+        totalGeral: totalGastosCartaoValor + totalContasCartaoValor,
         quantidadeTransacoes: gastosCartao.length + contasPagasCartao.length,
         limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
-          ((totalGeral / cartao.limite) * 100).toFixed(2) : 0,
-        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGeral : null
+          ((totalGastosCartaoValor + totalContasCartaoValor) / cartao.limite) * 100 : 0,
+        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - (totalGastosCartaoValor + totalContasCartaoValor) : null,
+        totalGastosMesValor,
+        totalEntradasMesValor,
+        totalSaidasMesValor,
+        saldoMesValor,
+        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - (totalGastosCartaoValor + totalContasCartaoValor) : null
       };
     })
   );
@@ -425,8 +475,9 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
 
   relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
 
-  // Montar resposta
+  // Montar resposta - COMBINANDO ESTRUTURA ANTIGA E NOVA
   const responseData = {
+    // Estrutura antiga (compatibilidade)
     totalContasPagar,
     totalValorContasPagarMes: totalValorContasPagarMes[0]?.total || 0,
     totalContasPendentesMes,
@@ -438,6 +489,21 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     totalValorContasNextMonth: totalValorContasNextMonth[0]?.total || 0,
     totalContasMes,
     totalValorContasPendentes: totalValorContasPendentes[0]?.total || 0,
+    
+    // Campos diretos para o frontend
+    totalGastosMes: totalGastosMesValor,
+    totalEntradasMes: totalEntradasMesValor,
+    totalSaidasMes: totalSaidasMesValor,
+    saldoMes: saldoMesValor,
+    
+    // Estrutura financeiro (para compatibilidade)
+    financeiro: {
+      totalGastosMes: totalGastosMesValor,
+      totalEntradasMes: totalEntradasMesValor,
+      totalSaidasMes: totalSaidasMesValor,
+      saldoMes: saldoMesValor
+    },
+    
     mesesComparacao,
     tipoDespesaMaisGasto,
     evolucaoSaldo,
