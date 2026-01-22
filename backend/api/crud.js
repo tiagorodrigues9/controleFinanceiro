@@ -205,13 +205,28 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/notificacoes/teste-criacao' || path.includes('notificacoes/teste-criacao')) {
+      if (req.method === 'POST') {
+        // Criar notificação de teste com campos obrigatórios
+        const notificacaoTeste = await Notificacao.create({
+          titulo: 'Notificação de Teste',
+          mensagem: 'Esta é uma notificação de teste do sistema!',
+          tipo: 'info',
+          usuario: body.usuario || 'test-user', // Usar usuário do body ou um padrão
+          lida: false,
+          data: new Date()
+        });
+        return res.status(201).json(notificacaoTeste);
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao']
     });
     
   } catch (error) {
