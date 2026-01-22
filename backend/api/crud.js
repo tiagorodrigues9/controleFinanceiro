@@ -98,13 +98,49 @@ module.exports = async (req, res) => {
       }
     }
     
+    if (path === '/formas-pagamento' || path.includes('formas-pagamento')) {
+      if (req.method === 'GET') {
+        const formasPagamento = await FormaPagamento.find().sort({ nome: 1 });
+        return res.json(formasPagamento);
+      }
+      
+      if (req.method === 'POST') {
+        const formaPagamento = await FormaPagamento.create(body);
+        return res.status(201).json(formaPagamento);
+      }
+    }
+    
+    if (path === '/cartoes' || path.includes('cartoes')) {
+      if (req.method === 'GET') {
+        const cartoes = await Cartao.find().sort({ nome: 1 });
+        return res.json(cartoes);
+      }
+      
+      if (req.method === 'POST') {
+        const cartao = await Cartao.create(body);
+        return res.status(201).json(cartao);
+      }
+    }
+    
+    if (path === '/contas-bancarias' || path.includes('contas-bancarias')) {
+      if (req.method === 'GET') {
+        const contasBancarias = await ContaBancaria.find().sort({ nome: 1 });
+        return res.json(contasBancarias);
+      }
+      
+      if (req.method === 'POST') {
+        const contaBancaria = await ContaBancaria.create(body);
+        return res.status(201).json(contaBancaria);
+      }
+    }
+    
     // Resposta padrão para endpoints não implementados
     console.log('Endpoint não implementado:', path);
     res.status(404).json({ 
       message: 'Endpoint não encontrado',
       path: path,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores']
+      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias']
     });
     
   } catch (error) {
