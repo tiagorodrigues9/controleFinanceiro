@@ -19,12 +19,16 @@ const contaBancariaSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  saldo: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
- ,
+  },
   ativo: {
     type: Boolean,
     default: true

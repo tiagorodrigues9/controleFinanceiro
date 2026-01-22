@@ -72,6 +72,7 @@ module.exports = async (req, res) => {
         ...baseFilter,
         status: { $in: ['Pendente', 'Vencida'] }
       });
+      console.log('totalContasPagar:', totalContasPagar);
 
       // Valor total de contas a pagar no mês
       const totalValorContasPagarMes = await Conta.aggregate([
@@ -84,6 +85,7 @@ module.exports = async (req, res) => {
         },
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
+      console.log('totalValorContasPagarMes:', totalValorContasPagarMes);
 
       // Contas pendentes no mês
       const totalContasPendentesMes = await Conta.countDocuments({
@@ -91,6 +93,7 @@ module.exports = async (req, res) => {
         status: { $in: ['Pendente', 'Vencida'] },
         dataVencimento: { $gte: startDate, $lte: endDate }
       });
+      console.log('totalContasPendentesMes:', totalContasPendentesMes);
 
       // Contas pagas no mês
       const totalContasPagas = await Conta.countDocuments({
@@ -98,6 +101,7 @@ module.exports = async (req, res) => {
         status: 'Pago',
         dataPagamento: { $gte: startDate, $lte: endDate }
       });
+      console.log('totalContasPagas:', totalContasPagas);
 
       // Valor total de contas pagas no mês
       const totalValorContasPagas = await Conta.aggregate([
@@ -110,6 +114,7 @@ module.exports = async (req, res) => {
         },
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
+      console.log('totalValorContasPagas:', totalValorContasPagas);
 
       // Contas vencidas no mês
       const totalContasVencidas = await Conta.countDocuments({
@@ -117,24 +122,28 @@ module.exports = async (req, res) => {
         status: 'Vencida',
         dataVencimento: { $gte: startDate, $lte: endDate }
       });
+      console.log('totalContasVencidas:', totalContasVencidas);
 
       // Valor total de contas vencidas
       const totalValorContasVencidas = await Conta.aggregate([
         { $match: { ...baseFilter, status: 'Vencida' } },
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
+      console.log('totalValorContasVencidas:', totalValorContasVencidas);
 
       // Saldo total em contas bancárias
       const saldoTotalContas = await ContaBancaria.aggregate([
         { $match: { usuario: req.user._id, ativo: { $ne: false } } },
         { $group: { _id: null, total: { $sum: "$saldo" } } }
       ]);
+      console.log('saldoTotalContas:', saldoTotalContas);
 
       // Total de contas bancárias
       const totalContasBancarias = await ContaBancaria.countDocuments({
         usuario: req.user._id,
         ativo: { $ne: false }
       });
+      console.log('totalContasBancarias:', totalContasBancarias);
 
       // Gastos do mês
       const gastosMes = await Gasto.aggregate([
@@ -147,6 +156,7 @@ module.exports = async (req, res) => {
         },
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
+      console.log('gastosMes:', gastosMes);
 
       // Extrato do mês (entradas e saídas)
       const extratoMes = await Extrato.aggregate([
@@ -163,6 +173,7 @@ module.exports = async (req, res) => {
           }
         }
       ]);
+      console.log('extratoMes:', extratoMes);
 
       // Processar resultados do extrato
       let totalEntradas = 0;
