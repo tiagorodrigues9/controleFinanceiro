@@ -1,4 +1,5 @@
 const { connectDB } = require('./lib/mongodb');
+const mongoose = require('mongoose');
 
 // Models
 const Grupo = require('../models/Grupo');
@@ -207,12 +208,16 @@ module.exports = async (req, res) => {
     
     if (path === '/notificacoes/teste-criacao' || path.includes('notificacoes/teste-criacao')) {
       if (req.method === 'POST') {
+        console.log('=== DEBUG TESTE CRIACAO ===');
+        console.log('req.headers:', req.headers);
+        console.log('body:', body);
+        
         // Criar notificação de teste com campos obrigatórios
         const notificacaoTeste = await Notificacao.create({
           titulo: 'Notificação de Teste',
           mensagem: 'Esta é uma notificação de teste do sistema!',
           tipo: 'outro', // Usar valor válido do enum
-          usuario: body.usuario || 'test-user', // Usar usuário do body ou um padrão
+          usuario: body.usuario || new mongoose.Types.ObjectId(), // Gerar ObjectId válido se não fornecido
           lida: false,
           data: new Date()
         });
