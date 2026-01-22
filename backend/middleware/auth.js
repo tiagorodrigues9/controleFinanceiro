@@ -5,10 +5,10 @@ const auth = async (req, res, next) => {
   console.log('🔍 Backend Auth - Verificando autenticação para:', req.method, req.url);
   
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const token = req.get('Authorization')?.replace('Bearer ', '');
     
     console.log('🔍 Backend Auth - Token recebido:', token ? 'SIM' : 'NÃO');
-    console.log('🔍 Backend Auth - Header Authorization:', req.header('Authorization') ? 'SIM' : 'NÃO');
+    console.log('🔍 Backend Auth - Header Authorization:', req.get('Authorization') ? 'SIM' : 'NÃO');
     
     if (!token) {
       console.log('❌ Backend Auth - Nenhum token fornecido');
