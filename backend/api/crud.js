@@ -211,7 +211,7 @@ module.exports = async (req, res) => {
         const notificacaoTeste = await Notificacao.create({
           titulo: 'Notificação de Teste',
           mensagem: 'Esta é uma notificação de teste do sistema!',
-          tipo: 'info',
+          tipo: 'outro', // Usar valor válido do enum
           usuario: body.usuario || 'test-user', // Usar usuário do body ou um padrão
           lida: false,
           data: new Date()
