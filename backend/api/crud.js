@@ -1,5 +1,6 @@
 const { connectDB } = require('./lib/mongodb');
 const mongoose = require('mongoose');
+const auth = require('../middleware/auth');
 
 // Models
 const Grupo = require('../models/Grupo');
@@ -15,134 +16,137 @@ const EmailLog = require('../models/EmailLog');
 
 // Handler genérico para rotas CRUD
 module.exports = async (req, res) => {
-  // Configurar headers CORS primeiro, antes de qualquer coisa
-  res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.setHeader('Content-Type', 'application/json');
-  
-  try {
-    // Handle OPTIONS requests (preflight) - responder imediatamente
-    if (req.method === 'OPTIONS') {
-      res.status(200).end();
-      return;
-    }
+  // Aplicar middleware de autenticação
+  auth(req, res, async () => {
+    // Configurar headers CORS primeiro, antes de qualquer coisa
+    res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Content-Type', 'application/json');
     
-    // Parse do body manualmente
-    let body = {};
-    if (req.method === 'POST' || req.method === 'PUT') {
-      if (req.headers['content-type']?.includes('application/json')) {
-        try {
-          const rawBody = await new Promise((resolve, reject) => {
-            let data = '';
-            req.on('data', chunk => data += chunk);
-            req.on('end', () => resolve(data));
-            req.on('error', reject);
-          });
-          body = JSON.parse(rawBody);
-        } catch (parseError) {
-          console.log('Erro ao parsear body:', parseError);
+    try {
+      // Handle OPTIONS requests (preflight) - responder imediatamente
+      if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+      }
+      
+      // Parse do body manualmente
+      let body = {};
+      if (req.method === 'POST' || req.method === 'PUT') {
+        if (req.headers['content-type']?.includes('application/json')) {
+          try {
+            const rawBody = await new Promise((resolve, reject) => {
+              let data = '';
+              req.on('data', chunk => data += chunk);
+              req.on('end', () => resolve(data));
+              req.on('error', reject);
+            });
+            body = JSON.parse(rawBody);
+          } catch (parseError) {
+            console.log('Erro ao parsear body:', parseError);
+          }
         }
       }
-    }
-    
-    // Conectar ao MongoDB
-    await connectDB();
-    
-    // Extrair path da URL
-    const url = req.url || '';
-    const path = url.split('?')[0]; // Remover query params
-    
-    console.log('=== DEBUG CRUD ===');
-    console.log('req.method:', req.method);
-    console.log('req.url:', url);
-    console.log('path:', path);
-    console.log('body:', body);
-    
-    // Roteamento baseado no path
-    if (path === '/grupos' || path.includes('grupos')) {
-      if (req.method === 'GET') {
-        console.log('Buscando grupos...');
-        const grupos = await Grupo.find().sort({ nome: 1 });
-        console.log('Grupos encontrados:', grupos.length);
-        return res.json(grupos);
+      
+      // Conectar ao MongoDB
+      await connectDB();
+      
+      // Extrair path da URL
+      const url = req.url || '';
+      const path = url.split('?')[0]; // Remover query params
+      
+      console.log('=== DEBUG CRUD ===');
+      console.log('req.method:', req.method);
+      console.log('req.url:', url);
+      console.log('path:', path);
+      console.log('body:', body);
+      console.log('req.user._id:', req.user._id);
+      
+      // Roteamento baseado no path
+      if (path === '/grupos' || path.includes('grupos')) {
+        if (req.method === 'GET') {
+          console.log('Buscando grupos do usuário...');
+          const grupos = await Grupo.find({ usuario: req.user._id }).sort({ nome: 1 });
+          console.log('Grupos encontrados:', grupos.length);
+          return res.json(grupos);
+        }
+        
+        if (req.method === 'POST') {
+          console.log('Criando grupo:', body);
+          const grupo = await Grupo.create({ ...body, usuario: req.user._id });
+          return res.status(201).json(grupo);
+        }
       }
       
-      if (req.method === 'POST') {
-        console.log('Criando grupo:', body);
-        const grupo = await Grupo.create(body);
-        return res.status(201).json(grupo);
-      }
-    }
-    
-    if (path === '/contas' || path.includes('contas')) {
-      if (req.method === 'GET') {
-        const contas = await Conta.find().populate('fornecedor').sort({ dataVencimento: 1 });
-        return res.json(contas);
-      }
-      
-      if (req.method === 'POST') {
-        const conta = await Conta.create(body);
-        return res.status(201).json(conta);
-      }
-    }
-    
-    if (path === '/fornecedores' || path.includes('fornecedores')) {
-      if (req.method === 'GET') {
-        const fornecedores = await Fornecedor.find().sort({ nome: 1 });
-        return res.json(fornecedores);
+      if (path === '/contas' || path.includes('contas')) {
+        if (req.method === 'GET') {
+          const contas = await Conta.find({ usuario: req.user._id }).populate('fornecedor').sort({ dataVencimento: 1 });
+          return res.json(contas);
+        }
+        
+        if (req.method === 'POST') {
+          const conta = await Conta.create({ ...body, usuario: req.user._id });
+          return res.status(201).json(conta);
+        }
       }
       
-      if (req.method === 'POST') {
-        const fornecedor = await Fornecedor.create(body);
-        return res.status(201).json(fornecedor);
+      if (path === '/fornecedores' || path.includes('fornecedores')) {
+        if (req.method === 'GET') {
+          const fornecedores = await Fornecedor.find({ usuario: req.user._id }).sort({ nome: 1 });
+          return res.json(fornecedores);
+        }
+        
+        if (req.method === 'POST') {
+          const fornecedor = await Fornecedor.create({ ...body, usuario: req.user._id });
+          return res.status(201).json(fornecedor);
+        }
       }
-    }
     
     if (path === '/formas-pagamento' || path.includes('formas-pagamento')) {
       if (req.method === 'GET') {
-        const formasPagamento = await FormaPagamento.find().sort({ nome: 1 });
+        const formasPagamento = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
         return res.json(formasPagamento);
       }
       
       if (req.method === 'POST') {
-        const formaPagamento = await FormaPagamento.create(body);
+        const formaPagamento = await FormaPagamento.create({ ...body, usuario: req.user._id });
         return res.status(201).json(formaPagamento);
       }
     }
     
     if (path === '/cartoes' || path.includes('cartoes')) {
       if (req.method === 'GET') {
-        const cartoes = await Cartao.find().sort({ nome: 1 });
+        const cartoes = await Cartao.find({ usuario: req.user._id }).sort({ nome: 1 });
         return res.json(cartoes);
       }
       
       if (req.method === 'POST') {
-        const cartao = await Cartao.create(body);
+        const cartao = await Cartao.create({ ...body, usuario: req.user._id });
         return res.status(201).json(cartao);
       }
     }
     
     if (path === '/contas-bancarias' || path.includes('contas-bancarias')) {
       if (req.method === 'GET') {
-        const contasBancarias = await ContaBancaria.find().sort({ nome: 1 });
+        const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).sort({ nome: 1 });
         return res.json(contasBancarias);
       }
       
       if (req.method === 'POST') {
-        const contaBancaria = await ContaBancaria.create(body);
+        const contaBancaria = await ContaBancaria.create({ ...body, usuario: req.user._id });
         return res.status(201).json(contaBancaria);
       }
     }
     
     if (path === '/gastos' || path.includes('gastos')) {
       if (req.method === 'GET') {
-        const gastos = await Gasto.find().sort({ data: -1 });
+        const gastos = await Gasto.find({ usuario: req.user._id }).sort({ data: -1 });
         return res.json(gastos);
       }
       
       if (req.method === 'POST') {
-        const gasto = await Gasto.create(body);
+        const gasto = await Gasto.create({ ...body, usuario: req.user._id });
         return res.status(201).json(gasto);
       }
     }
@@ -151,6 +155,7 @@ module.exports = async (req, res) => {
       if (req.method === 'GET') {
         // Buscar transferências (extratos com referência tipo 'Transferencia' e tipo 'Saída')
         const transferenciasSaida = await Extrato.find({
+          usuario: req.user._id,
           'referencia.tipo': 'Transferencia',
           tipo: 'Saída'
         })
@@ -163,6 +168,7 @@ module.exports = async (req, res) => {
         const transferencias = await Promise.all(
           transferenciasSaida.map(async (saida) => {
             const entrada = await Extrato.findOne({
+              usuario: req.user._id,
               'referencia.tipo': 'Transferencia',
               'referencia.id': saida.referencia.id,
               tipo: 'Entrada'
@@ -189,19 +195,19 @@ module.exports = async (req, res) => {
     
     if (path === '/notificacoes' || path.includes('notificacoes')) {
       if (req.method === 'GET') {
-        const notificacoes = await Notificacao.find().sort({ data: -1 });
+        const notificacoes = await Notificacao.find({ usuario: req.user._id }).sort({ data: -1 });
         return res.json(notificacoes);
       }
       
       if (req.method === 'POST') {
-        const notificacao = await Notificacao.create(body);
+        const notificacao = await Notificacao.create({ ...body, usuario: req.user._id });
         return res.status(201).json(notificacao);
       }
     }
     
     if (path === '/notificacoes/nao-lidas' || path.includes('notificacoes/nao-lidas')) {
       if (req.method === 'GET') {
-        const notificacoesNaoLidas = await Notificacao.find({ lida: false }).sort({ data: -1 });
+        const notificacoesNaoLidas = await Notificacao.find({ usuario: req.user._id, lida: false }).sort({ data: -1 });
         return res.json(notificacoesNaoLidas);
       }
     }
@@ -217,7 +223,7 @@ module.exports = async (req, res) => {
           titulo: 'Notificação de Teste',
           mensagem: 'Esta é uma notificação de teste do sistema!',
           tipo: 'outro', // Usar valor válido do enum
-          usuario: body.usuario || new mongoose.Types.ObjectId(), // Gerar ObjectId válido se não fornecido
+          usuario: req.user._id, // Usar ID do usuário autenticado
           lida: false,
           data: new Date()
         });
@@ -227,14 +233,14 @@ module.exports = async (req, res) => {
     
     if (path === '/extrato' || path.includes('extrato')) {
       if (req.method === 'GET') {
-        const extratos = await Extrato.find()
+        const extratos = await Extrato.find({ usuario: req.user._id })
           .populate('contaBancaria', 'nome banco')
           .sort({ data: -1 });
         return res.json(extratos);
       }
       
       if (req.method === 'POST') {
-        const extrato = await Extrato.create(body);
+        const extrato = await Extrato.create({ ...body, usuario: req.user._id });
         return res.status(201).json(extrato);
       }
     }
@@ -255,4 +261,5 @@ module.exports = async (req, res) => {
       error: error.message
     });
   }
+  });
 };
