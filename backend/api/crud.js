@@ -16,21 +16,21 @@ const EmailLog = require('../models/EmailLog');
 
 // Handler genérico para rotas CRUD
 module.exports = async (req, res) => {
-  // Aplicar middleware de autenticação
+  // Configurar headers CORS primeiro, antes de qualquer coisa
+  res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Content-Type', 'application/json');
+  
+  // Handle OPTIONS requests (preflight) - responder imediatamente SEM autenticação
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
+  // Aplicar middleware de autenticação apenas para outros métodos
   auth(req, res, async () => {
-    // Configurar headers CORS primeiro, antes de qualquer coisa
-    res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.setHeader('Content-Type', 'application/json');
-    
     try {
-      // Handle OPTIONS requests (preflight) - responder imediatamente
-      if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-      }
-      
       // Parse do body manualmente
       let body = {};
       if (req.method === 'POST' || req.method === 'PUT') {
