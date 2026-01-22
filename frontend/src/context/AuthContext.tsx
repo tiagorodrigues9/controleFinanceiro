@@ -25,6 +25,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Verificar se já existe usuário logado ao carregar a página
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
+    
+    console.log('🔍 Debug AuthContext - Token no localStorage:', token ? 'SIM' : 'NÃO');
+    console.log('🔍 Debug AuthContext - User data no localStorage:', userData ? 'SIM' : 'NÃO');
 
     if (token && userData) {
       try {
@@ -51,8 +54,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
 
+      console.log('🔑 Login - Token recebido:', token ? 'SIM' : 'NÃO');
+      console.log('👤 Login - User recebido:', user.email);
+
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
+      
+      // Verificar se foi salvo corretamente
+      const tokenSalvo = localStorage.getItem('token');
+      const userSalvo = localStorage.getItem('user');
+      console.log('💾 Login - Token salvo no localStorage:', tokenSalvo ? 'SIM' : 'NÃO');
+      console.log('💾 Login - User salvo no localStorage:', userSalvo ? 'SIM' : 'NÃO');
+
       setUser(user);
 
       return { success: true };
