@@ -16,7 +16,7 @@ const router = express.Router();
 router.use(auth);
 
 // Aplicar validação e cache na rota do dashboard
-router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(async (req, res) => {
+router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   const startTime = Date.now();
   
   const { mes, ano } = req.query;
@@ -37,10 +37,15 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
   const nextMonthStart = new Date(anoAtual, mesAtual, 1);
   const nextMonthEnd = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
 
-  // Filtro base para todas as queries
+  console.log('=== DASHBOARD DEBUG ===');
+  console.log('req.user._id:', req.user._id);
+  console.log('mesAtual:', mesAtual, 'anoAtual:', anoAtual);
+  console.log('startDate:', startDate);
+  console.log('endDate:', endDate);
+
+  // Filtro base para todas as queries - REMOVIDO FILTRO ATIVO PARA PEGAR TODOS OS DADOS
   const baseFilter = {
-    usuario: req.user._id,
-    ativo: { $ne: false }
+    usuario: req.user._id
   };
 
     // Contas a pagar
@@ -48,6 +53,7 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
     ...baseFilter,
     status: { $in: ['Pendente', 'Vencida'] }
   });
+  console.log('totalContasPagar:', totalContasPagar);
 
   // Valor total de contas a pagar no mês
   const totalValorContasPagarMes = await Conta.aggregate([
@@ -60,6 +66,7 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
     },
     { $group: { _id: null, total: { $sum: "$valor" } } }
   ]);
+  console.log('totalValorContasPagarMes:', totalValorContasPagarMes);
 
   // Contas pendentes no mês
   const totalContasPendentesMes = await Conta.countDocuments({
@@ -86,6 +93,35 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
     },
     { $group: { _id: null, total: { $sum: "$valor" } } }
   ]);
+
+  // Gastos do mês
+  const gastosMes = await Gasto.aggregate([
+    {
+      $match: {
+        usuario: req.user._id,
+        data: { $gte: startDate, $lte: endDate }
+      }
+    },
+    { $group: { _id: null, total: { $sum: "$valor" } } }
+  ]);
+  console.log('gastosMes:', gastosMes);
+
+  // Extrato do mês (entradas e saídas)
+  const extratoMes = await Extrato.aggregate([
+    {
+      $match: {
+        usuario: req.user._id,
+        data: { $gte: startDate, $lte: endDate }
+      }
+    },
+    {
+      $group: {
+        _id: "$tipo",
+        total: { $sum: "$valor" }
+      }
+    }
+  ]);
+  console.log('extratoMes:', extratoMes);
 
   // Contas vencidas no mês
   const totalContasVencidas = await Conta.countDocuments({
@@ -301,8 +337,8 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
       percentual: item.percentualGrupo
     }));
 
-  // Relatório de cartões
-  const cartoes = await Cartao.find({ usuario: req.user._id, ativo: true });
+  // Relatório de cartões - REMOVIDO FILTRO ATIVO
+  const cartoes = await Cartao.find({ usuario: req.user._id });
   const relatorioCartoes = await Promise.all(
     cartoes.map(async (cartao) => {
       const gastosCartao = await Gasto.find({
@@ -413,8 +449,7 @@ router.get('/', validateDashboard, cacheMiddleware('dashboard'), asyncHandler(as
     relatorioFormasPagamento
   };
 
-  // Salvar no cache
-  res.cacheData(responseData);
+  console.log('Dashboard data gerada:', JSON.stringify(responseData, null, 2));
 
   // Log de performance
   const duration = Date.now() - startTime;
