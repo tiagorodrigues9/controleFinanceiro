@@ -93,6 +93,7 @@ module.exports = async (req, res) => {
             .limit(50)
             .lean();
           console.log('Contas bancárias encontradas:', contasBancarias.length);
+          console.log('Contas com saldos:', contasBancarias.map(c => ({ nome: c.nome, saldo: c.saldo })));
           return res.json(contasBancarias);
         }
         

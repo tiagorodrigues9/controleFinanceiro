@@ -53,12 +53,11 @@ module.exports = async (req, res) => {
       }
 
       const startDate = new Date(anoAtual, mesAtual - 1, 1);
-      const endDate = new Date(anoAtual, mesAtual, 0, 23, 59, 59);
+      const endDate = new Date(anoAtual, mesAtual, 0, 23, 59, 59, 999);
 
-      // Filtro base para todas as queries
+      // Filtro base para todas as queries - REMOVER O FILTRO ATIVO PARA PEGAR TUDO
       const baseFilter = {
-        usuario: req.user._id,
-        ativo: { $ne: false }
+        usuario: req.user._id
       };
 
       console.log('=== DASHBOARD DEBUG ===');
@@ -131,27 +130,25 @@ module.exports = async (req, res) => {
       ]);
       console.log('totalValorContasVencidas:', totalValorContasVencidas);
 
-      // Saldo total em contas bancárias
+      // Saldo total em contas bancárias - PEGAR TODAS SEM FILTRO ATIVO
       const saldoTotalContas = await ContaBancaria.aggregate([
-        { $match: { usuario: req.user._id, ativo: { $ne: false } } },
+        { $match: { usuario: req.user._id } },
         { $group: { _id: null, total: { $sum: "$saldo" } } }
       ]);
       console.log('saldoTotalContas:', saldoTotalContas);
 
-      // Total de contas bancárias
+      // Total de contas bancárias - PEGAR TODAS SEM FILTRO ATIVO
       const totalContasBancarias = await ContaBancaria.countDocuments({
-        usuario: req.user._id,
-        ativo: { $ne: false }
+        usuario: req.user._id
       });
       console.log('totalContasBancarias:', totalContasBancarias);
 
-      // Gastos do mês
+      // Gastos do mês - REMOVER FILTRO ATIVO
       const gastosMes = await Gasto.aggregate([
         {
           $match: {
             usuario: req.user._id,
-            data: { $gte: startDate, $lte: endDate },
-            ativo: { $ne: false }
+            data: { $gte: startDate, $lte: endDate }
           }
         },
         { $group: { _id: null, total: { $sum: "$valor" } } }
