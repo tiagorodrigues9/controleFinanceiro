@@ -92,6 +92,7 @@ module.exports = async (req, res) => {
             .sort({ nome: 1 })
             .limit(50)
             .lean();
+          console.log('Contas bancárias encontradas:', contasBancarias.length);
           return res.json(contasBancarias);
         }
         
@@ -104,12 +105,66 @@ module.exports = async (req, res) => {
       if (cleanPath === '/contas') {
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
+          
+          // Extrair query params
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          const mes = params.get('mes');
+          const ano = params.get('ano');
+          const ativo = params.get('ativo');
+          const status = params.get('status');
+          const dataInicio = params.get('dataInicio');
+          const dataFim = params.get('dataFim');
+          
+          console.log('Parâmetros recebidos:', { mes, ano, ativo, status, dataInicio, dataFim });
+          
+          // Construir query base
+          let query = { usuario: req.user._id, valor: { $ne: null } };
+          
+          // filtro por mês/ano (dataVencimento)
+          if (mes && ano) {
+            const startDate = new Date(ano, mes - 1, 1);
+            const endDate = new Date(ano, mes, 0, 23, 59, 59);
+            query.dataVencimento = { $gte: startDate, $lte: endDate };
+            console.log('Filtro dataVencimento:', startDate, 'até', endDate);
+          }
+          
+          // filtro por data range
+          if (dataInicio && dataFim) {
+            query.dataVencimento = { 
+              $gte: new Date(dataInicio), 
+              $lte: new Date(dataFim) 
+            };
+          }
+          
+          // filtro por ativo
+          if (ativo && ativo !== 'todas') {
+            query.ativo = ativo === 'ativas';
+          }
+          
+          // filtro por status
+          if (status && status !== 'todos') {
+            if (status === 'pendentes') {
+              query.status = { $in: ['Pendente', 'Vencida'] };
+            } else if (status === 'vencidas') {
+              query.status = 'Vencida';
+            } else {
+              query.status = status.charAt(0).toUpperCase() + status.slice(1);
+            }
+          }
+          
+          console.log('Query final:', query);
+          
           // Otimizado: usar lean() para performance e limit para evitar timeout
-          const contas = await Conta.find({ usuario: req.user._id })
+          const contas = await Conta.find(query)
             .populate('fornecedor', 'nome')
             .sort({ dataVencimento: 1 })
             .limit(100) // Limitar para evitar timeout
             .lean(); // Mais rápido
+          
+          console.log('Contas encontradas:', contas.length);
           return res.json(contas);
         }
         
@@ -275,10 +330,78 @@ module.exports = async (req, res) => {
     
     if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
       if (req.method === 'GET') {
-        const extratos = await Extrato.find({ usuario: req.user._id })
+        console.log('Buscando extrato do usuário...');
+        
+        // Extrair query params
+        const url = req.url || '';
+        const queryString = url.split('?')[1] || '';
+        const params = new URLSearchParams(queryString);
+        
+        const contaBancaria = params.get('contaBancaria');
+        const tipoDespesa = params.get('tipoDespesa');
+        const cartao = params.get('cartao');
+        const dataInicio = params.get('dataInicio');
+        const dataFim = params.get('dataFim');
+        
+        console.log('Parâmetros extrato:', { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim });
+        
+        // Construir query base
+        let query = { usuario: req.user._id };
+        
+        // filtro por conta bancária
+        if (contaBancaria) {
+          query.contaBancaria = contaBancaria;
+        }
+        
+        // filtro por tipo
+        if (tipoDespesa) {
+          query.tipo = tipoDespesa;
+        }
+        
+        // filtro por cartão
+        if (cartao) {
+          query.cartao = cartao;
+        }
+        
+        // filtro por data range
+        if (dataInicio && dataFim) {
+          query.data = { 
+            $gte: new Date(dataInicio), 
+            $lte: new Date(dataFim) 
+          };
+        }
+        
+        console.log('Query extrato:', query);
+        
+        const extratos = await Extrato.find(query)
           .populate('contaBancaria', 'nome banco')
+          .populate('cartao', 'nome')
           .sort({ data: -1 });
-        return res.json(extratos);
+        
+        // Calcular totais
+        let totalSaldo = 0;
+        let totalEntradas = 0;
+        let totalSaidas = 0;
+        
+        extratos.forEach(item => {
+          if (item.tipo === 'Entrada') {
+            totalEntradas += item.valor || 0;
+            totalSaldo += item.valor || 0;
+          } else {
+            totalSaidas += item.valor || 0;
+            totalSaldo -= item.valor || 0;
+          }
+        });
+        
+        console.log('Extratos encontrados:', extratos.length);
+        console.log('Totais:', { totalSaldo, totalEntradas, totalSaidas });
+        
+        return res.json({
+          extratos,
+          totalSaldo,
+          totalEntradas,
+          totalSaidas
+        });
       }
       
       if (req.method === 'POST') {
