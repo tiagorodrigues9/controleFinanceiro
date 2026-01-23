@@ -151,6 +151,121 @@ const dashboardHandler = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$valor" } } }
     ]);
 
+    // Gastos do mês
+    const gastosMes = await Gasto.aggregate([
+      {
+        $match: {
+          usuario: req.user._id,
+          data: { $gte: startDate, $lte: endDate }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$valor" } } }
+    ]);
+
+    // Extrato do mês (entradas e saídas)
+    const extratoMes = await Extrato.aggregate([
+      {
+        $match: {
+          usuario: req.user._id,
+          data: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$tipo",
+          total: { $sum: "$valor" }
+        }
+      }
+    ]);
+
+    // Processar resultados do extrato
+    let totalEntradas = 0;
+    let totalSaidas = 0;
+
+    extratoMes.forEach(item => {
+      if (item._id === 'Entrada') {
+        totalEntradas = item.total;
+      } else if (item._id === 'Saída') {
+        totalSaidas = item.total;
+      }
+    });
+
+    // Calcular totais do mês
+    const totalGastosMesValor = gastosMes[0]?.total || 0;
+    const totalEntradasMesValor = totalEntradas;
+    const totalSaidasMesValor = totalSaidas;
+    const saldoMesValor = totalEntradas - totalSaidas;
+
+    // Comparação últimos 6 meses
+    const mesesComparacao = await Promise.all(
+      Array.from({ length: 6 }, async (_, i) => {
+        const mesRef = new Date(anoAtual, mesAtual - 1 - i, 1);
+        const mesRefEnd = new Date(anoAtual, mesAtual - i, 0, 23, 59, 59);
+        
+        // Query para contas
+        const contasMes = await Conta.aggregate([
+          { 
+            $match: { 
+              usuario: new mongoose.Types.ObjectId(req.user._id),
+              status: 'Pago',
+              $or: [
+                { dataPagamento: { $gte: mesRef, $lte: mesRefEnd } },
+                { dataVencimento: { $gte: mesRef, $lte: mesRefEnd } }
+              ]
+            } 
+          },
+          { $group: { _id: null, total: { $sum: "$valor" } } }
+        ]);
+        
+        // Query para gastos
+        const gastosMes = await Gasto.aggregate([
+          { 
+            $match: { 
+              usuario: new mongoose.Types.ObjectId(req.user._id),
+              data: { $gte: mesRef, $lte: mesRefEnd }
+            } 
+          },
+          { $group: { _id: null, total: { $sum: "$valor" } } }
+        ]);
+        
+        const totalContas = contasMes.length > 0 ? contasMes[0].total : 0;
+        const totalGastos = gastosMes.length > 0 ? gastosMes[0].total : 0;
+        
+        return {
+          mes: mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }),
+          contas: totalContas,
+          gastos: totalGastos,
+          total: totalContas + totalGastos
+        };
+      })
+    );
+    
+    mesesComparacao.reverse();
+
+    // Tipo de despesa com mais gasto
+    const gastos = await Gasto.find({
+      usuario: req.user._id,
+      data: { $gte: startDate, $lte: endDate }
+    }).populate('tipoDespesa.grupo');
+
+    // Agrupar gastos por categoria
+    const gastosPorCategoria = {};
+    gastos.forEach(gasto => {
+      const categoria = gasto.tipoDespesa?.grupo?.nome || 'Sem Categoria';
+      if (!gastosPorCategoria[categoria]) {
+        gastosPorCategoria[categoria] = 0;
+      }
+      gastosPorCategoria[categoria] += gasto.valor;
+    });
+
+    // Encontrar categoria com maior gasto
+    let tipoDespesaMaisGasto = [];
+    Object.entries(gastosPorCategoria).forEach(([categoria, valor]) => {
+      tipoDespesaMaisGasto.push({ categoria, valor });
+    });
+    tipoDespesaMaisGasto.sort((a, b) => b.valor - a.valor);
+    tipoDespesaMaisGasto = tipoDespesaMaisGasto.slice(0, 5); // Top 5
+
     // Montar resposta
     const responseData = {
       totalContasPagar,
@@ -164,18 +279,18 @@ const dashboardHandler = async (req, res) => {
       totalValorContasNextMonth: totalValorContasNextMonth[0]?.total || 0,
       totalContasMes: totalContasPagar + totalContasPagas,
       totalValorContasPendentes: totalValorContasPagarMes[0]?.total || 0,
-      totalGastosMes: 0,
-      totalEntradasMes: 0,
-      totalSaidasMes: 0,
-      saldoMes: 0,
+      totalGastosMes: totalGastosMesValor,
+      totalEntradasMes: totalEntradasMesValor,
+      totalSaidasMes: totalSaidasMesValor,
+      saldoMes: saldoMesValor,
       financeiro: {
-        totalGastosMes: 0,
-        totalEntradasMes: 0,
-        totalSaidasMes: 0,
-        saldoMes: 0
+        totalGastosMes: totalGastosMesValor,
+        totalEntradasMes: totalEntradasMesValor,
+        totalSaidasMes: totalSaidasMesValor,
+        saldoMes: saldoMesValor
       },
-      mesesComparacao: [],
-      tipoDespesaMaisGasto: [],
+      mesesComparacao,
+      tipoDespesaMaisGasto,
       evolucaoSaldo: [],
       percentualPorCategoria: [],
       relatorioTiposDespesa: [],
