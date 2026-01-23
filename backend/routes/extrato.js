@@ -68,8 +68,27 @@ router.get('/', async (req, res) => {
     
     if (contaBancaria) {
       const saldoAgg = await Extrato.aggregate([
-        { $match: { contaBancaria: new mongoose.Types.ObjectId(contaBancaria), usuario: req.user._id, estornado: false } },
-        { $group: { _id: null, total: { $sum: { $cond: { if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, then: '$valor', else: { $multiply: ['$valor', -1] } } } } } }
+        { 
+          $match: { 
+            contaBancaria: new mongoose.Types.ObjectId(contaBancaria), 
+            usuario: new mongoose.Types.ObjectId(req.user._id), 
+            estornado: false 
+          } 
+        },
+        { 
+          $group: { 
+            _id: null, 
+            total: { 
+              $sum: { 
+                $cond: { 
+                  if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, 
+                  then: '$valor', 
+                  else: { $multiply: ['$valor', -1] } 
+                } 
+              } 
+            } 
+          } 
+        }
       ]);
       totalSaldo = saldoAgg[0]?.total || 0;
     }

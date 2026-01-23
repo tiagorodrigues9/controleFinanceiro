@@ -53,15 +53,16 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   console.log('startDate:', startDate);
   console.log('endDate:', endDate);
 
-  // Filtro base para todas as queries - REMOVIDO FILTRO ATIVO PARA PEGAR TODOS OS DADOS
+  // Filtro base para todas as queries - CORRIGIDO COM ObjectId
   const baseFilter = {
-    usuario: req.user._id
+    usuario: new mongoose.Types.ObjectId(req.user._id)
   };
 
-    // Contas a pagar (total geral - sem filtro de data)
+    // Contas a pagar no mês (corrigido)
   const totalContasPagar = await Conta.countDocuments({
     ...baseFilter,
-    status: { $in: ['Pendente', 'Vencida'] }
+    status: { $in: ['Pendente', 'Vencida'] },
+    dataVencimento: { $gte: startDate, $lte: endDate }
   });
   console.log('totalContasPagar:', totalContasPagar);
 
@@ -77,6 +78,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     { $group: { _id: null, total: { $sum: "$valor" } } }
   ]);
   console.log('totalValorContasPagarMes:', totalValorContasPagarMes);
+  console.log('totalValorContasPagarMes[0]?.total:', totalValorContasPagarMes[0]?.total);
 
   // Contas pendentes no mês (corrigido - mesmo critério do valor)
   const totalContasPendentesMes = await Conta.countDocuments({

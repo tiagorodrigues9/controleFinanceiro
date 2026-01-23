@@ -214,7 +214,7 @@ router.put('/profile', auth, [
     }
 
     const { nome, endereco, bairro, cidade } = req.body;
-    const userId = req.user.id;
+    const userId = req.user._id || req.user.id;
 
     const updateData = {};
     if (nome !== undefined) updateData.nome = nome;
