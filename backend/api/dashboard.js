@@ -425,6 +425,15 @@ const dashboardHandler = async (req, res) => {
       }
     });
 
+    // Calcular total geral para percentuais
+    const totalGeralFormas = relatorioFormasPagamento.reduce((acc, forma) => acc + forma.totalGeral, 0);
+    
+    // Atualizar percentuais
+    relatorioFormasPagamento = relatorioFormasPagamento.map(forma => ({
+      ...forma,
+      percentualGeral: totalGeralFormas > 0 ? (forma.totalGeral / totalGeralFormas) * 100 : 0
+    }));
+    
     relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
 
     // Montar resposta

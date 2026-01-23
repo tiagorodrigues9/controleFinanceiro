@@ -66,13 +66,13 @@ const ReportsSection = ({ data }) => {
                   flexWrap: { xs: 'wrap', sm: 'nowrap' }
                 }}>
                   <Chip 
-                    label={`Gastos: R$ ${forma.totalGastos.toFixed(2).replace('.', ',')}`} 
+                    label={`Gastos: R$ ${(forma.totalGastos || 0).toFixed(2).replace('.', ',')}`} 
                     size="small" 
                     color="primary" 
                     sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
                   />
                   <Chip 
-                    label={`Contas: R$ ${forma.totalContas.toFixed(2).replace('.', ',')}`} 
+                    label={`Contas: R$ ${(forma.totalContas || 0).toFixed(2).replace('.', ',')}`} 
                     size="small" 
                     color="secondary" 
                     sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
@@ -82,13 +82,13 @@ const ReportsSection = ({ data }) => {
             </AccordionSummary>
             <AccordionDetails sx={{ p: 3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Total geral: <strong>R$ {forma.totalGeral.toFixed(2).replace('.', ',')}</strong> ({forma.percentualGeral.toFixed(1)}%)
+                Total geral: <strong>R$ {(forma.totalGeral || 0).toFixed(2).replace('.', ',')}</strong> ({(forma.percentualGeral || 0).toFixed(1)}%)
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Gastos: <strong>R$ {forma.totalGastos.toFixed(2).replace('.', ',')}</strong>
+                Gastos: <strong>R$ {(forma.totalGastos || 0).toFixed(2).replace('.', ',')}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Contas: <strong>R$ {forma.totalContas.toFixed(2).replace('.', ',')}</strong>
+                Contas: <strong>R$ {(forma.totalContas || 0).toFixed(2).replace('.', ',')}</strong>
               </Typography>
             </AccordionDetails>
           </Accordion>
@@ -138,7 +138,7 @@ const ReportsSection = ({ data }) => {
                   {tipo.grupoNome}
                 </Typography>
                 <Chip 
-                  label={`R$ ${tipo.totalGrupo.toFixed(2).replace('.', ',')}`} 
+                  label={`R$ ${(tipo.totalGrupo || 0).toFixed(2).replace('.', ',')}`} 
                   size="small" 
                   color="primary" 
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
@@ -160,10 +160,10 @@ const ReportsSection = ({ data }) => {
                       <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                         <TableCell sx={{ py: 1.5 }}>{subgrupo.subgrupoNome}</TableCell>
                         <TableCell align="right" sx={{ py: 1.5 }}>
-                          R$ {subgrupo.valor.toFixed(2).replace('.', ',')}
+                          R$ {(subgrupo.valor || 0).toFixed(2).replace('.', ',')}
                         </TableCell>
                         <TableCell align="right" sx={{ py: 1.5 }}>
-                          {subgrupo.percentualSubgrupo.toFixed(1)}%
+                          {(subgrupo.percentualSubgrupo || 0).toFixed(1)}%
                         </TableCell>
                       </TableRow>
                     ))}
@@ -221,7 +221,7 @@ const ReportsSection = ({ data }) => {
                   {cartao.nome}
                 </Typography>
                 <Chip 
-                  label={`R$ ${cartao.totalGeral.toFixed(2).replace('.', ',')}`} 
+                  label={`R$ ${(cartao.totalGeral || 0).toFixed(2).replace('.', ',')}`} 
                   size="small" 
                   color="primary" 
                   sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
@@ -230,13 +230,13 @@ const ReportsSection = ({ data }) => {
             </AccordionSummary>
             <AccordionDetails sx={{ p: 3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Total geral: <strong>R$ {cartao.totalGeral.toFixed(2).replace('.', ',')}</strong>
+                Total geral: <strong>R$ {(cartao.totalGeral || 0).toFixed(2).replace('.', ',')}</strong>
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Gastos: <strong>R$ {cartao.totalGastos.toFixed(2).replace('.', ',')}</strong> ({cartao.quantidadeGastos} transações)
+                Gastos: <strong>R$ {(cartao.totalGastos || 0).toFixed(2).replace('.', ',')}</strong> ({cartao.quantidadeGastos || 0} transações)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Contas: <strong>R$ {cartao.totalContas.toFixed(2).replace('.', ',')}</strong> ({cartao.quantidadeContas} contas)
+                Contas: <strong>R$ {(cartao.totalContas || 0).toFixed(2).replace('.', ',')}</strong> ({cartao.quantidadeContas || 0} contas)
               </Typography>
             </AccordionDetails>
           </Accordion>
