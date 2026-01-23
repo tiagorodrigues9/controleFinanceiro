@@ -157,13 +157,48 @@ module.exports = async (req, res) => {
       if (cleanPath === '/contas-bancarias' || cleanPath.includes('contas-bancarias')) {
         if (req.method === 'GET') {
           console.log('Buscando contas bancárias do usuário...');
-          const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
-            .sort({ nome: 1 })
-            .limit(50)
-            .lean();
-          console.log('Contas bancárias encontradas:', contasBancarias.length);
-          console.log('Contas com saldos:', contasBancarias.map(c => ({ nome: c.nome, saldo: c.saldo })));
-          return res.json(contasBancarias);
+          
+          // por padrão retorna apenas contas ativas; para listar todas use ?all=true
+          const filter = { usuario: req.user._id };
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          if (params.get('all') !== 'true') {
+            filter.ativo = { $ne: false };
+          }
+
+          const contasBancarias = await ContaBancaria.find(filter).sort({ nome: 1 });
+
+          // Calcular saldo para cada conta
+          const contasComSaldo = await Promise.all(
+            contasBancarias.map(async (conta) => {
+              const extratos = await Extrato.find({
+                contaBancaria: conta._id,
+                usuario: req.user._id,
+                estornado: false
+              });
+
+              const saldo = extratos.reduce((acc, extrato) => {
+                if (extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial') {
+                  return acc + extrato.valor;
+                } else {
+                  return acc - extrato.valor;
+                }
+              }, 0);
+
+              console.log(`Conta ${conta.nome}: ${extratos.length} lançamentos, saldo: R$ ${saldo}`);
+
+              return {
+                ...conta.toObject(),
+                saldo
+              };
+            })
+          );
+
+          console.log('Contas bancárias encontradas:', contasComSaldo.length);
+          console.log('Contas com saldos calculados:', contasComSaldo.map(c => ({ nome: c.nome, saldo: c.saldo })));
+          return res.json(contasComSaldo);
         }
         
         if (req.method === 'POST') {
