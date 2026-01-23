@@ -34,34 +34,41 @@ module.exports = async (req, res) => {
   // Aplicar middleware de autenticação apenas para outros métodos
   auth(req, res, async () => {
     try {
-      // Parse do body - tentar múltiplas abordagens
+      // Parse do body - abordagem definitiva para Vercel
       let body = {};
       if (req.method === 'POST' || req.method === 'PUT') {
+        console.log('=== DEBUG BODY COMPLETO ===');
+        console.log('req.method:', req.method);
+        console.log('req.headers:', req.headers);
+        console.log('req.body original:', req.body);
+        
         try {
-          // Tentativa 1: Usar req.body direto (Vercel já pode ter parseado)
-          if (req.body && Object.keys(req.body).length > 0) {
+          // Vercel pode ter parseado o body em req.body
+          if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
             body = req.body;
-            console.log('Body obtido de req.body:', body);
+            console.log('✅ Body obtido de req.body:', body);
           } else {
-            // Tentativa 2: Parse manual
-            const rawBody = await new Promise((resolve, reject) => {
-              let data = '';
-              req.on('data', chunk => data += chunk);
-              req.on('end', () => resolve(data));
-              req.on('error', reject);
-            });
+            // Tentar parse manual com buffer
+            const chunks = [];
+            for await (const chunk of req) {
+              chunks.push(chunk);
+            }
+            const rawBody = Buffer.concat(chunks).toString();
+            console.log('rawBody buffer:', rawBody);
             
             if (rawBody && rawBody.trim()) {
               body = JSON.parse(rawBody);
-              console.log('Body parseado manualmente:', body);
+              console.log('✅ Body parseado do buffer:', body);
             } else {
-              console.log('RawBody vazio, usando body vazio');
+              console.log('❌ RawBody vazio');
             }
           }
         } catch (error) {
-          console.log('Erro ao parsear body, usando vazio:', error.message);
+          console.log('❌ Erro no parse:', error.message);
           body = {};
         }
+        
+        console.log('Body final:', body);
       }
       
       // Conectar ao MongoDB
