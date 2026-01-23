@@ -227,6 +227,10 @@ module.exports = async (req, res) => {
       }
       
       if (cleanPath === '/contas' || cleanPath.includes('contas')) {
+        console.log('=== DEBUG CONTAS ===');
+        console.log('cleanPath:', cleanPath);
+        console.log('req.method:', req.method);
+        
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
           
@@ -304,7 +308,27 @@ module.exports = async (req, res) => {
         }
         
         if (req.method === 'POST') {
+          console.log('=== DEBUG POST CONTAS ===');
+          console.log('body recebido:', body);
+          console.log('campos obrigatórios:', {
+            nome: body.nome,
+            valor: body.valor,
+            dataVencimento: body.dataVencimento,
+            fornecedor: body.fornecedor
+          });
+          
+          // Validação básica
+          if (!body.nome || !body.valor || !body.dataVencimento || !body.fornecedor) {
+            console.log('❌ Campos obrigatórios faltando');
+            return res.status(400).json({ 
+              message: 'Campos obrigatórios faltando',
+              required: ['nome', 'valor', 'dataVencimento', 'fornecedor'],
+              received: body
+            });
+          }
+          
           const conta = await Conta.create({ ...body, usuario: req.user._id });
+          console.log('✅ Conta criada com sucesso:', conta);
           return res.status(201).json(conta);
         }
         
