@@ -270,7 +270,15 @@ module.exports = async (req, res) => {
       }
       
       if (req.method === 'POST') {
-        const gasto = await Gasto.create({ ...body, usuario: req.user._id });
+        // Tratar campos vazios para evitar erro de ObjectId
+        const gastoData = { ...body, usuario: req.user._id };
+        
+        // Remover campos vazios que devem ser ObjectId
+        if (gastoData.cartao === '') delete gastoData.cartao;
+        if (gastoData.contaBancaria === '') delete gastoData.contaBancaria;
+        if (gastoData.tipoDespesa?.grupo === '') delete gastoData.tipoDespesa.grupo;
+        
+        const gasto = await Gasto.create(gastoData);
         return res.status(201).json(gasto);
       }
     }
