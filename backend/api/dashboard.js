@@ -281,33 +281,21 @@ const dashboardHandler = async (req, res) => {
       contasBancarias.map(async (conta) => {
         const saldos = await Promise.all(
           monthsRange.map(async (monthEnd) => {
-            const saldo = await Extrato.aggregate([
-              {
-                $match: {
-                  usuario: req.user._id,
-                  contaBancaria: conta._id,
-                  data: { $lte: monthEnd }
-                }
-              },
-              {
-                $group: {
-                  _id: "$tipo",
-                  total: { $sum: "$valor" }
-                }
-              }
-            ]);
-
-            let entradas = 0;
-            let saidas = 0;
-            saldo.forEach(item => {
-              if (item._id === 'Entrada') entradas = item.total || 0;
-              if (item._id === 'Saída') saidas = item.total || 0;
+            const extratos = await Extrato.find({
+              contaBancaria: conta._id,
+              usuario: req.user._id,
+              estornado: false,
+              data: { $lte: monthEnd }
             });
 
-            const saldoFinal = entradas - saidas;
+            const saldo = extratos.reduce((acc, ext) => {
+              if (ext.tipo === 'Entrada' || ext.tipo === 'Saldo Inicial') return acc + ext.valor;
+              return acc - ext.valor;
+            }, 0);
+
             return { 
               data: monthEnd, 
-              saldo: isNaN(saldoFinal) ? 0 : saldoFinal 
+              saldo: isNaN(saldo) ? 0 : saldo 
             };
           })
         );
