@@ -103,6 +103,25 @@ module.exports = async (req, res) => {
           const grupo = await Grupo.create({ ...body, usuario: req.user._id });
           return res.status(201).json(grupo);
         }
+        
+        if (req.method === 'DELETE') {
+          // Extrair ID do grupo da URL
+          const grupoId = cleanPath.replace('/grupos/', '');
+          console.log('Excluindo grupo:', grupoId);
+          
+          const grupo = await Grupo.findOne({
+            _id: grupoId,
+            usuario: req.user._id
+          });
+          
+          if (!grupo) {
+            return res.status(404).json({ message: 'Grupo não encontrado' });
+          }
+          
+          await grupo.deleteOne();
+          
+          return res.json({ message: 'Grupo excluído com sucesso' });
+        }
       }
       
       if (cleanPath === '/contas-bancarias') {
