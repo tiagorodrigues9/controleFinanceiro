@@ -593,18 +593,31 @@ module.exports = async (req, res) => {
     if (cleanPath === '/notificacoes/teste-criacao' || cleanPath.includes('notificacoes/teste-criacao')) {
       if (req.method === 'POST') {
         console.log('=== DEBUG TESTE CRIACAO ===');
-        console.log('req.headers:', req.headers);
+        console.log('req.user:', req.user);
+        console.log('req.user._id:', req.user._id);
         console.log('body:', body);
         
+        // Verificar se usuário está autenticado
+        if (!req.user || !req.user._id) {
+          console.log('Usuário não autenticado');
+          return res.status(401).json({ message: 'Usuário não autenticado' });
+        }
+        
         // Criar notificação de teste com campos obrigatórios
-        const notificacaoTeste = await Notificacao.create({
+        const notificacaoData = {
           titulo: 'Notificação de Teste',
           mensagem: 'Esta é uma notificação de teste do sistema!',
           tipo: 'outro', // Usar valor válido do enum
           usuario: req.user._id, // Usar ID do usuário autenticado
           lida: false,
           data: new Date()
-        });
+        };
+        
+        console.log('Dados da notificação:', notificacaoData);
+        
+        const notificacaoTeste = await Notificacao.create(notificacaoData);
+        console.log('Notificação criada com sucesso:', notificacaoTeste);
+        
         return res.status(201).json(notificacaoTeste);
       }
     }
