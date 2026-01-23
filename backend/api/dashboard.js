@@ -60,6 +60,8 @@ const dashboardHandler = async (req, res) => {
     // Criar datas para o período correto
     const startDate = new Date(anoAtual, mesAtual - 1, 1);
     const endDate = new Date(anoAtual, mesAtual, 0, 23, 59, 59);
+    const nextMonthStart = new Date(anoAtual, mesAtual, 1);
+    const nextMonthEnd = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
 
     // Filtro base para todas as queries - CORRIGIDO COM ObjectId
     const baseFilter = {
@@ -111,6 +113,44 @@ const dashboardHandler = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$valor" } } }
     ]);
 
+    // Contas vencidas no mês
+    const totalContasVencidas = await Conta.countDocuments({
+      ...baseFilter,
+      status: 'Vencida',
+      dataVencimento: { $gte: startDate, $lte: endDate }
+    });
+
+    // Valor total de contas vencidas
+    const totalValorContasVencidas = await Conta.aggregate([
+      { 
+        $match: { 
+          ...baseFilter, 
+          status: 'Vencida',
+          dataVencimento: { $gte: startDate, $lte: endDate }
+        } 
+      },
+      { $group: { _id: null, total: { $sum: "$valor" } } }
+    ]);
+
+    // Contas do próximo mês
+    const totalContasNextMonth = await Conta.countDocuments({
+      ...baseFilter,
+      status: 'Pendente',
+      dataVencimento: { $gte: nextMonthStart, $lte: nextMonthEnd }
+    });
+
+    // Valor total de contas do próximo mês
+    const totalValorContasNextMonth = await Conta.aggregate([
+      {
+        $match: {
+          ...baseFilter,
+          status: 'Pendente',
+          dataVencimento: { $gte: nextMonthStart, $lte: nextMonthEnd }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$valor" } } }
+    ]);
+
     // Montar resposta
     const responseData = {
       totalContasPagar,
@@ -118,10 +158,10 @@ const dashboardHandler = async (req, res) => {
       totalContasPendentesMes,
       totalContasPagas,
       totalValorContasPagas: totalValorContasPagas[0]?.total || 0,
-      totalContasVencidas: 0,
-      totalValorContasVencidas: 0,
-      totalContasNextMonth: 0,
-      totalValorContasNextMonth: 0,
+      totalContasVencidas,
+      totalValorContasVencidas: totalValorContasVencidas[0]?.total || 0,
+      totalContasNextMonth,
+      totalValorContasNextMonth: totalValorContasNextMonth[0]?.total || 0,
       totalContasMes: totalContasPagar + totalContasPagas,
       totalValorContasPendentes: totalValorContasPagarMes[0]?.total || 0,
       totalGastosMes: 0,
