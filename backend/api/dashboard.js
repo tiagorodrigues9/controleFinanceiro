@@ -431,6 +431,51 @@ const dashboardHandler = async (req, res) => {
     
     relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
 
+    // Relatório de cartões
+    const cartoes = await Cartao.find({ usuario: req.user._id });
+    const relatorioCartoes = await Promise.all(
+      cartoes.map(async (cartao) => {
+        const gastosCartao = await Gasto.find({
+          usuario: req.user._id,
+          cartao: cartao._id,
+          data: { $gte: startDate, $lte: endDate }
+        });
+
+        const contasPagasCartao = await Conta.find({
+          usuario: req.user._id,
+          cartao: cartao._id,
+          status: 'Pago',
+          dataPagamento: { $gte: startDate, $lte: endDate }
+        });
+
+        const totalGastosCartaoValor = gastosCartao.reduce((acc, gasto) => {
+          const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
+          return acc + valorGasto;
+        }, 0);
+        const totalContasCartaoValor = contasPagasCartao.reduce((acc, conta) => acc + conta.valor + (conta.jurosPago || 0), 0);
+
+        return {
+          cartaoId: cartao._id,
+          nome: cartao.nome,
+          tipo: cartao.tipo,
+          banco: cartao.banco,
+          limite: cartao.limite,
+          totalGastos: totalGastosCartaoValor,
+          totalContas: totalContasCartaoValor,
+          totalGeral: totalGastosCartaoValor + totalContasCartaoValor,
+          quantidadeGastos: gastosCartao.length,
+          quantidadeContas: contasPagasCartao.length,
+          limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
+            ((totalGastosCartaoValor + totalContasCartaoValor) / cartao.limite) * 100 : 0,
+          disponivel: cartao.tipo === 'Crédito' ? cartao.limite - (totalGastosCartaoValor + totalContasCartaoValor) : null
+        };
+      })
+    );
+
+    const relatorioCartoesFiltrado = relatorioCartoes
+      .filter(item => item.totalGeral > 0)
+      .sort((a, b) => b.totalGeral - a.totalGeral);
+
     // Montar resposta
     const responseData = {
       totalContasPagar,
@@ -461,7 +506,7 @@ const dashboardHandler = async (req, res) => {
       relatorioTiposDespesa: relatorioTiposDespesaFiltrado,
       graficoBarrasTiposDespesa,
       graficoPizzaTiposDespesa,
-      relatorioCartoes: [],
+      relatorioCartoes: relatorioCartoesFiltrado,
       relatorioFormasPagamento
     };
 
