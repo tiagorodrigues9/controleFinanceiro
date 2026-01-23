@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (cleanPath === '/contas') {
+      if (cleanPath === '/contas' || cleanPath.includes('contas')) {
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
           
@@ -172,6 +172,32 @@ module.exports = async (req, res) => {
         if (req.method === 'POST') {
           const conta = await Conta.create({ ...body, usuario: req.user._id });
           return res.status(201).json(conta);
+        }
+        
+        if (req.method === 'DELETE') {
+          // Extrair ID da URL: /contas/6973793cb6a834c848d8976c
+          const pathParts = cleanPath.split('/');
+          const contaId = pathParts[pathParts.length - 1];
+          
+          console.log('Tentando excluir conta:', contaId);
+          
+          // Validar se é um ObjectId válido
+          if (!mongoose.Types.ObjectId.isValid(contaId)) {
+            return res.status(400).json({ message: 'ID de conta inválido' });
+          }
+          
+          // Buscar e excluir a conta
+          const conta = await Conta.findOneAndDelete({
+            _id: contaId,
+            usuario: req.user._id
+          });
+          
+          if (!conta) {
+            return res.status(404).json({ message: 'Conta não encontrada' });
+          }
+          
+          console.log('Conta excluída com sucesso:', conta.nome);
+          return res.json({ message: 'Conta excluída com sucesso', conta });
         }
       }
       
@@ -417,7 +443,7 @@ module.exports = async (req, res) => {
       message: 'Endpoint não encontrado',
       path: cleanPath,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/extrato']
+      available_endpoints: ['/grupos', '/contas', '/contas/:id', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/extrato']
     });
     
   } catch (error) {
