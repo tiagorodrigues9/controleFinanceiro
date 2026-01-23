@@ -407,7 +407,7 @@ const dashboardHandler = async (req, res) => {
       contasPorFormaPagamento[forma] = (contasPorFormaPagamento[forma] || 0) + conta.valor;
     });
 
-    const relatorioFormasPagamento = [];
+    let relatorioFormasPagamento = [];
     const todasFormas = new Set([...Object.keys(gastosPorFormaPagamento), ...Object.keys(contasPorFormaPagamento)]);
 
     todasFormas.forEach(forma => {
