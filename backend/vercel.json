@@ -11,6 +11,22 @@
       "destination": "/api/auth/register.js"
     },
     {
+      "source": "/api/auth/profile",
+      "destination": "/api/auth/profile.js"
+    },
+    {
+      "source": "/api/auth/me",
+      "destination": "/api/auth/profile.js"
+    },
+    {
+      "source": "/api/auth/forgot-password",
+      "destination": "/api/auth/profile.js"
+    },
+    {
+      "source": "/api/auth/reset-password",
+      "destination": "/api/auth/profile.js"
+    },
+    {
       "source": "/api/dashboard",
       "destination": "/api/dashboard.js"
     },
@@ -48,6 +64,10 @@
       "memory": 512
     },
     "api/auth/register.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/auth/profile.js": {
       "maxDuration": 10,
       "memory": 512
     },
