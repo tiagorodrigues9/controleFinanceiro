@@ -70,6 +70,26 @@ module.exports = async (req, res) => {
       console.log('body:', body);
       console.log('req.user._id:', req.user._id);
       
+      // Verificar primeiro rota específica de subgrupos
+      if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos/)) {
+        const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos/)[1];
+        console.log('Adicionando subgrupo ao grupo:', grupoId);
+        
+        const grupo = await Grupo.findOne({
+          _id: grupoId,
+          usuario: req.user._id
+        });
+        
+        if (!grupo) {
+          return res.status(404).json({ message: 'Grupo não encontrado' });
+        }
+        
+        grupo.subgrupos.push({ nome: body.nome });
+        await grupo.save();
+        
+        return res.json(grupo);
+      }
+      
       if (cleanPath === '/grupos' || cleanPath.includes('grupos')) {
         if (req.method === 'GET') {
           console.log('Buscando grupos do usuário...');
@@ -82,26 +102,6 @@ module.exports = async (req, res) => {
           console.log('Criando grupo:', body);
           const grupo = await Grupo.create({ ...body, usuario: req.user._id });
           return res.status(201).json(grupo);
-        }
-        
-        // Adicionar subgrupo a um grupo existente
-        if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos/)) {
-          const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos/)[1];
-          console.log('Adicionando subgrupo ao grupo:', grupoId);
-          
-          const grupo = await Grupo.findOne({
-            _id: grupoId,
-            usuario: req.user._id
-          });
-          
-          if (!grupo) {
-            return res.status(404).json({ message: 'Grupo não encontrado' });
-          }
-          
-          grupo.subgrupos.push({ nome: body.nome });
-          await grupo.save();
-          
-          return res.json(grupo);
         }
       }
       
