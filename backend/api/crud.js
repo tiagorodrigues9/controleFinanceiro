@@ -73,7 +73,7 @@ module.exports = async (req, res) => {
       if (cleanPath === '/grupos' || cleanPath.includes('grupos')) {
         if (req.method === 'GET') {
           console.log('Buscando grupos do usuário...');
-          const grupos = await Grupo.find({ usuario: req.user._id }).sort({ nome: 1 });
+          const grupos = await Grupo.find({ usuario: req.user._id }).sort({ createdAt: 1 }); // Ordenar por data de criação (mais antigo primeiro)
           console.log('Grupos encontrados:', grupos.length);
           return res.json(grupos);
         }
@@ -82,6 +82,26 @@ module.exports = async (req, res) => {
           console.log('Criando grupo:', body);
           const grupo = await Grupo.create({ ...body, usuario: req.user._id });
           return res.status(201).json(grupo);
+        }
+        
+        // Adicionar subgrupo a um grupo existente
+        if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos/)) {
+          const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos/)[1];
+          console.log('Adicionando subgrupo ao grupo:', grupoId);
+          
+          const grupo = await Grupo.findOne({
+            _id: grupoId,
+            usuario: req.user._id
+          });
+          
+          if (!grupo) {
+            return res.status(404).json({ message: 'Grupo não encontrado' });
+          }
+          
+          grupo.subgrupos.push({ nome: body.nome });
+          await grupo.save();
+          
+          return res.json(grupo);
         }
       }
       
