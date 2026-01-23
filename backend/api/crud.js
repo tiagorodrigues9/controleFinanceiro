@@ -710,6 +710,78 @@ module.exports = async (req, res) => {
       }
       
       if (req.method === 'POST') {
+        // Verificar se é rota de saldo inicial
+        if (cleanPath.includes('/saldo-inicial')) {
+          console.log('Criando saldo inicial');
+          
+          const { contaBancaria, valor, data } = body;
+          
+          // Verificar se conta bancária existe e está ativa
+          const conta = await ContaBancaria.findOne({ 
+            _id: contaBancaria, 
+            usuario: req.user._id, 
+            ativo: { $ne: false } 
+          });
+          
+          if (!conta) {
+            return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
+          }
+
+          // Verificar se já existe saldo inicial
+          const saldoInicialExistente = await Extrato.findOne({
+            contaBancaria,
+            tipo: 'Saldo Inicial',
+            usuario: req.user._id,
+            estornado: false
+          });
+
+          if (saldoInicialExistente) {
+            return res.status(400).json({ message: 'Saldo inicial já foi lançado para esta conta' });
+          }
+
+          const extrato = await Extrato.create({
+            contaBancaria,
+            cartao: null, // Saldo inicial não tem cartão
+            tipo: 'Saldo Inicial',
+            valor: parseFloat(valor),
+            data: new Date(data),
+            motivo: 'Saldo Inicial',
+            referencia: {
+              tipo: 'Saldo Inicial',
+              id: null
+            },
+            usuario: req.user._id
+          });
+
+          return res.status(201).json(extrato);
+        }
+        
+        // Verificar se é rota de estorno
+        if (cleanPath.includes('/estornar')) {
+          console.log('Estornando lançamento');
+          
+          const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
+          
+          const extrato = await Extrato.findOne({
+            _id: extratoId,
+            usuario: req.user._id
+          });
+
+          if (!extrato) {
+            return res.status(404).json({ message: 'Lançamento não encontrado' });
+          }
+
+          if (extrato.estornado) {
+            return res.status(400).json({ message: 'Lançamento já foi estornado' });
+          }
+
+          extrato.estornado = true;
+          await extrato.save();
+
+          return res.json({ message: 'Lançamento estornado com sucesso' });
+        }
+        
+        // POST normal para criar lançamento
         const extrato = await Extrato.create({ ...body, usuario: req.user._id });
         return res.status(201).json(extrato);
       }

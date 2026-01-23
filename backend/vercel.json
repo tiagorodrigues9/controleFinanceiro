@@ -39,6 +39,14 @@
       "destination": "/api/crud.js"
     },
     {
+      "source": "/api/extrato/(.*)/estornar",
+      "destination": "/api/crud.js"
+    },
+    {
+      "source": "/api/extrato/saldo-inicial",
+      "destination": "/api/crud.js"
+    },
+    {
       "source": "/api/cartoes/(.*)/inativar",
       "destination": "/api/crud.js"
     },
