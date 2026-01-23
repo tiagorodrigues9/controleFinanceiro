@@ -722,7 +722,12 @@ module.exports = async (req, res) => {
       if (req.method === 'POST') {
         // Verificar se é rota de saldo inicial
         if (cleanPath.includes('/saldo-inicial')) {
+          console.log('=== DEBUG SALDO INICIAL ===');
           console.log('Criando saldo inicial');
+          console.log('body recebido:', body);
+          console.log('contaBancaria:', body.contaBancaria);
+          console.log('valor:', body.valor);
+          console.log('data:', body.data);
           
           const { contaBancaria, valor, data } = body;
           
@@ -734,8 +739,11 @@ module.exports = async (req, res) => {
           });
           
           if (!conta) {
+            console.log('❌ Conta bancária não encontrada ou inativa');
             return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
           }
+          
+          console.log('✅ Conta bancária encontrada e ativa:', conta);
 
           // Verificar se já existe saldo inicial
           const saldoInicialExistente = await Extrato.findOne({
@@ -746,8 +754,11 @@ module.exports = async (req, res) => {
           });
 
           if (saldoInicialExistente) {
+            console.log('❌ Saldo inicial já existe para esta conta:', saldoInicialExistente);
             return res.status(400).json({ message: 'Saldo inicial já foi lançado para esta conta' });
           }
+          
+          console.log('✅ Não existe saldo inicial para esta conta');
 
           const extrato = await Extrato.create({
             contaBancaria,
