@@ -651,7 +651,7 @@ module.exports = async (req, res) => {
         console.log('Parâmetros extrato:', { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim });
         
         // Construir query base
-        let query = { usuario: req.user._id };
+        let query = { usuario: req.user._id, estornado: false };
         
         // filtro por conta bancária
         if (contaBancaria) {
@@ -683,12 +683,22 @@ module.exports = async (req, res) => {
           .populate('cartao', 'nome')
           .sort({ data: -1 });
         
+        console.log('Extratos encontrados (após filtro estornado: false):', extratos.length);
+        console.log('Detalhes dos extratos:', extratos.map(e => ({
+          id: e._id,
+          tipo: e.tipo,
+          valor: e.valor,
+          estornado: e.estornado,
+          motivo: e.motivo
+        })));
+        
         // Calcular totais
         let totalSaldo = 0;
         let totalEntradas = 0;
         let totalSaidas = 0;
         
         extratos.forEach(item => {
+          console.log(`Processando item: ${item.tipo} - R$ ${item.valor} - estornado: ${item.estornado}`);
           if (item.tipo === 'Entrada') {
             totalEntradas += item.valor || 0;
             totalSaldo += item.valor || 0;
