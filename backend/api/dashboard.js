@@ -266,6 +266,167 @@ const dashboardHandler = async (req, res) => {
     tipoDespesaMaisGasto.sort((a, b) => b.valor - a.valor);
     tipoDespesaMaisGasto = tipoDespesaMaisGasto.slice(0, 5); // Top 5
 
+    // Evolução do saldo das contas bancárias
+    const contasBancarias = await ContaBancaria.find({ usuario: req.user._id });
+    
+    // Criar range dos últimos 6 meses
+    const monthsRange = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(anoAtual, mesAtual - 1 - i, 1);
+      const monthEnd = new Date(anoAtual, mesAtual - i, 0, 23, 59, 59);
+      monthsRange.push(monthEnd);
+    }
+
+    const evolucaoSaldo = await Promise.all(
+      contasBancarias.map(async (conta) => {
+        const saldos = await Promise.all(
+          monthsRange.map(async (monthEnd) => {
+            const saldo = await Extrato.aggregate([
+              {
+                $match: {
+                  usuario: req.user._id,
+                  contaBancaria: conta._id,
+                  data: { $lte: monthEnd }
+                }
+              },
+              {
+                $group: {
+                  _id: "$tipo",
+                  total: { $sum: "$valor" }
+                }
+              }
+            ]);
+
+            let entradas = 0;
+            let saidas = 0;
+            saldo.forEach(item => {
+              if (item._id === 'Entrada') entradas = item.total;
+              if (item._id === 'Saída') saidas = item.total;
+            });
+
+            return entradas - saidas;
+          })
+        );
+
+        return {
+          nomeConta: conta.nome,
+          saldos: saldos
+        };
+      })
+    );
+
+    // Percentual por categoria
+    const grupos = await Grupo.find({ usuario: req.user._id });
+    const totalGastosGeral = gastos.reduce((acc, gasto) => acc + gasto.valor, 0);
+    
+    const percentualPorCategoria = await Promise.all(
+      grupos.map(async (grupo) => {
+        const gastosGrupo = await Gasto.find({
+          usuario: req.user._id,
+          "tipoDespesa.grupo": grupo._id,
+          data: { $gte: startDate, $lte: endDate }
+        });
+
+        const totalGrupo = gastosGrupo.reduce((acc, gasto) => acc + gasto.valor, 0);
+        const percentual = totalGastosGeral > 0 ? (totalGrupo / totalGastosGeral) * 100 : 0;
+
+        return {
+          categoria: grupo.nome,
+          valor: totalGrupo,
+          percentual: percentual
+        };
+      })
+    );
+
+    // Relatório detalhado por tipo de despesa
+    const relatorioTiposDespesa = await Promise.all(
+      grupos.map(async (grupo) => {
+        const gastosGrupo = await Gasto.find({
+          usuario: req.user._id,
+          "tipoDespesa.grupo": grupo._id,
+          data: { $gte: startDate, $lte: endDate }
+        });
+
+        const totalGrupo = gastosGrupo.reduce((acc, gasto) => acc + gasto.valor, 0);
+        const percentual = totalGastosGeral > 0 ? (totalGrupo / totalGastosGeral) * 100 : 0;
+
+        return {
+          grupoId: grupo._id,
+          grupoNome: grupo.nome,
+          totalGrupo: totalGrupo,
+          percentualGrupo: percentual,
+          quantidade: gastosGrupo.length,
+          gastos: gastosGrupo.map(g => ({
+            id: g._id,
+            descricao: g.descricao,
+            valor: g.valor,
+            data: g.data,
+            subgrupo: g.tipoDespesa.subgrupo
+          }))
+        };
+      })
+    );
+
+    const relatorioTiposDespesaFiltrado = relatorioTiposDespesa
+      .filter(item => item.totalGrupo > 0)
+      .sort((a, b) => b.totalGrupo - a.totalGrupo);
+
+    // Gráficos
+    const graficoBarrasTiposDespesa = relatorioTiposDespesaFiltrado
+      .slice(0, 10)
+      .map(item => ({
+        nome: item.grupoNome,
+        valor: item.totalGrupo,
+        percentual: item.percentualGrupo
+      }));
+
+    const graficoPizzaTiposDespesa = relatorioTiposDespesaFiltrado
+      .slice(0, 6)
+      .map(item => ({
+        categoria: item.grupoNome,
+        valor: item.totalGrupo,
+        percentual: item.percentualGrupo
+      }));
+
+    // Relatório por forma de pagamento
+    const gastosPorFormaPagamento = {};
+    gastos.forEach(gasto => {
+      const forma = gasto.formaPagamento || 'Não informado';
+      gastosPorFormaPagamento[forma] = (gastosPorFormaPagamento[forma] || 0) + gasto.valor;
+    });
+
+    const contasPorFormaPagamento = {};
+    const contasPagas = await Conta.find({
+      usuario: req.user._id,
+      status: 'Pago',
+      dataPagamento: { $gte: startDate, $lte: endDate }
+    });
+    
+    contasPagas.forEach(conta => {
+      const forma = conta.formaPagamento || 'Não informado';
+      contasPorFormaPagamento[forma] = (contasPorFormaPagamento[forma] || 0) + conta.valor;
+    });
+
+    const relatorioFormasPagamento = [];
+    const todasFormas = new Set([...Object.keys(gastosPorFormaPagamento), ...Object.keys(contasPorFormaPagamento)]);
+
+    todasFormas.forEach(forma => {
+      const totalGastos = gastosPorFormaPagamento[forma] || 0;
+      const totalContas = contasPorFormaPagamento[forma] || 0;
+      const totalGeral = totalGastos + totalContas;
+      
+      if (totalGeral > 0) {
+        relatorioFormasPagamento.push({
+          formaPagamento: forma,
+          totalGastos: totalGastos,
+          totalContas: totalContas,
+          totalGeral: totalGeral
+        });
+      }
+    });
+
+    relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
+
     // Montar resposta
     const responseData = {
       totalContasPagar,
@@ -291,13 +452,13 @@ const dashboardHandler = async (req, res) => {
       },
       mesesComparacao,
       tipoDespesaMaisGasto,
-      evolucaoSaldo: [],
-      percentualPorCategoria: [],
-      relatorioTiposDespesa: [],
-      graficoBarrasTiposDespesa: [],
-      graficoPizzaTiposDespesa: [],
+      evolucaoSaldo,
+      percentualPorCategoria,
+      relatorioTiposDespesa: relatorioTiposDespesaFiltrado,
+      graficoBarrasTiposDespesa,
+      graficoPizzaTiposDespesa,
       relatorioCartoes: [],
-      relatorioFormasPagamento: []
+      relatorioFormasPagamento
     };
 
     res.json(responseData);
