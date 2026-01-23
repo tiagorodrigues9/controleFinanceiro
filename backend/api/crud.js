@@ -318,7 +318,7 @@ module.exports = async (req, res) => {
       }
     }
     
-    if (cleanPath === '/cartoes') {
+    if (cleanPath === '/cartoes' || cleanPath.includes('cartoes')) {
       if (req.method === 'GET') {
         const cartoes = await Cartao.find({ usuario: req.user._id })
           .sort({ nome: 1 })
@@ -330,6 +330,72 @@ module.exports = async (req, res) => {
       if (req.method === 'POST') {
         const cartao = await Cartao.create({ ...body, usuario: req.user._id });
         return res.status(201).json(cartao);
+      }
+      
+      if (req.method === 'PUT') {
+        // Verificar se é rota de inativação
+        if (cleanPath.includes('/inativar')) {
+          const cartaoId = cleanPath.replace('/cartoes/', '').replace('/inativar', '');
+          console.log('Inativando cartão:', cartaoId);
+          
+          const cartao = await Cartao.findOne({
+            _id: cartaoId,
+            usuario: req.user._id
+          });
+          
+          if (!cartao) {
+            return res.status(404).json({ message: 'Cartão não encontrado' });
+          }
+          
+          cartao.ativo = false;
+          await cartao.save();
+          
+          return res.json({ message: 'Cartão inativado com sucesso', cartao });
+        } else {
+          // Atualizar cartão
+          const cartaoId = cleanPath.replace('/cartoes/', '');
+          console.log('Atualizando cartão:', cartaoId);
+          
+          const cartao = await Cartao.findOne({
+            _id: cartaoId,
+            usuario: req.user._id
+          });
+          
+          if (!cartao) {
+            return res.status(404).json({ message: 'Cartão não encontrado' });
+          }
+          
+          // Atualizar campos permitidos
+          const { nome, tipo, banco, limite, diaFatura, diaFechamento } = body;
+          if (nome) cartao.nome = nome;
+          if (tipo) cartao.tipo = tipo;
+          if (banco) cartao.banco = banco;
+          if (limite !== undefined) cartao.limite = limite;
+          if (diaFatura !== undefined) cartao.diaFatura = diaFatura;
+          if (diaFechamento !== undefined) cartao.diaFechamento = diaFechamento;
+          
+          await cartao.save();
+          
+          return res.json({ message: 'Cartão atualizado com sucesso', cartao });
+        }
+      }
+      
+      if (req.method === 'DELETE') {
+        const cartaoId = cleanPath.replace('/cartoes/', '');
+        console.log('Excluindo cartão:', cartaoId);
+        
+        const cartao = await Cartao.findOne({
+          _id: cartaoId,
+          usuario: req.user._id
+        });
+        
+        if (!cartao) {
+          return res.status(404).json({ message: 'Cartão não encontrado' });
+        }
+        
+        await cartao.deleteOne();
+        
+        return res.json({ message: 'Cartão excluído com sucesso' });
       }
     }
     

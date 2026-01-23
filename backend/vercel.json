@@ -39,6 +39,10 @@
       "destination": "/api/crud.js"
     },
     {
+      "source": "/api/cartoes/(.*)/inativar",
+      "destination": "/api/crud.js"
+    },
+    {
       "source": "/api/grupos/(.*)/subgrupos",
       "destination": "/api/crud.js"
     },
