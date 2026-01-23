@@ -168,6 +168,25 @@ module.exports = async (req, res) => {
           const contaBancaria = await ContaBancaria.create({ ...body, usuario: req.user._id });
           return res.status(201).json(contaBancaria);
         }
+        
+        if (req.method === 'DELETE') {
+          // Extrair ID da conta bancária da URL
+          const contaId = cleanPath.replace('/contas-bancarias/', '');
+          console.log('Excluindo conta bancária:', contaId);
+          
+          const conta = await ContaBancaria.findOne({
+            _id: contaId,
+            usuario: req.user._id
+          });
+          
+          if (!conta) {
+            return res.status(404).json({ message: 'Conta bancária não encontrada' });
+          }
+          
+          await conta.deleteOne();
+          
+          return res.json({ message: 'Conta bancária excluída com sucesso' });
+        }
       }
       
       if (cleanPath === '/contas' || cleanPath.includes('contas')) {
