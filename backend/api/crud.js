@@ -71,8 +71,8 @@ module.exports = async (req, res) => {
       console.log('req.user._id:', req.user._id);
       
       // Verificar primeiro rota específica de subgrupos
-      if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos/)) {
-        const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos/)[1];
+      if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos$/)) {
+        const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos$/)[1];
         console.log('Adicionando subgrupo ao grupo:', grupoId);
         
         const grupo = await Grupo.findOne({
@@ -88,6 +88,34 @@ module.exports = async (req, res) => {
         await grupo.save();
         
         return res.json(grupo);
+      }
+      
+      // Excluir subgrupo específico
+      if (req.method === 'DELETE' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos\/[^\/]+$/)) {
+        const match = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos\/([^\/]+)$/);
+        const grupoId = match[1];
+        const subgrupoId = match[2];
+        console.log('Excluindo subgrupo:', subgrupoId, 'do grupo:', grupoId);
+        
+        const grupo = await Grupo.findOne({
+          _id: grupoId,
+          usuario: req.user._id
+        });
+        
+        if (!grupo) {
+          return res.status(404).json({ message: 'Grupo não encontrado' });
+        }
+        
+        const subgrupo = grupo.subgrupos.id(subgrupoId);
+        if (!subgrupo) {
+          return res.status(404).json({ message: 'Subgrupo não encontrado' });
+        }
+        
+        // Remover subgrupo usando pull
+        grupo.subgrupos.pull({ _id: subgrupoId });
+        await grupo.save();
+        
+        return res.json({ message: 'Subgrupo excluído com sucesso' });
       }
       
       if (cleanPath === '/grupos' || cleanPath.includes('grupos')) {

@@ -43,6 +43,10 @@
       "destination": "/api/crud.js"
     },
     {
+      "source": "/api/grupos/(.*)/subgrupos/(.*)",
+      "destination": "/api/crud.js"
+    },
+    {
       "source": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|notificacoes|emails)/(.*)",
       "destination": "/api/crud.js"
     },
