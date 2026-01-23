@@ -65,7 +65,9 @@ module.exports = async (req, res) => {
       console.log('=== DEBUG CRUD ===');
       console.log('req.method:', req.method);
       console.log('req.url:', url);
-      console.log('path:', path);
+      console.log('cleanPath:', cleanPath);
+      console.log('req.user:', req.user);
+      console.log('req.user._id:', req.user?._id);
       console.log('cleanPath:', cleanPath);
       console.log('body:', body);
       console.log('req.user._id:', req.user._id);
@@ -626,10 +628,19 @@ module.exports = async (req, res) => {
       if (req.method === 'GET') {
         console.log('Buscando extrato do usuário...');
         
-        // Extrair query params
+        // Extrair path da URL
         const url = req.url || '';
         const queryString = url.split('?')[1] || '';
         const params = new URLSearchParams(queryString);
+        const cleanPath = url.split('?')[0];
+        
+        // Debug geral para todas as requisições
+        console.log('=== DEBUG GERAL ===');
+        console.log('req.method:', req.method);
+        console.log('req.url:', req.url);
+        console.log('cleanPath:', cleanPath);
+        console.log('req.user:', req.user);
+        console.log('req.user._id:', req.user?._id);
         
         const contaBancaria = params.get('contaBancaria');
         const tipoDespesa = params.get('tipoDespesa');
