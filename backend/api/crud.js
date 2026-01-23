@@ -699,7 +699,7 @@ module.exports = async (req, res) => {
         
         extratos.forEach(item => {
           console.log(`Processando item: ${item.tipo} - R$ ${item.valor} - estornado: ${item.estornado}`);
-          if (item.tipo === 'Entrada') {
+          if (item.tipo === 'Entrada' || item.tipo === 'Saldo Inicial') {
             totalEntradas += item.valor || 0;
             totalSaldo += item.valor || 0;
           } else {
