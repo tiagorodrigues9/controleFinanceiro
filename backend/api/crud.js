@@ -281,15 +281,26 @@ module.exports = async (req, res) => {
           
           console.log('Query final:', query);
           
-          // Otimizado: usar lean() para performance e limit para evitar timeout
-          const contas = await Conta.find(query)
-            .populate('fornecedor', 'nome')
-            .sort({ dataVencimento: 1 })
-            .limit(100) // Limitar para evitar timeout
-            .lean(); // Mais rápido
-          
-          console.log('Contas encontradas:', contas.length);
-          return res.json(contas);
+          try {
+            // Otimizado: usar lean() para performance e limit para evitar timeout
+            const contas = await Conta.find(query)
+              .populate('fornecedor', 'nome')
+              .sort({ dataVencimento: 1 })
+              .limit(100) // Limitar para evitar timeout
+              .lean(); // Mais rápido
+            
+            console.log('Contas encontradas:', contas.length);
+            console.log('Primeiras contas:', contas.slice(0, 3));
+            return res.json(contas);
+          } catch (error) {
+            console.error('Erro ao buscar contas:', error);
+            console.error('Stack:', error.stack);
+            return res.status(500).json({ 
+              message: 'Erro ao buscar contas', 
+              error: error.message,
+              query: query
+            });
+          }
         }
         
         if (req.method === 'POST') {
