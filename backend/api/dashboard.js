@@ -300,16 +300,20 @@ const dashboardHandler = async (req, res) => {
             let entradas = 0;
             let saidas = 0;
             saldo.forEach(item => {
-              if (item._id === 'Entrada') entradas = item.total;
-              if (item._id === 'Saída') saidas = item.total;
+              if (item._id === 'Entrada') entradas = item.total || 0;
+              if (item._id === 'Saída') saidas = item.total || 0;
             });
 
-            return entradas - saidas;
+            const saldoFinal = entradas - saidas;
+            return { 
+              data: monthEnd, 
+              saldo: isNaN(saldoFinal) ? 0 : saldoFinal 
+            };
           })
         );
 
         return {
-          nomeConta: conta.nome,
+          conta: conta.nome,
           saldos: saldos
         };
       })
