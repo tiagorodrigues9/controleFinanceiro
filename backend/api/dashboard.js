@@ -335,26 +335,29 @@ const dashboardHandler = async (req, res) => {
       grupos.map(async (grupo) => {
         const gastosGrupo = await Gasto.find({
           usuario: req.user._id,
-          "tipoDespesa.grupo": grupo._id,
+          'tipoDespesa.grupo': grupo._id,
           data: { $gte: startDate, $lte: endDate }
+        }).populate('tipoDespesa.grupo');
+
+        const gastosPorSubgrupo = {};
+        gastosGrupo.forEach(gasto => {
+          const subgrupoNome = gasto.tipoDespesa.subgrupo || 'Não categorizado';
+          const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
+          gastosPorSubgrupo[subgrupoNome] = (gastosPorSubgrupo[subgrupoNome] || 0) + valorGasto;
         });
 
-        const totalGrupo = gastosGrupo.reduce((acc, gasto) => acc + gasto.valor, 0);
-        const percentual = totalGastosGeral > 0 ? (totalGrupo / totalGastosGeral) * 100 : 0;
+        const totalGrupo = Object.values(gastosPorSubgrupo).reduce((acc, valor) => acc + valor, 0);
 
         return {
           grupoId: grupo._id,
           grupoNome: grupo.nome,
           totalGrupo: totalGrupo,
-          percentualGrupo: percentual,
-          quantidade: gastosGrupo.length,
-          gastos: gastosGrupo.map(g => ({
-            id: g._id,
-            descricao: g.descricao,
-            valor: g.valor,
-            data: g.data,
-            subgrupo: g.tipoDespesa.subgrupo
-          }))
+          percentualGrupo: totalGastosGeral > 0 ? (totalGrupo / totalGastosGeral) * 100 : 0,
+          subgrupos: Object.entries(gastosPorSubgrupo).map(([subgrupoNome, valor]) => ({
+            subgrupoNome,
+            valor,
+            percentualSubgrupo: totalGrupo > 0 ? (valor / totalGrupo) * 100 : 0
+          })).sort((a, b) => b.valor - a.valor)
         };
       })
     );
