@@ -303,18 +303,74 @@ module.exports = async (req, res) => {
         }
       }
     
-    if (cleanPath === '/formas-pagamento') {
+    if (cleanPath === '/formas-pagamento' || cleanPath.includes('formas-pagamento')) {
       if (req.method === 'GET') {
-        const formasPagamento = await FormaPagamento.find({ usuario: req.user._id })
-          .sort({ nome: 1 })
-          .limit(50)
-          .lean();
+        // Garante formas-padrão para o usuário se estiverem ausentes
+        const defaultNames = ['Dinheiro', 'Boleto', 'Cartão de Crédito', 'Cartão de Débito'];
+
+        // Busca todas (ativas ou não) para checar o que já existe
+        let existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+
+        // Normaliza nomes para comparação sem case
+        const existingNames = new Set(existing.map(f => (f.nome || '').toLowerCase().trim()));
+        const missing = defaultNames.filter(n => !existingNames.has(n.toLowerCase().trim()));
+
+        if (missing.length > 0) {
+          console.log('Criando formas de pagamento padrão:', missing);
+          const toCreate = missing.map(n => ({ nome: n, usuario: req.user._id }));
+          await FormaPagamento.insertMany(toCreate);
+          existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+        }
+
+        // Retorna apenas as formas ativas
+        const formasPagamento = existing.filter(f => f.ativo !== false);
         return res.json(formasPagamento);
       }
       
       if (req.method === 'POST') {
         const formaPagamento = await FormaPagamento.create({ ...body, usuario: req.user._id });
         return res.status(201).json(formaPagamento);
+      }
+      
+      if (req.method === 'PUT') {
+        const formaId = cleanPath.replace('/formas-pagamento/', '');
+        console.log('Atualizando forma de pagamento:', formaId);
+        
+        const forma = await FormaPagamento.findOne({
+          _id: formaId,
+          usuario: req.user._id
+        });
+        
+        if (!forma) {
+          return res.status(404).json({ message: 'Forma de pagamento não encontrada' });
+        }
+        
+        const { nome } = body;
+        if (nome) forma.nome = nome;
+        
+        await forma.save();
+        
+        return res.json({ message: 'Forma de pagamento atualizada com sucesso', forma });
+      }
+      
+      if (req.method === 'DELETE') {
+        const formaId = cleanPath.replace('/formas-pagamento/', '');
+        console.log('Removendo forma de pagamento:', formaId);
+        
+        const forma = await FormaPagamento.findOne({
+          _id: formaId,
+          usuario: req.user._id
+        });
+        
+        if (!forma) {
+          return res.status(404).json({ message: 'Forma de pagamento não encontrada' });
+        }
+        
+        // Soft delete - marca como inativo em vez de remover
+        forma.ativo = false;
+        await forma.save();
+        
+        return res.json({ message: 'Forma de pagamento removida com sucesso' });
       }
     }
     
@@ -333,6 +389,11 @@ module.exports = async (req, res) => {
       }
       
       if (req.method === 'PUT') {
+        console.log('=== DEBUG PUT CARTÕES ===');
+        console.log('cleanPath:', cleanPath);
+        console.log('includes /inativar:', cleanPath.includes('/inativar'));
+        console.log('includes /ativar:', cleanPath.includes('/ativar'));
+        
         // Verificar se é rota de inativação
         if (cleanPath.includes('/inativar')) {
           const cartaoId = cleanPath.replace('/cartoes/', '').replace('/inativar', '');
@@ -389,11 +450,14 @@ module.exports = async (req, res) => {
           }
           
           // Bloquear edição de cartões inativos
+          console.log('Status do cartão:', cartao.ativo);
           if (!cartao.ativo) {
+            console.log('Bloqueando edição de cartão inativo');
             return res.status(400).json({ 
               message: 'Não é possível editar um cartão inativo. Ative o cartão para fazer alterações.' 
             });
           }
+          console.log('Cartão está ativo, permitindo edição');
           
           // Atualizar campos permitidos
           const { nome, tipo, banco, limite, diaFatura, diaFechamento } = body;
