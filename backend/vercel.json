@@ -43,6 +43,10 @@
       "destination": "/api/crud.js"
     },
     {
+      "source": "/api/cartoes/(.*)/ativar",
+      "destination": "/api/crud.js"
+    },
+    {
       "source": "/api/grupos/(.*)/subgrupos",
       "destination": "/api/crud.js"
     },

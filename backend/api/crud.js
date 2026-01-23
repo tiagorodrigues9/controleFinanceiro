@@ -351,7 +351,30 @@ module.exports = async (req, res) => {
           await cartao.save();
           
           return res.json({ message: 'Cartão inativado com sucesso', cartao });
-        } else {
+        }
+        
+        // Verificar se é rota de ativação
+        if (cleanPath.includes('/ativar')) {
+          const cartaoId = cleanPath.replace('/cartoes/', '').replace('/ativar', '');
+          console.log('Ativando cartão:', cartaoId);
+          
+          const cartao = await Cartao.findOne({
+            _id: cartaoId,
+            usuario: req.user._id
+          });
+          
+          if (!cartao) {
+            return res.status(404).json({ message: 'Cartão não encontrado' });
+          }
+          
+          cartao.ativo = true;
+          await cartao.save();
+          
+          return res.json({ message: 'Cartão ativado com sucesso', cartao });
+        }
+        
+        // Atualizar cartão (apenas se não for inativação/ativação)
+        if (!cleanPath.includes('/inativar') && !cleanPath.includes('/ativar')) {
           // Atualizar cartão
           const cartaoId = cleanPath.replace('/cartoes/', '');
           console.log('Atualizando cartão:', cartaoId);
@@ -363,6 +386,13 @@ module.exports = async (req, res) => {
           
           if (!cartao) {
             return res.status(404).json({ message: 'Cartão não encontrado' });
+          }
+          
+          // Bloquear edição de cartões inativos
+          if (!cartao.ativo) {
+            return res.status(400).json({ 
+              message: 'Não é possível editar um cartão inativo. Ative o cartão para fazer alterações.' 
+            });
           }
           
           // Atualizar campos permitidos
