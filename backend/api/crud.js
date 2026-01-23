@@ -34,21 +34,33 @@ module.exports = async (req, res) => {
   // Aplicar middleware de autenticação apenas para outros métodos
   auth(req, res, async () => {
     try {
-      // Parse do body manualmente
+      // Parse do body - tentar múltiplas abordagens
       let body = {};
       if (req.method === 'POST' || req.method === 'PUT') {
-        if (req.headers['content-type']?.includes('application/json')) {
-          try {
+        try {
+          // Tentativa 1: Usar req.body direto (Vercel já pode ter parseado)
+          if (req.body && Object.keys(req.body).length > 0) {
+            body = req.body;
+            console.log('Body obtido de req.body:', body);
+          } else {
+            // Tentativa 2: Parse manual
             const rawBody = await new Promise((resolve, reject) => {
               let data = '';
               req.on('data', chunk => data += chunk);
               req.on('end', () => resolve(data));
               req.on('error', reject);
             });
-            body = JSON.parse(rawBody);
-          } catch (parseError) {
-            console.log('Erro ao parsear body:', parseError);
+            
+            if (rawBody && rawBody.trim()) {
+              body = JSON.parse(rawBody);
+              console.log('Body parseado manualmente:', body);
+            } else {
+              console.log('RawBody vazio, usando body vazio');
+            }
           }
+        } catch (error) {
+          console.log('Erro ao parsear body, usando vazio:', error.message);
+          body = {};
         }
       }
       
