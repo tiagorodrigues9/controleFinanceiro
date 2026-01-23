@@ -152,7 +152,7 @@ module.exports = async (req, res) => {
         }
       }
       
-      if (cleanPath === '/contas-bancarias') {
+      if (cleanPath === '/contas-bancarias' || cleanPath.includes('contas-bancarias')) {
         if (req.method === 'GET') {
           console.log('Buscando contas bancárias do usuário...');
           const contasBancarias = await ContaBancaria.find({ usuario: req.user._id })
