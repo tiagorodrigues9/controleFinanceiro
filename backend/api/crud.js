@@ -1416,7 +1416,9 @@ module.exports = async (req, res) => {
         console.log('Conta origem:', origem.nome, 'ID:', contaOrigem);
         console.log('Conta destino:', destino.nome, 'ID:', contaDestino);
         console.log('Valor transferência:', valorFloat);
+        console.log('Saldo atual da conta origem:', origem.saldo);
         
+        // Usar saldo da conta bancária + saldo do extrato
         const saldoOrigem = await Extrato.aggregate([
           {
             $match: {
@@ -1441,9 +1443,12 @@ module.exports = async (req, res) => {
           }
         ]);
         
-        console.log('Resultado da query de saldo:', saldoOrigem);
-        const saldoDisponivel = saldoOrigem.length > 0 ? saldoOrigem[0].total : 0;
-        console.log('Saldo disponível calculado:', saldoDisponivel);
+        console.log('Resultado da query de saldo do extrato:', saldoOrigem);
+        const saldoExtrato = saldoOrigem.length > 0 ? saldoOrigem[0].total : 0;
+        const saldoDisponivel = (origem.saldo || 0) + saldoExtrato;
+        console.log('Saldo conta bancária:', origem.saldo || 0);
+        console.log('Saldo extrato:', saldoExtrato);
+        console.log('Saldo disponível total:', saldoDisponivel);
         console.log('Comparação: saldoDisponivel < valorFloat?', saldoDisponivel < valorFloat);
         
         if (saldoDisponivel < valorFloat) {
