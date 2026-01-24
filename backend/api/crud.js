@@ -1025,7 +1025,11 @@ module.exports = async (req, res) => {
     
     if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
       if (req.method === 'GET') {
-        const gastos = await Gasto.find({ usuario: req.user._id }).sort({ data: -1 });
+        const gastos = await Gasto.find({ usuario: req.user._id })
+          .populate('tipoDespesa.grupo', 'nome')
+          .populate('contaBancaria', 'nome banco')
+          .populate('cartao', 'nome')
+          .sort({ data: -1 });
         return res.json(gastos);
       }
       

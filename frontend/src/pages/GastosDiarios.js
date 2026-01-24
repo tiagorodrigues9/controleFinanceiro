@@ -259,7 +259,7 @@ const GastosDiarios = () => {
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            {gasto.tipoDespesa?.subgrupo || gasto.tipoDespesa?.grupo || 'Sem categoria'}
+            {gasto.tipoDespesa?.subgrupo ? `${gasto.tipoDespesa.subgrupo}` : (gasto.tipoDespesa?.grupo?.nome || 'Sem categoria')}
           </Typography>
           <Typography variant="h6" color="primary" fontWeight="bold">
             R$ {parseCurrency(gasto.valor).toFixed(2).replace('.', ',')}
@@ -407,7 +407,7 @@ const GastosDiarios = () => {
                     {format(new Date(gasto.data), 'dd/MM/yyyy', { locale: ptBR })}
                   </TableCell>
                   <TableCell>
-                    {gasto.tipoDespesa?.grupo?.nome} - {gasto.tipoDespesa?.subgrupo}
+                    {gasto.tipoDespesa?.grupo?.nome || 'Sem categoria'}{gasto.tipoDespesa?.subgrupo ? ` - ${gasto.tipoDespesa.subgrupo}` : ''}
                   </TableCell>
                   <TableCell>{gasto.local || '-'}</TableCell>
                   <TableCell>R$ {parseCurrency(gasto.valor).toFixed(2).replace('.', ',')}</TableCell>
