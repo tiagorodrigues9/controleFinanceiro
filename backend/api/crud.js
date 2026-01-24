@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
             }
             const rawBody = Buffer.concat(chunks).toString();
             console.log('rawBody buffer:', rawBody);
-            
+
             if (rawBody && rawBody.trim()) {
               body = JSON.parse(rawBody);
               console.log('✅ Body parseado do buffer:', body);
@@ -67,40 +67,28 @@ module.exports = async (req, res) => {
           console.log('❌ Erro no parse:', error.message);
           body = {};
         }
-        
+
         console.log('Body final:', body);
       }
-      
+
       // Conectar ao MongoDB
       await connectDB();
-      
-      // Extrair path da URL
-      const url = req.url || '';
-      const path = url.split('?')[0]; // Remover query params
-      
-      // Roteamento baseado no path (removendo prefixo /api)
-      const cleanPath = path.replace('/api', '');
-      
-      console.log('=== DEBUG CRUD ===');
-      console.log('req.method:', req.method);
-      console.log('req.url:', url);
-      console.log('cleanPath:', cleanPath);
-      console.log('req.user:', req.user);
+
       console.log('req.user._id:', req.user?._id);
       console.log('cleanPath:', cleanPath);
       console.log('body:', body);
       console.log('req.user._id:', req.user._id);
-      
+
       // Verificar primeiro rota específica de subgrupos
       if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos$/)) {
         const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos$/)[1];
         console.log('Adicionando subgrupo ao grupo:', grupoId);
-        
+
         const grupo = await Grupo.findOne({
           _id: grupoId,
           usuario: req.user._id
         });
-        
+
         if (!grupo) {
           return res.status(404).json({ message: 'Grupo não encontrado' });
         }
@@ -1444,9 +1432,14 @@ module.exports = async (req, res) => {
     
   } catch (error) {
     console.error('Erro no handler genérico:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('cleanPath:', cleanPath);
+    console.error('method:', req.method);
     res.status(500).json({ 
       message: 'Erro interno do servidor',
-      error: error.message
+      error: error.message,
+      path: cleanPath,
+      method: req.method
     });
   }
   });
