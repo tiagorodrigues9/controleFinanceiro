@@ -1182,6 +1182,25 @@ module.exports = async (req, res) => {
         const gasto = await Gasto.create(gastoData);
         return res.status(201).json(gasto);
       }
+      
+      if (req.method === 'DELETE') {
+        // Extrair ID do gasto da URL
+        const gastoId = cleanPath.replace('/gastos/', '');
+        console.log('Excluindo gasto:', gastoId);
+        
+        const gasto = await Gasto.findOne({
+          _id: gastoId,
+          usuario: req.user._id
+        });
+        
+        if (!gasto) {
+          return res.status(404).json({ message: 'Gasto não encontrado' });
+        }
+        
+        await gasto.deleteOne();
+        
+        return res.json({ message: 'Gasto excluído com sucesso' });
+      }
     }
     
     if (cleanPath === '/transferencias' || cleanPath.includes('transferencias')) {
