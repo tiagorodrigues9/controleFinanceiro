@@ -1412,7 +1412,10 @@ module.exports = async (req, res) => {
         }
         
         // Verificar saldo disponível na conta de origem
-        console.log('Verificando saldo da conta de origem:', origem.nome);
+        console.log('=== DEBUG TRANSFERÊNCIA ===');
+        console.log('Conta origem:', origem.nome, 'ID:', contaOrigem);
+        console.log('Conta destino:', destino.nome, 'ID:', contaDestino);
+        console.log('Valor transferência:', valorFloat);
         
         const saldoOrigem = await Extrato.aggregate([
           {
@@ -1438,14 +1441,21 @@ module.exports = async (req, res) => {
           }
         ]);
         
+        console.log('Resultado da query de saldo:', saldoOrigem);
         const saldoDisponivel = saldoOrigem.length > 0 ? saldoOrigem[0].total : 0;
-        console.log('Saldo disponível:', saldoDisponivel, 'Valor da transferência:', valorFloat);
+        console.log('Saldo disponível calculado:', saldoDisponivel);
+        console.log('Comparação: saldoDisponivel < valorFloat?', saldoDisponivel < valorFloat);
         
         if (saldoDisponivel < valorFloat) {
           return res.status(400).json({ 
             message: `Saldo insuficiente na conta ${origem.nome}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, Valor da transferência: R$ ${valorFloat.toFixed(2)}`,
             saldoDisponivel,
-            valorTransferencia: valorFloat
+            valorTransferencia: valorFloat,
+            debug: {
+              contaOrigemId: contaOrigem,
+              contaDestinoId: contaDestino,
+              saldoQueryResult: saldoOrigem
+            }
           });
         }
         
