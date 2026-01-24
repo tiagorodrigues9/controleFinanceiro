@@ -35,7 +35,15 @@
       "destination": "/api/dashboard.js"
     },
     {
-      "source": "/api/(contas|contas-pagar|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|notificacoes|emails)",
+      "source": "/api/notificacoes",
+      "destination": "/api/notificacoes-simple.js"
+    },
+    {
+      "source": "/api/notificacoes/(.*)",
+      "destination": "/api/notificacoes-simple.js"
+    },
+    {
+      "source": "/api/(contas|contas-pagar|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails)",
       "destination": "/api/crud.js"
     },
     {
@@ -63,7 +71,7 @@
       "destination": "/api/crud.js"
     },
     {
-      "source": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|notificacoes|emails)/(.*)",
+      "source": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails)/(.*)",
       "destination": "/api/crud.js"
     },
     {
@@ -100,6 +108,10 @@
       "memory": 1024
     },
     "api/crud.js": {
+      "maxDuration": 10,
+      "memory": 512
+    },
+    "api/notificacoes-simple.js": {
       "maxDuration": 10,
       "memory": 512
     },
