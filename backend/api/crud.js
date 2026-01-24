@@ -1369,7 +1369,7 @@ module.exports = async (req, res) => {
     
     if (cleanPath === '/notificacoes/teste-criacao' || cleanPath.includes('notificacoes/teste-criacao')) {
       if (req.method === 'POST') {
-        console.log('=== DEBUG TESTE CRIACAO ===');
+        console.log('=== DEBUG TESTE CRIACAO v2.0 ===');
         console.log('req.user:', req.user);
         console.log('req.user._id:', req.user._id);
         console.log('body:', body);
@@ -1393,6 +1393,7 @@ module.exports = async (req, res) => {
         };
         
         console.log('📝 Dados da notificação:', notificacaoData);
+        console.log('✅ Todos os campos preenchidos corretamente');
         
         try {
           const notificacaoTeste = await Notificacao.create(notificacaoData);
