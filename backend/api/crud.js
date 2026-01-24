@@ -1046,6 +1046,7 @@ module.exports = async (req, res) => {
     if (cleanPath === '/transferencias' || cleanPath.includes('transferencias')) {
       if (req.method === 'GET') {
         // Buscar transferências (extratos com referência tipo 'Transferencia' e tipo 'Saída')
+        console.log('Buscando transferências para usuário:', req.user._id);
         const transferenciasSaida = await Extrato.find({
           usuario: req.user._id,
           'referencia.tipo': 'Transferencia',
@@ -1056,9 +1057,19 @@ module.exports = async (req, res) => {
         .limit(20)
         .skip(0);
 
+        console.log('Transferências encontradas (saída):', transferenciasSaida.length);
+        console.log('Primeira transferência (debug):', transferenciasSaida[0]);
+
         // Para cada transferência de saída, buscar a entrada correspondente
         const transferencias = await Promise.all(
           transferenciasSaida.map(async (saida) => {
+            console.log('Processando saída:', {
+              id: saida._id,
+              referenciaId: saida.referencia?.id,
+              contaBancaria: saida.contaBancaria,
+              motivo: saida.motivo
+            });
+            
             const entrada = await Extrato.findOne({
               usuario: req.user._id,
               'referencia.tipo': 'Transferencia',
@@ -1066,13 +1077,19 @@ module.exports = async (req, res) => {
               tipo: 'Entrada'
             }).populate('contaBancaria', 'nome banco');
 
+            console.log('Entrada correspondente:', entrada ? {
+              id: entrada._id,
+              contaBancaria: entrada.contaBancaria,
+              motivo: entrada.motivo
+            } : 'Não encontrada');
+
             return {
               _id: saida.referencia.id,
               data: saida.data,
               valor: saida.valor,
               motivo: saida.motivo,
-              origem: saida.contaBancaria,
-              destino: entrada ? entrada.contaBancaria : null,
+              contaBancaria: saida.contaBancaria || { nome: 'Conta não encontrada', banco: 'N/A' },
+              contaDestino: entrada ? (entrada.contaBancaria || { nome: 'Conta não encontrada', banco: 'N/A' }) : { nome: 'Conta não encontrada', banco: 'N/A' },
               status: 'Concluída'
             };
           })
@@ -1125,6 +1142,44 @@ module.exports = async (req, res) => {
         
         if (!destino) {
           return res.status(404).json({ message: 'Conta de destino não encontrada ou inativa' });
+        }
+        
+        // Verificar saldo disponível na conta de origem
+        console.log('Verificando saldo da conta de origem:', origem.nome);
+        
+        const saldoOrigem = await Extrato.aggregate([
+          {
+            $match: {
+              usuario: req.user._id,
+              contaBancaria: new mongoose.Types.ObjectId(contaOrigem),
+              estornado: { $ne: true }
+            }
+          },
+          {
+            $group: {
+              _id: '$contaBancaria',
+              total: {
+                $sum: {
+                  $cond: [
+                    { $in: ['$tipo', ['Entrada', 'Saldo Inicial']] },
+                    '$valor',
+                    { $multiply: ['$valor', -1] }
+                  ]
+                }
+              }
+            }
+          }
+        ]);
+        
+        const saldoDisponivel = saldoOrigem.length > 0 ? saldoOrigem[0].total : 0;
+        console.log('Saldo disponível:', saldoDisponivel, 'Valor da transferência:', valorFloat);
+        
+        if (saldoDisponivel < valorFloat) {
+          return res.status(400).json({ 
+            message: `Saldo insuficiente na conta ${origem.nome}. Saldo disponível: R$ ${saldoDisponivel.toFixed(2)}, Valor da transferência: R$ ${valorFloat.toFixed(2)}`,
+            saldoDisponivel,
+            valorTransferencia: valorFloat
+          });
         }
         
         // Usar transação para garantir consistência
@@ -1189,6 +1244,71 @@ module.exports = async (req, res) => {
               data: new Date()
             }
           });
+        } catch (error) {
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          await session.endSession();
+        }
+      }
+      
+      if (req.method === 'DELETE') {
+        console.log('=== DEBUG DELETE TRANSFERÊNCIA ===');
+        console.log('cleanPath:', cleanPath);
+        
+        // Extrair ID da transferência da URL
+        const pathParts = cleanPath.split('/');
+        const transferenciaId = pathParts[pathParts.length - 1];
+        
+        console.log('Tentando excluir transferência:', transferenciaId);
+        
+        // Validar se é um ObjectId válido
+        if (!mongoose.Types.ObjectId.isValid(transferenciaId)) {
+          return res.status(400).json({ message: 'ID de transferência inválido' });
+        }
+        
+        // Buscar ambos os registros da transferência (saída e entrada)
+        const [saida, entrada] = await Promise.all([
+          Extrato.findOne({
+            usuario: req.user._id,
+            'referencia.tipo': 'Transferencia',
+            'referencia.id': transferenciaId,
+            tipo: 'Saída'
+          }),
+          Extrato.findOne({
+            usuario: req.user._id,
+            'referencia.tipo': 'Transferencia',
+            'referencia.id': transferenciaId,
+            tipo: 'Entrada'
+          })
+        ]);
+        
+        if (!saida) {
+          return res.status(404).json({ message: 'Transferência não encontrada' });
+        }
+        
+        // Usar transação para garantir consistência
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        
+        try {
+          // Estornar ambos os registros
+          if (saida) {
+            saida.estornado = true;
+            saida.motivo = `${saida.motivo} [ESTORNADO]`;
+            await saida.save({ session });
+          }
+          
+          if (entrada) {
+            entrada.estornado = true;
+            entrada.motivo = `${entrada.motivo} [ESTORNADO]`;
+            await entrada.save({ session });
+          }
+          
+          await session.commitTransaction();
+          
+          console.log('✅ Transferência estornada com sucesso:', transferenciaId);
+          return res.json({ message: 'Transferência estornada com sucesso' });
         } catch (error) {
           await session.abortTransaction();
           throw error;
