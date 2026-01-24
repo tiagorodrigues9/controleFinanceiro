@@ -133,6 +133,77 @@ module.exports = async (req, res) => {
         }
       }
 
+      // ROTA DE EXTRATO
+      if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
+        if (req.method === 'GET') {
+          console.log('Buscando extrato do usuário...');
+          
+          // Extrair path da URL
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          const contaBancaria = params.get('contaBancaria');
+          const tipoDespesa = params.get('tipoDespesa');
+          const cartao = params.get('cartao');
+          const dataInicio = params.get('dataInicio');
+          const dataFim = params.get('dataFim');
+          
+          // Construir query base
+          let query = { usuario: req.user._id, estornado: false };
+          
+          // filtro por conta bancária
+          if (contaBancaria) {
+            query.contaBancaria = contaBancaria;
+          }
+          
+          // filtro por tipo
+          if (tipoDespesa) {
+            query.tipo = tipoDespesa;
+          }
+          
+          // filtro por cartão
+          if (cartao) {
+            query.cartao = cartao;
+          }
+          
+          // filtro por data range
+          if (dataInicio && dataFim) {
+            query.data = { 
+              $gte: new Date(dataInicio), 
+              $lte: new Date(dataFim) 
+            };
+          }
+          
+          const extratos = await Extrato.find(query)
+            .populate('contaBancaria', 'nome banco')
+            .populate('cartao', 'nome')
+            .sort({ data: -1 });
+          
+          // Calcular totais
+          let totalSaldo = 0;
+          let totalEntradas = 0;
+          let totalSaidas = 0;
+          
+          extratos.forEach(item => {
+            if (item.tipo === 'Entrada' || item.tipo === 'Saldo Inicial') {
+              totalEntradas += item.valor || 0;
+              totalSaldo += item.valor || 0;
+            } else {
+              totalSaidas += item.valor || 0;
+              totalSaldo -= item.valor || 0;
+            }
+          });
+          
+          return res.json({
+            extratos,
+            totalSaldo,
+            totalEntradas,
+            totalSaidas
+          });
+        }
+      }
+
       // Verificar primeiro rota específica de subgrupos
       if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos$/)) {
         const grupoId = cleanPath.match(/\/grupos\/([^\/]+)\/subgrupos$/)[1];
