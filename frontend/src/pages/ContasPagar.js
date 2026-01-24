@@ -347,31 +347,28 @@ const ContasPagar = () => {
     }
 
     try {
-      const formDataToSend = new FormData();
+      const jsonData = {
+        nome: formData.nome,
+        valor: formData.valor,
+        dataVencimento: formData.dataVencimento,
+        fornecedor: formData.fornecedor,
+        observacao: formData.observacao,
+        tipoControle: formData.tipoControle
+      };
+
       if (formData.parcelMode === 'manual') {
-        formDataToSend.append('nome', formData.nome);
-        formDataToSend.append('parcelas', JSON.stringify(parcelasList));
-        formDataToSend.append('parcelMode', formData.parcelMode);
-        formDataToSend.append('fornecedor', formData.fornecedor);
-        formDataToSend.append('observacao', formData.observacao);
-        formDataToSend.append('tipoControle', formData.tipoControle);
+        jsonData.parcelas = parcelasList;
+        jsonData.parcelMode = formData.parcelMode;
+        delete jsonData.dataVencimento; // Not needed for manual mode
+        delete jsonData.valor; // Individual parcel values are in parcelas array
       } else {
-        // garantir que o nome seja sempre enviado (validação no backend exige)
-        formDataToSend.append('nome', formData.nome);
-        formDataToSend.append('valor', formData.valor);
-        formDataToSend.append('dataVencimento', formData.dataVencimento);
-        formDataToSend.append('fornecedor', formData.fornecedor);
-        formDataToSend.append('observacao', formData.observacao);
-        formDataToSend.append('tipoControle', formData.tipoControle);
         if (parseInt(formData.totalParcelas) > 1) {
-          formDataToSend.append('totalParcelas', formData.totalParcelas);
-          formDataToSend.append('parcelMode', formData.parcelMode);
+          jsonData.totalParcelas = formData.totalParcelas;
+          jsonData.parcelMode = formData.parcelMode;
         }
       }
 
-      await api.post('/contas', formDataToSend, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/contas', jsonData);
 
       fetchContas();
       handleCloseCadastro();
