@@ -1037,6 +1037,12 @@ module.exports = async (req, res) => {
         if (gastoData.cartao === '') delete gastoData.cartao;
         if (gastoData.contaBancaria === '') delete gastoData.contaBancaria;
         if (gastoData.tipoDespesa?.grupo === '') delete gastoData.tipoDespesa.grupo;
+        if (gastoData.tipoDespesa?.subgrupo === '') delete gastoData.tipoDespesa.subgrupo;
+        
+        // Se tipoDespesa ficou vazio após remover campos, remover o objeto inteiro
+        if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) {
+          delete gastoData.tipoDespesa;
+        }
         
         const gasto = await Gasto.create(gastoData);
         return res.status(201).json(gasto);
@@ -1050,7 +1056,8 @@ module.exports = async (req, res) => {
         const transferenciasSaida = await Extrato.find({
           usuario: req.user._id,
           'referencia.tipo': 'Transferencia',
-          tipo: 'Saída'
+          tipo: 'Saída',
+          estornado: { $ne: true } // Não buscar transferências estornadas
         })
         .populate('contaBancaria', 'nome banco')
         .sort({ data: -1 })
@@ -1074,7 +1081,8 @@ module.exports = async (req, res) => {
               usuario: req.user._id,
               'referencia.tipo': 'Transferencia',
               'referencia.id': saida.referencia.id,
-              tipo: 'Entrada'
+              tipo: 'Entrada',
+              estornado: { $ne: true } // Não buscar transferências estornadas
             }).populate('contaBancaria', 'nome banco');
 
             console.log('Entrada correspondente:', entrada ? {
