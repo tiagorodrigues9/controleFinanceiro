@@ -175,7 +175,7 @@ module.exports = async (req, res) => {
               tipo: 'Saída',
               valor: gastoData.valor,
               data: gasto.data,
-              motivo: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
+              motivo: gastoData.descricao || gastoData.tipoDespesa?.grupo?.nome || 'Gasto',
               referencia: { tipo: 'Gasto', id: gasto._id }
             });
           }
