@@ -133,6 +133,75 @@ module.exports = async (req, res) => {
         }
       }
 
+      // ROTA DE GASTOS - Prioridade alta para evitar timeout
+      if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
+        if (req.method === 'GET') {
+          console.log('Buscando gastos do usuário...');
+          const gastos = await Gasto.find({ usuario: req.user._id })
+            .populate('tipoDespesa.grupo', 'nome')
+            .populate('contaBancaria', 'nome banco')
+            .populate('cartao', 'nome')
+            .sort({ data: -1 })
+            .limit(100); // Limitar para evitar timeout
+          return res.json(gastos);
+        }
+        
+        if (req.method === 'POST') {
+          console.log('Criando gasto...');
+          
+          const gastoData = { ...body, usuario: req.user._id };
+          
+          // Remover campos vazios
+          if (gastoData.cartao === '') delete gastoData.cartao;
+          if (gastoData.contaBancaria === '') delete gastoData.contaBancaria;
+          if (gastoData.tipoDespesa?.grupo === '') delete gastoData.tipoDespesa.grupo;
+          if (gastoData.tipoDespesa?.subgrupo === '') delete gastoData.tipoDespesa.subgrupo;
+          if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) delete gastoData.tipoDespesa;
+          
+          // Tratar data
+          if (gastoData.data) {
+            const [year, month, day] = gastoData.data.split('-').map(Number);
+            gastoData.data = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+          }
+          
+          const gasto = await Gasto.create(gastoData);
+          
+          // Criar extrato se tiver conta bancária
+          if (gastoData.contaBancaria) {
+            await Extrato.create({
+              usuario: req.user._id,
+              contaBancaria: gastoData.contaBancaria,
+              cartao: gastoData.cartao || null,
+              tipo: 'Saída',
+              valor: gastoData.valor,
+              data: gasto.data,
+              descricao: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
+              categoria: gastoData.tipoDespesa?.grupo?.nome || 'Gasto',
+              referencia: { tipo: 'Gasto', id: gasto._id }
+            });
+          }
+          
+          return res.status(201).json(gasto);
+        }
+        
+        if (req.method === 'DELETE') {
+          const gastoId = cleanPath.replace('/gastos/', '');
+          
+          const gasto = await Gasto.findOne({ _id: gastoId, usuario: req.user._id });
+          if (!gasto) return res.status(404).json({ message: 'Gasto não encontrado' });
+          
+          // Excluir extrato correspondente
+          await Extrato.deleteMany({
+            usuario: req.user._id,
+            'referencia.tipo': 'Gasto',
+            'referencia.id': gastoId
+          });
+          
+          await gasto.deleteOne();
+          return res.json({ message: 'Gasto excluído com sucesso' });
+        }
+      }
+
       // ROTA DE EXTRATO
       if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
         if (req.method === 'GET') {
@@ -1133,105 +1202,6 @@ module.exports = async (req, res) => {
       if (req.method === 'POST') {
         const contaBancaria = await ContaBancaria.create({ ...body, usuario: req.user._id });
         return res.status(201).json(contaBancaria);
-      }
-    }
-    
-    if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
-      if (req.method === 'GET') {
-        const gastos = await Gasto.find({ usuario: req.user._id })
-          .populate('tipoDespesa.grupo', 'nome')
-          .populate('contaBancaria', 'nome banco')
-          .populate('cartao', 'nome')
-          .sort({ data: -1 });
-        return res.json(gastos);
-      }
-      
-      if (req.method === 'POST') {
-        console.log('=== DEBUG POST GASTOS ===');
-        console.log('req.body original:', JSON.stringify(body, null, 2));
-        
-        // Tratar campos vazios para evitar erro de ObjectId
-        const gastoData = { ...body, usuario: req.user._id };
-        
-        console.log('✅ Body obtido de req.body:', JSON.stringify(gastoData, null, 2));
-        
-        // Remover campos vazios que devem ser ObjectId
-        if (gastoData.cartao === '') delete gastoData.cartao;
-        if (gastoData.contaBancaria === '') delete gastoData.contaBancaria;
-        if (gastoData.tipoDespesa?.grupo === '') delete gastoData.tipoDespesa.grupo;
-        if (gastoData.tipoDespesa?.subgrupo === '') {
-          console.log('🔧 Removendo subgrupo vazio');
-          delete gastoData.tipoDespesa.subgrupo;
-        }
-        
-        // Se tipoDespesa ficou vazio após remover campos, remover o objeto inteiro
-        if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) {
-          console.log('🔧 Removendo tipoDespesa vazio');
-          delete gastoData.tipoDespesa;
-        }
-        
-        console.log('Body final:', JSON.stringify(gastoData, null, 2));
-        
-        // Tratar data para evitar problema de fuso horário
-        if (gastoData.data) {
-          const [year, month, day] = gastoData.data.split('-').map(Number);
-          gastoData.data = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-          console.log('Data tratada:', gastoData.data);
-        }
-        
-        const gasto = await Gasto.create(gastoData);
-        
-        // Criar registro no extrato e descontar da conta bancária
-        if (gastoData.contaBancaria) {
-          console.log('Criando registro no extrato para o gasto...');
-          
-          await Extrato.create({
-            usuario: req.user._id,
-            contaBancaria: gastoData.contaBancaria,
-            cartao: gastoData.cartao || null,
-            tipo: 'Saída',
-            valor: gastoData.valor,
-            data: gasto.data,
-            descricao: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
-            categoria: gastoData.tipoDespesa?.grupo?.nome || 'Gasto',
-            referencia: {
-              tipo: 'Gasto',
-              id: gasto._id
-            }
-          });
-          
-          console.log('✅ Registro no extrato criado com sucesso');
-        }
-        
-        return res.status(201).json(gasto);
-      }
-      
-      if (req.method === 'DELETE') {
-        // Extrair ID do gasto da URL
-        const gastoId = cleanPath.replace('/gastos/', '');
-        console.log('Excluindo gasto:', gastoId);
-        
-        const gasto = await Gasto.findOne({
-          _id: gastoId,
-          usuario: req.user._id
-        });
-        
-        if (!gasto) {
-          return res.status(404).json({ message: 'Gasto não encontrado' });
-        }
-        
-        // Excluir registro correspondente no extrato
-        await Extrato.deleteMany({
-          usuario: req.user._id,
-          'referencia.tipo': 'Gasto',
-          'referencia.id': gastoId
-        });
-        
-        console.log('✅ Registro no extrato excluído com sucesso');
-        
-        await gasto.deleteOne();
-        
-        return res.json({ message: 'Gasto excluído com sucesso' });
       }
     }
     
