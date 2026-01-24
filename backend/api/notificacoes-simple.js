@@ -1,6 +1,6 @@
-const { connectDB } = require('../lib/mongodb');
+const { connectDB } = require('./lib/mongodb');
 const mongoose = require('mongoose');
-const auth = require('../../middleware/auth');
+const auth = require('../middleware/auth');
 const Notificacao = require('../models/Notificacao');
 
 module.exports = async (req, res) => {
