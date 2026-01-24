@@ -1067,8 +1067,13 @@ module.exports = async (req, res) => {
             }).populate('contaBancaria', 'nome banco');
 
             return {
-              ...saida.toObject(),
-              contaDestino: entrada?.contaBancaria || null
+              _id: saida.referencia.id,
+              data: saida.data,
+              valor: saida.valor,
+              motivo: saida.motivo,
+              origem: saida.contaBancaria,
+              destino: entrada ? entrada.contaBancaria : null,
+              status: 'Concluída'
             };
           })
         );
@@ -1082,6 +1087,114 @@ module.exports = async (req, res) => {
             pages: Math.ceil(transferencias.length / 20)
           }
         });
+      }
+      
+      if (req.method === 'POST') {
+        console.log('=== DEBUG POST TRANSFERÊNCIA ===');
+        console.log('body recebido:', body);
+        
+        const { contaOrigem, contaDestino, valor, motivo } = body;
+        
+        // Validação básica
+        if (!contaOrigem || !contaDestino || !valor) {
+          return res.status(400).json({ 
+            message: 'Conta de origem, conta de destino e valor são obrigatórios',
+            required: ['contaOrigem', 'contaDestino', 'valor'],
+            received: body
+          });
+        }
+        
+        if (contaOrigem === contaDestino) {
+          return res.status(400).json({ message: 'Não é possível transferir para a mesma conta' });
+        }
+        
+        const valorFloat = parseFloat(valor);
+        if (isNaN(valorFloat) || valorFloat <= 0) {
+          return res.status(400).json({ message: 'Valor deve ser maior que zero' });
+        }
+        
+        // Verificar se as contas existem e pertencem ao usuário
+        const [origem, destino] = await Promise.all([
+          ContaBancaria.findOne({ _id: contaOrigem, usuario: req.user._id, ativo: { $ne: false } }),
+          ContaBancaria.findOne({ _id: contaDestino, usuario: req.user._id, ativo: { $ne: false } })
+        ]);
+        
+        if (!origem) {
+          return res.status(404).json({ message: 'Conta de origem não encontrada ou inativa' });
+        }
+        
+        if (!destino) {
+          return res.status(404).json({ message: 'Conta de destino não encontrada ou inativa' });
+        }
+        
+        // Usar transação para garantir consistência
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        
+        // Gerar ID único para a transferência
+        const transferenciaId = new mongoose.Types.ObjectId();
+        
+        try {
+          // Criar registro de saída na conta de origem
+          await Extrato.create([{
+            contaBancaria: contaOrigem,
+            tipo: 'Saída',
+            valor: valorFloat,
+            data: new Date(),
+            motivo: motivo || `Transferência para ${destino.nome}`,
+            referencia: {
+              tipo: 'Transferencia',
+              id: transferenciaId
+            },
+            usuario: req.user._id
+          }], { session });
+          
+          // Criar registro de entrada na conta de destino
+          await Extrato.create([{
+            contaBancaria: contaDestino,
+            tipo: 'Entrada',
+            valor: valorFloat,
+            data: new Date(),
+            motivo: motivo || `Transferência de ${origem.nome}`,
+            referencia: {
+              tipo: 'Transferencia',
+              id: transferenciaId
+            },
+            usuario: req.user._id
+          }], { session });
+          
+          await session.commitTransaction();
+          
+          console.log('✅ Transferência realizada com sucesso:', {
+            origem: origem.nome,
+            destino: destino.nome,
+            valor: valorFloat
+          });
+          
+          return res.json({
+            message: 'Transferência realizada com sucesso',
+            transferencia: {
+              origem: {
+                id: origem._id,
+                nome: origem.nome,
+                banco: origem.banco
+              },
+              destino: {
+                id: destino._id,
+                nome: destino.nome,
+                banco: destino.banco
+              },
+              valor: valorFloat,
+              motivo: motivo || `Transferência de ${origem.nome} para ${destino.nome}`,
+              data: new Date()
+            }
+          });
+        } catch (error) {
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          await session.endSession();
+        }
       }
     }
     
