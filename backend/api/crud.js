@@ -245,6 +245,20 @@ module.exports = async (req, res) => {
         }
       }
       
+      // Função auxiliar para extrair ID da conta da URL
+      const getContaIdFromPath = (cleanPath) => {
+        const pathParts = cleanPath.split('/');
+        console.log('Path parts:', pathParts);
+        // Procurar pelo primeiro ObjectId válido na URL
+        for (let i = pathParts.length - 1; i >= 0; i--) {
+          console.log(`Verificando pathParts[${i}]:`, pathParts[i], 'É válido?', mongoose.Types.ObjectId.isValid(pathParts[i]));
+          if (mongoose.Types.ObjectId.isValid(pathParts[i])) {
+            return pathParts[i];
+          }
+        }
+        return null;
+      };
+      
       if (cleanPath === '/contas' || cleanPath.includes('contas')) {
         console.log('=== DEBUG CONTAS ===');
         console.log('cleanPath:', cleanPath);
@@ -253,8 +267,12 @@ module.exports = async (req, res) => {
         // Verificar se é rota de cancelamento de parcelas restantes
         if (cleanPath.includes('/cancel-all-remaining')) {
           if (req.method === 'DELETE') {
-            const pathParts = cleanPath.split('/');
-            const contaId = pathParts[pathParts.length - 3]; // Pega o ID antes de /cancel-all-remaining
+            const contaId = getContaIdFromPath(cleanPath);
+            console.log('ID extraído para cancel-all-remaining:', contaId);
+            
+            if (!contaId) {
+              return res.status(400).json({ message: 'ID de conta não encontrado na URL' });
+            }
             
             const conta = await Conta.findOne({
               _id: contaId,
@@ -286,8 +304,14 @@ module.exports = async (req, res) => {
         // Verificar se é rota de exclusão permanente
         if (cleanPath.includes('/permanent')) {
           if (req.method === 'DELETE') {
-            const pathParts = cleanPath.split('/');
-            const contaId = pathParts[pathParts.length - 3]; // Pega o ID antes de /permanent
+            console.log('=== DEBUG PERMANENT ===');
+            console.log('cleanPath recebido:', cleanPath);
+            const contaId = getContaIdFromPath(cleanPath);
+            console.log('ID extraído pela função:', contaId);
+            
+            if (!contaId) {
+              return res.status(400).json({ message: 'ID de conta não encontrado na URL' });
+            }
             
             console.log('Tentando excluir permanentemente conta:', contaId);
             
@@ -330,8 +354,11 @@ module.exports = async (req, res) => {
         // Verificar se é rota de exclusão hard (inativação)
         if (cleanPath.includes('/hard')) {
           if (req.method === 'DELETE') {
-            const pathParts = cleanPath.split('/');
-            const contaId = pathParts[pathParts.length - 2]; // Pega o ID antes de /hard
+            const contaId = getContaIdFromPath(cleanPath);
+            
+            if (!contaId) {
+              return res.status(400).json({ message: 'ID de conta não encontrado na URL' });
+            }
             
             const conta = await Conta.findOne({ _id: contaId, usuario: req.user._id });
             if (!conta) return res.status(404).json({ message: 'Conta não encontrada' });
@@ -364,8 +391,11 @@ module.exports = async (req, res) => {
             }
             
             // Extrair ID da conta da URL
-            const pathParts = cleanPath.split('/');
-            const contaId = pathParts[pathParts.length - 2]; // Pega o ID antes de /pagar
+            const contaId = getContaIdFromPath(cleanPath);
+            
+            if (!contaId) {
+              return res.status(400).json({ message: 'ID de conta não encontrado na URL' });
+            }
             
             console.log('Tentando pagar conta:', contaId);
             
@@ -635,8 +665,14 @@ module.exports = async (req, res) => {
             }
             
             for (let i = 1; i <= totalParcelas; i++) {
-              const dataVencimentoParcela = new Date(dataBase);
-              dataVencimentoParcela.setMonth(dataVencimentoParcela.getMonth() + (i - 1));
+              // Criar nova data para cada parcela para evitar problemas com setMonth
+              const dataOriginal = new Date(dataBase);
+              const dataVencimentoParcela = new Date(
+                dataOriginal.getFullYear(),
+                dataOriginal.getMonth() + (i - 1),
+                Math.min(dataOriginal.getDate(), new Date(dataOriginal.getFullYear(), dataOriginal.getMonth() + (i - 1) + 1, 0).getDate()),
+                12, 0, 0
+              );
               
               const parcela = {
                 nome: body.nome,
@@ -695,9 +731,12 @@ module.exports = async (req, res) => {
             return res.status(405).json({ message: 'Método não permitido para esta rota' });
           }
           
-          // Extrair ID da URL: /contas/6973793cb6a834c848d8976c
-          const pathParts = cleanPath.split('/');
-          const contaId = pathParts[pathParts.length - 1];
+          // Extrair ID da conta da URL
+          const contaId = getContaIdFromPath(cleanPath);
+          
+          if (!contaId) {
+            return res.status(400).json({ message: 'ID de conta não encontrado na URL' });
+          }
           
           console.log('Tentando inativar conta:', contaId);
           
@@ -720,6 +759,13 @@ module.exports = async (req, res) => {
           let hasRemainingInstallments = false;
           let remainingCount = 0;
           
+          console.log('Verificando parcelas restantes para conta:', {
+            _id: conta._id,
+            parcelaId: conta.parcelaId,
+            totalParcelas: conta.totalParcelas,
+            parcelaAtual: conta.parcelaAtual
+          });
+          
           if (conta.parcelaId) {
             const remainingInstallments = await Conta.find({
               parcelaId: conta.parcelaId,
@@ -729,9 +775,16 @@ module.exports = async (req, res) => {
             });
             remainingCount = remainingInstallments.length;
             hasRemainingInstallments = remainingCount > 0;
+            
+            console.log('Parcelas restantes encontradas:', {
+              count: remainingCount,
+              hasRemaining: hasRemainingInstallments,
+              parcelas: remainingInstallments.map(p => ({ _id: p._id, nome: p.nome, ativo: p.ativo }))
+            });
           }
           
           if (hasRemainingInstallments) {
+            console.log(`Retornando informação sobre ${remainingCount} parcelas restantes`);
             return res.json({
               hasRemainingInstallments: true,
               remainingCount,
