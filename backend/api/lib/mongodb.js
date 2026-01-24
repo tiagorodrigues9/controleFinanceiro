@@ -26,25 +26,24 @@ const getMongoUri = () => {
 // Conexão com cache para serverless
 const connectDB = async () => {
   if (cachedConnection && cachedConnection.readyState === 1) {
-    logger.info('Usando conexão MongoDB em cache');
     return cachedConnection;
   }
 
   try {
     const mongoUri = getMongoUri();
-    logger.info('Conectando ao MongoDB...');
     
     const connection = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10 // Reduzido para serverless
+      serverSelectionTimeoutMS: 3000, // Reduzido para 3s
+      socketTimeoutMS: 10000, // Reduzido para 10s
+      maxPoolSize: 5, // Reduzido para serverless
+      minPoolSize: 1,
+      maxIdleTimeMS: 30000, // Fechar conexões ociosas após 30s
+      connectTimeoutMS: 5000 // Timeout de conexão
     });
 
     cachedConnection = connection.connection;
-    logger.info('MongoDB conectado com sucesso');
     return cachedConnection;
   } catch (error) {
-    logger.error('Erro ao conectar MongoDB:', error);
     throw error;
   }
 };

@@ -151,9 +151,10 @@ module.exports = async (req, res) => {
           if (gastoData.tipoDespesa?.subgrupo === '') delete gastoData.tipoDespesa.subgrupo;
           if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) delete gastoData.tipoDespesa;
           
-          // Tratar data - usar data local para evitar problema de fuso horário
+          // Tratar data para evitar problema de fuso horário
           if (gastoData.data) {
-            gastoData.data = new Date(gastoData.data + 'T12:00:00');
+            const dateParts = gastoData.data.split('-');
+            gastoData.data = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T12:00:00`);
           }
           
           const gasto = await Gasto.create(gastoData);
@@ -332,6 +333,49 @@ module.exports = async (req, res) => {
           
           await extrato.save();
           return res.json(extrato);
+        }
+        
+        if (req.method === 'PUT' && cleanPath.includes('/estornar')) {
+          // Extrair ID do extrato da URL para estornar
+          const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
+          console.log('Estornando extrato:', extratoId);
+          
+          const extrato = await Extrato.findOne({
+            _id: extratoId,
+            usuario: req.user._id
+          });
+          
+          if (!extrato) {
+            return res.status(404).json({ message: 'Extrato não encontrado' });
+          }
+          
+          if (extrato.estornado) {
+            return res.status(400).json({ message: 'Extrato já está estornado' });
+          }
+          
+          // Marcar como estornado
+          extrato.estornado = true;
+          await extrato.save();
+          
+          // Se for uma saída, criar uma entrada correspondente
+          if (extrato.tipo === 'Saída') {
+            await Extrato.create({
+              usuario: req.user._id,
+              contaBancaria: extrato.contaBancaria,
+              cartao: extrato.cartao,
+              tipo: 'Entrada',
+              valor: extrato.valor,
+              data: new Date(),
+              motivo: `Estorno: ${extrato.motivo}`,
+              referencia: {
+                tipo: 'Estorno',
+                id: extrato._id
+              },
+              estornado: false
+            });
+          }
+          
+          return res.json({ message: 'Extrato estornado com sucesso' });
         }
       }
 
