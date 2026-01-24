@@ -323,7 +323,7 @@ module.exports = async (req, res) => {
             cartao: body.cartao || null,
             tipo: body.tipo,
             valor: parseFloat(body.valor),
-            data: body.data ? new Date(body.data) : new Date(),
+            data: body.data ? new Date(body.data + 'T12:00:00') : new Date(),
             motivo: body.motivo || 'Lançamento manual',
             referencia: body.referencia || null,
             estornado: false
@@ -370,7 +370,7 @@ module.exports = async (req, res) => {
           // Atualizar campos permitidos
           if (body.motivo) extrato.motivo = body.motivo;
           if (body.valor) extrato.valor = parseFloat(body.valor);
-          if (body.data) extrato.data = new Date(body.data);
+          if (body.data) extrato.data = new Date(body.data + 'T12:00:00');
           if (body.tipo) extrato.tipo = body.tipo;
           if (body.contaBancaria) extrato.contaBancaria = body.contaBancaria;
           if (body.cartao !== undefined) extrato.cartao = body.cartao;
