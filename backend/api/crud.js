@@ -1376,9 +1376,11 @@ module.exports = async (req, res) => {
         
         // Verificar se usuário está autenticado
         if (!req.user || !req.user._id) {
-          console.log('Usuário não autenticado');
+          console.log('❌ Usuário não autenticado');
           return res.status(401).json({ message: 'Usuário não autenticado' });
         }
+        
+        console.log('✅ Usuário autenticado:', req.user._id);
         
         // Criar notificação de teste com campos obrigatórios
         const notificacaoData = {
@@ -1390,196 +1392,43 @@ module.exports = async (req, res) => {
           data: new Date()
         };
         
-        console.log('Dados da notificação:', notificacaoData);
+        console.log('📝 Dados da notificação:', notificacaoData);
         
-        const notificacaoTeste = await Notificacao.create(notificacaoData);
-        console.log('Notificação criada com sucesso:', notificacaoTeste);
-        
-        return res.status(201).json(notificacaoTeste);
+        try {
+          const notificacaoTeste = await Notificacao.create(notificacaoData);
+          console.log('✅ Notificação criada com sucesso:', notificacaoTeste);
+          return res.status(201).json(notificacaoTeste);
+        } catch (error) {
+          console.log('❌ Erro ao criar notificação:', error.message);
+          console.log('Detalhes do erro:', error.errors);
+          return res.status(500).json({ 
+            message: 'Erro ao criar notificação de teste', 
+            error: error.message,
+            details: error.errors
+          });
+        }
       }
     }
     
-    if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
-      if (req.method === 'GET') {
-        console.log('Buscando extrato do usuário...');
-        
-        // Extrair path da URL
-        const url = req.url || '';
-        const queryString = url.split('?')[1] || '';
-        const params = new URLSearchParams(queryString);
-        const cleanPath = url.split('?')[0];
-        
-        // Debug geral para todas as requisições
-        console.log('=== DEBUG GERAL ===');
-        console.log('req.method:', req.method);
-        console.log('req.url:', req.url);
-        console.log('cleanPath:', cleanPath);
-        console.log('req.user:', req.user);
-        console.log('req.user._id:', req.user?._id);
-        
-        const contaBancaria = params.get('contaBancaria');
-        const tipoDespesa = params.get('tipoDespesa');
-        const cartao = params.get('cartao');
-        const dataInicio = params.get('dataInicio');
-        const dataFim = params.get('dataFim');
-        
-        console.log('Parâmetros extrato:', { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim });
-        
-        // Construir query base
-        let query = { usuario: req.user._id, estornado: false };
-        
-        // filtro por conta bancária
-        if (contaBancaria) {
-          query.contaBancaria = contaBancaria;
-        }
-        
-        // filtro por tipo
-        if (tipoDespesa) {
-          query.tipo = tipoDespesa;
-        }
-        
-        // filtro por cartão
-        if (cartao) {
-          query.cartao = cartao;
-        }
-        
-        // filtro por data range
-        if (dataInicio && dataFim) {
-          query.data = { 
-            $gte: new Date(dataInicio), 
-            $lte: new Date(dataFim) 
-          };
-        }
-        
-        console.log('Query extrato:', query);
-        
-        const extratos = await Extrato.find(query)
-          .populate('contaBancaria', 'nome banco')
-          .populate('cartao', 'nome')
-          .sort({ data: -1 });
-        
-        console.log('Extratos encontrados (após filtro estornado: false):', extratos.length);
-        console.log('Detalhes dos extratos:', extratos.map(e => ({
-          id: e._id,
-          tipo: e.tipo,
-          valor: e.valor,
-          estornado: e.estornado,
-          motivo: e.motivo
-        })));
-        
-        // Calcular totais
-        let totalSaldo = 0;
-        let totalEntradas = 0;
-        let totalSaidas = 0;
-        
-        extratos.forEach(item => {
-          console.log(`Processando item: ${item.tipo} - R$ ${item.valor} - estornado: ${item.estornado}`);
-          if (item.tipo === 'Entrada' || item.tipo === 'Saldo Inicial') {
-            totalEntradas += item.valor || 0;
-            totalSaldo += item.valor || 0;
-          } else {
-            totalSaidas += item.valor || 0;
-            totalSaldo -= item.valor || 0;
-          }
-        });
-        
-        console.log('Extratos encontrados:', extratos.length);
-        console.log('Totais:', { totalSaldo, totalEntradas, totalSaidas });
-        
-        return res.json({
-          extratos,
-          totalSaldo,
-          totalEntradas,
-          totalSaidas
-        });
-      }
-      
+    if (cleanPath === '/notificacoes/subscribe' || cleanPath.includes('notificacoes/subscribe')) {
       if (req.method === 'POST') {
-        // Verificar se é rota de saldo inicial
-        if (cleanPath.includes('/saldo-inicial')) {
-          console.log('=== DEBUG SALDO INICIAL ===');
-          console.log('Criando saldo inicial');
-          console.log('body recebido:', body);
-          console.log('contaBancaria:', body.contaBancaria);
-          console.log('valor:', body.valor);
-          console.log('data:', body.data);
-          
-          const { contaBancaria, valor, data } = body;
-          
-          // Verificar se conta bancária existe e está ativa
-          const conta = await ContaBancaria.findOne({ 
-            _id: contaBancaria, 
-            usuario: req.user._id, 
-            ativo: { $ne: false } 
-          });
-          
-          if (!conta) {
-            console.log('❌ Conta bancária não encontrada ou inativa');
-            return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
-          }
-          
-          console.log('✅ Conta bancária encontrada e ativa:', conta);
-
-          // Verificar se já existe saldo inicial
-          const saldoInicialExistente = await Extrato.findOne({
-            contaBancaria,
-            tipo: 'Saldo Inicial',
-            usuario: req.user._id,
-            estornado: false
-          });
-
-          if (saldoInicialExistente) {
-            console.log('❌ Saldo inicial já existe para esta conta:', saldoInicialExistente);
-            return res.status(400).json({ message: 'Saldo inicial já foi lançado para esta conta' });
-          }
-          
-          console.log('✅ Não existe saldo inicial para esta conta');
-
-          const extrato = await Extrato.create({
-            contaBancaria,
-            cartao: null, // Saldo inicial não tem cartão
-            tipo: 'Saldo Inicial',
-            valor: parseFloat(valor),
-            data: new Date(data),
-            motivo: 'Saldo Inicial',
-            referencia: {
-              tipo: 'Saldo Inicial',
-              id: null
-            },
-            usuario: req.user._id
-          });
-
-          return res.status(201).json(extrato);
+        console.log('=== DEBUG SUBSCRIBE ===');
+        console.log('req.user._id:', req.user._id);
+        console.log('subscription:', body);
+        
+        // Verificar se usuário está autenticado
+        if (!req.user || !req.user._id) {
+          return res.status(401).json({ message: 'Usuário não autenticado' });
         }
         
-        // Verificar se é rota de estorno
-        if (cleanPath.includes('/estornar')) {
-          console.log('Estornando lançamento');
-          
-          const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
-          
-          const extrato = await Extrato.findOne({
-            _id: extratoId,
-            usuario: req.user._id
-          });
-
-          if (!extrato) {
-            return res.status(404).json({ message: 'Lançamento não encontrado' });
-          }
-
-          if (extrato.estornado) {
-            return res.status(400).json({ message: 'Lançamento já foi estornado' });
-          }
-
-          extrato.estornado = true;
-          await extrato.save();
-
-          return res.json({ message: 'Lançamento estornado com sucesso' });
-        }
+        // Salvar inscrição do usuário (em um app real, salvaria no banco)
+        // Por ora, apenas retornar sucesso
+        console.log('✅ Inscrição recebida para usuário:', req.user._id);
         
-        // POST normal para criar lançamento
-        const extrato = await Extrato.create({ ...body, usuario: req.user._id });
-        return res.status(201).json(extrato);
+        return res.json({ 
+          message: 'Inscrição realizada com sucesso',
+          subscription: body
+        });
       }
     }
     
@@ -1589,7 +1438,7 @@ module.exports = async (req, res) => {
       message: 'Endpoint não encontrado',
       path: cleanPath,
       method: req.method,
-      available_endpoints: ['/grupos', '/contas', '/contas/:id', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/extrato']
+      available_endpoints: ['/grupos', '/contas', '/contas/:id', '/fornecedores', '/formas-pagamento', '/cartoes', '/contas-bancarias', '/gastos', '/transferencias', '/notificacoes', '/notificacoes/nao-lidas', '/notificacoes/teste-criacao', '/notificacoes/subscribe', '/extrato']
     });
     
   } catch (error) {

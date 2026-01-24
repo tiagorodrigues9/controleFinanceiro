@@ -156,15 +156,15 @@ const Notificacoes = () => {
 
   const testNotification = async () => {
     try {
-      // Enviar notificação local primeiro
+      // Criar notificação no banco primeiro
+      const response = await api.post('/notificacoes/teste-criacao');
+      
+      // Mostrar notificação local após sucesso
       sendLocalNotification(
-        'Notificação de Teste',
-        'Esta é uma notificação de teste do sistema!',
+        response.data.titulo || 'Notificação de Teste',
+        response.data.mensagem || 'Esta é uma notificação de teste do sistema!',
         '/notificacoes'
       );
-
-      // Criar notificação no banco também
-      const response = await api.post('/notificacoes/teste-criacao');
       
       setSnackbar({ 
         open: true, 

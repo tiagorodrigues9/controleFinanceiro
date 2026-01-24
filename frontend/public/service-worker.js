@@ -1,80 +1,76 @@
-// SERVICE WORKER DESATIVADO TEMPORARIAMENTE
-// const CACHE_NAME = 'controle-financeiro-v3-' + Date.now(); // Forçar nova versão
-// const urlsToCache = [
-//   '/',
-//   '/static/js/bundle.js',
-//   '/static/css/main.css',
-//   '/manifest.json',
-//   '/icons/icon-72x72.png',
-//   '/icons/icon-96x96.png',
-//   '/icons/icon-128x128.png',
-//   '/icons/icon-144x144.png',
-//   '/icons/icon-152x152.png',
-//   '/icons/icon-192x192.png',
-//   '/icons/icon-384x384.png',
-//   '/icons/icon-512x512.png',
-//   '/favicon.ico'
-// ];
+const CACHE_NAME = 'controle-financeiro-v4-' + Date.now(); // Forçar nova versão
+const urlsToCache = [
+  '/',
+  '/static/js/bundle.js',
+  '/static/css/main.css',
+  '/manifest.json',
+  '/logo192.png',
+  '/logo512.png',
+  '/favicon.ico'
+];
 
-// self.addEventListener('install', event => {
-//   event.waitUntil(
-//     caches.open(CACHE_NAME)
-//       .then(cache => cache.addAll(urlsToCache))
-//   );
-// });
+self.addEventListener('install', event => {
+  console.log('Service Worker instalado');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
+});
 
-// self.addEventListener('fetch', event => {
-//   // Não cachear requisições da API - sempre buscar do servidor
-//   if (event.request.url.includes('/api/')) {
-//     return fetch(event.request);
-//   }
+self.addEventListener('fetch', event => {
+  // Não cachear requisições da API - sempre buscar do servidor
+  if (event.request.url.includes('/api/')) {
+    return fetch(event.request);
+  }
 
-//   event.respondWith(
-//     caches.match(event.request)
-//       .then(response => {
-//         // Cache hit - return response
-//         if (response) {
-//           return response;
-//         }
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
 
-//         return fetch(event.request).then(
-//           response => {
-//             // Check if valid response
-//             if(!response || response.status !== 200 || response.type !== 'basic') {
-//               return response;
-//             }
+        return fetch(event.request).then(
+          response => {
+            // Check if valid response
+            if(!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
 
-//             // IMPORTANT: Clone the response. A response is a stream
-//             // and because we want the browser to consume the response
-//             // as well as the cache consuming the response, we need
-//             // to clone it so we have two streams.
-//             var responseToCache = response.clone();
+            // IMPORTANT: Clone the response. A response is a stream
+            // and because we want the browser to consume the response
+            // as well as the cache consuming the response, we need
+            // to clone it so we have two streams.
+            var responseToCache = response.clone();
 
-//             caches.open(CACHE_NAME)
-//               .then(cache => {
-//                 cache.put(event.request, responseToCache);
-//               });
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
 
-//             return response;
-//           }
-//         );
-//       })
-//   );
-// });
+            return response;
+          }
+        );
+      })
+  );
+});
 
-// self.addEventListener('activate', event => {
-//   event.waitUntil(
-//     caches.keys().then(cacheNames => {
-//       return Promise.all(
-//         cacheNames.map(cache => {
-//           if (cache !== CACHE_NAME) {
-//             return caches.delete(cache);
-//           }
-//         })
-//       );
-//     })
-//   );
-// });
+self.addEventListener('activate', event => {
+  console.log('Service Worker ativado');
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Removendo cache antigo:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+});
 
 // Push notifications
 self.addEventListener('push', (event) => {
