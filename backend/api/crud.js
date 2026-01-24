@@ -151,10 +151,9 @@ module.exports = async (req, res) => {
           if (gastoData.tipoDespesa?.subgrupo === '') delete gastoData.tipoDespesa.subgrupo;
           if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) delete gastoData.tipoDespesa;
           
-          // Tratar data
+          // Tratar data - usar data local para evitar problema de fuso horário
           if (gastoData.data) {
-            const [year, month, day] = gastoData.data.split('-').map(Number);
-            gastoData.data = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            gastoData.data = new Date(gastoData.data + 'T12:00:00');
           }
           
           const gasto = await Gasto.create(gastoData);
@@ -859,8 +858,7 @@ module.exports = async (req, res) => {
             const contasCriadas = [];
             for (let i = 0; i < parcelasList.length; i++) {
               const parcela = parcelasList[i];
-              const [year, month, day] = parcela.data.split('-').map(Number);
-              const dataParcela = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+              const dataParcela = new Date(parcela.data + 'T12:00:00');
               
               const parcelaData = {
                 nome: `${body.nome} - Parcela ${i + 1}`,
@@ -895,9 +893,8 @@ module.exports = async (req, res) => {
             // Parse da data de vencimento
             let dataVencimentoParsed;
             if (body.dataVencimento) {
-              const [year, month, day] = body.dataVencimento.split('-').map(Number);
-              // Criar data como meia-noite UTC para evitar problemas de fuso horário
-              dataVencimentoParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+              // Usar data local para evitar problemas de fuso horário
+              dataVencimentoParsed = new Date(body.dataVencimento + 'T12:00:00');
             }
             
             const dataBase = new Date(dataVencimentoParsed);
@@ -949,9 +946,8 @@ module.exports = async (req, res) => {
           // Conta simples (sem parcelamento)
           let dataVencimentoParsed;
           if (body.dataVencimento) {
-            const [year, month, day] = body.dataVencimento.split('-').map(Number);
-            // Criar data como meia-noite UTC para evitar problemas de fuso horário
-            dataVencimentoParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            // Usar data local para evitar problemas de fuso horário
+            dataVencimentoParsed = new Date(body.dataVencimento + 'T12:00:00');
           }
           
           const contaData = {
