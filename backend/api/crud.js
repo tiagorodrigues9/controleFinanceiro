@@ -175,8 +175,7 @@ module.exports = async (req, res) => {
               tipo: 'Saída',
               valor: gastoData.valor,
               data: gasto.data,
-              descricao: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
-              categoria: gastoData.tipoDespesa?.grupo?.nome || 'Gasto',
+              motivo: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
               referencia: { tipo: 'Gasto', id: gasto._id }
             });
           }
@@ -1579,13 +1578,13 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error('Erro no handler genérico:', error);
     console.error('Stack trace:', error.stack);
-    console.error('cleanPath:', cleanPath);
-    console.error('method:', req.method);
+    console.error('req.method:', req.method);
+    console.error('req.url:', req.url);
     res.status(500).json({ 
       message: 'Erro interno do servidor',
       error: error.message,
-      path: cleanPath,
-      method: req.method
+      method: req.method,
+      url: req.url
     });
   }
   });
