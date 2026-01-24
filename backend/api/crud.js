@@ -153,8 +153,7 @@ module.exports = async (req, res) => {
           
           // Tratar data para evitar problema de fuso horário
           if (gastoData.data) {
-            const dateParts = gastoData.data.split('-');
-            gastoData.data = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T12:00:00`);
+            gastoData.data = new Date(gastoData.data + 'T12:00:00');
           }
           
           const gasto = await Gasto.create(gastoData);
