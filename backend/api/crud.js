@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
   if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   } else {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]); // Default para produção
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -35,11 +35,8 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Content-Type', 'application/json');
   
-  console.log('CORS - Origin:', origin);
-  console.log('CORS - Allowed Origins:', allowedOrigins);
-  
   // Configurar timeout para evitar problemas no Vercel
-  req.setTimeout(10000); // 10 segundos
+  req.setTimeout(8000); // 8 segundos
   
   // Handle OPTIONS requests (preflight) - responder imediatamente SEM autenticação
   if (req.method === 'OPTIONS') {
@@ -136,19 +133,15 @@ module.exports = async (req, res) => {
       // ROTA DE GASTOS - Prioridade alta para evitar timeout
       if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
         if (req.method === 'GET') {
-          console.log('Buscando gastos do usuário...');
           const gastos = await Gasto.find({ usuario: req.user._id })
             .populate('tipoDespesa.grupo', 'nome')
-            .populate('contaBancaria', 'nome banco')
-            .populate('cartao', 'nome')
             .sort({ data: -1 })
-            .limit(100); // Limitar para evitar timeout
+            .limit(50) // Reduzido para melhor performance
+            .lean(); // Mais rápido
           return res.json(gastos);
         }
         
         if (req.method === 'POST') {
-          console.log('Criando gasto...');
-          
           const gastoData = { ...body, usuario: req.user._id };
           
           // Remover campos vazios
@@ -204,8 +197,6 @@ module.exports = async (req, res) => {
       // ROTA DE EXTRATO
       if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
         if (req.method === 'GET') {
-          console.log('Buscando extrato do usuário...');
-          
           // Extrair path da URL
           const url = req.url || '';
           const queryString = url.split('?')[1] || '';
@@ -244,9 +235,9 @@ module.exports = async (req, res) => {
           }
           
           const extratos = await Extrato.find(query)
-            .populate('contaBancaria', 'nome banco')
-            .populate('cartao', 'nome')
-            .sort({ data: -1 });
+            .sort({ data: -1 })
+            .limit(100) // Limitar para melhor performance
+            .lean(); // Mais rápido
           
           // Calcular totais
           let totalSaldo = 0;
