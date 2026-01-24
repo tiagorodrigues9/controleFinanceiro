@@ -250,6 +250,214 @@ module.exports = async (req, res) => {
         console.log('cleanPath:', cleanPath);
         console.log('req.method:', req.method);
         
+        // Verificar se é rota de cancelamento de parcelas restantes
+        if (cleanPath.includes('/cancel-all-remaining')) {
+          if (req.method === 'DELETE') {
+            const pathParts = cleanPath.split('/');
+            const contaId = pathParts[pathParts.length - 3]; // Pega o ID antes de /cancel-all-remaining
+            
+            const conta = await Conta.findOne({
+              _id: contaId,
+              usuario: req.user._id,
+              parcelaId: { $exists: true }
+            });
+            
+            if (!conta) {
+              return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
+            }
+            
+            // Cancelar todas as parcelas do mesmo parcelaId
+            await Conta.updateMany(
+              {
+                parcelaId: conta.parcelaId,
+                usuario: req.user._id,
+                ativo: { $ne: false }
+              },
+              {
+                ativo: false,
+                status: 'Cancelada'
+              }
+            );
+            
+            return res.json({ message: 'Todas as parcelas foram canceladas com sucesso' });
+          }
+        }
+        
+        // Verificar se é rota de exclusão permanente
+        if (cleanPath.includes('/permanent')) {
+          if (req.method === 'DELETE') {
+            const pathParts = cleanPath.split('/');
+            const contaId = pathParts[pathParts.length - 3]; // Pega o ID antes de /permanent
+            
+            console.log('Tentando excluir permanentemente conta:', contaId);
+            
+            const conta = await Conta.findOne({ 
+              _id: contaId, 
+              usuario: req.user._id,
+              ativo: false // Apenas pode excluir se já estiver inativa
+            });
+            
+            if (!conta) {
+              return res.status(404).json({ 
+                message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.' 
+              });
+            }
+            
+            // Verificar se há parcelas restantes
+            if (conta.parcelaId) {
+              const remainingInstallments = await Conta.find({
+                parcelaId: conta.parcelaId,
+                usuario: req.user._id,
+                ativo: { $ne: false },
+                _id: { $ne: conta._id }
+              });
+              
+              if (remainingInstallments.length > 0) {
+                return res.status(400).json({
+                  message: `Existem ${remainingInstallments.length} parcela(s) restantes. Cancele todas as parcelas primeiro.`,
+                  remainingInstallments: remainingInstallments.length
+                });
+              }
+            }
+            
+            // Excluir permanentemente
+            await Conta.deleteOne({ _id: contaId, usuario: req.user._id });
+            
+            return res.json({ message: 'Conta excluída permanentemente com sucesso' });
+          }
+        }
+        
+        // Verificar se é rota de exclusão hard (inativação)
+        if (cleanPath.includes('/hard')) {
+          if (req.method === 'DELETE') {
+            const pathParts = cleanPath.split('/');
+            const contaId = pathParts[pathParts.length - 2]; // Pega o ID antes de /hard
+            
+            const conta = await Conta.findOne({ _id: contaId, usuario: req.user._id });
+            if (!conta) return res.status(404).json({ message: 'Conta não encontrada' });
+            
+            // Soft inactivate em vez de excluir fisicamente
+            conta.ativo = false;
+            conta.status = 'Cancelada';
+            await conta.save();
+            
+            return res.json({ message: 'Conta inativada com sucesso' });
+          }
+        }
+        
+        // Verificar se é rota de pagamento
+        if (cleanPath.includes('/pagar')) {
+          if (req.method === 'POST') {
+            console.log('=== DEBUG PAGAR CONTA ===');
+            console.log('body recebido:', body);
+            
+            const { formaPagamento, contaBancaria, cartao, juros } = body;
+            
+            // Validação básica
+            if (!formaPagamento || !contaBancaria) {
+              console.log('❌ Campos obrigatórios para pagamento faltando');
+              return res.status(400).json({ 
+                message: 'Forma de pagamento e conta bancária são obrigatórias',
+                required: ['formaPagamento', 'contaBancaria'],
+                received: body
+              });
+            }
+            
+            // Extrair ID da conta da URL
+            const pathParts = cleanPath.split('/');
+            const contaId = pathParts[pathParts.length - 2]; // Pega o ID antes de /pagar
+            
+            console.log('Tentando pagar conta:', contaId);
+            
+            // Validar se é um ObjectId válido
+            if (!mongoose.Types.ObjectId.isValid(contaId)) {
+              return res.status(400).json({ message: 'ID de conta inválido' });
+            }
+            
+            // Buscar a conta
+            const conta = await Conta.findOne({
+              _id: contaId,
+              usuario: req.user._id,
+              ativo: { $ne: false }
+            }).populate('fornecedor');
+            
+            if (!conta) {
+              return res.status(404).json({ message: 'Conta não encontrada' });
+            }
+            
+            if (conta.status === 'Pago') {
+              return res.status(400).json({ message: 'Conta já foi paga' });
+            }
+            
+            if (conta.status === 'Cancelada') {
+              return res.status(400).json({ message: 'Conta cancelada não pode ser paga' });
+            }
+            
+            // Verificar se conta bancária informada existe e está ativa
+            const contaBancariaObj = await ContaBancaria.findOne({ 
+              _id: contaBancaria, 
+              usuario: req.user._id, 
+              ativo: { $ne: false } 
+            });
+            if (!contaBancariaObj) {
+              return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
+            }
+            
+            // Se for pagamento com cartão, verificar se o cartão existe
+            let cartaoObj = null;
+            if (cartao) {
+              cartaoObj = await Cartao.findOne({ 
+                _id: cartao, 
+                usuario: req.user._id, 
+                ativo: true 
+              });
+              if (!cartaoObj) {
+                return res.status(400).json({ message: 'Cartão inválido ou inativo' });
+              }
+            }
+            
+            // Usar transação para garantir consistência
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
+              conta.status = 'Pago';
+              conta.dataPagamento = new Date();
+              conta.formaPagamento = formaPagamento;
+              conta.contaBancaria = contaBancaria;
+              conta.cartao = cartaoObj ? cartaoObj._id : null;
+              if (juros) {
+                conta.jurosPago = parseFloat(juros);
+              }
+              await conta.save({ session });
+              
+              // Criar registro no extrato
+              const valorPago = conta.valor + (conta.jurosPago || 0);
+              await Extrato.create([{
+                contaBancaria: contaBancaria,
+                cartao: cartaoObj ? cartaoObj._id : null,
+                tipo: 'Saída',
+                valor: valorPago,
+                data: new Date(),
+                motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}${juros ? ` (juros: R$ ${juros})` : ''}`,
+                referencia: {
+                  tipo: 'Conta',
+                  id: conta._id
+                },
+                usuario: req.user._id
+              }], { session });
+              
+              await session.commitTransaction();
+              console.log('✅ Conta paga com sucesso:', conta._id);
+              res.json(conta);
+            } catch (error) {
+              await session.abortTransaction();
+              throw error;
+            } finally {
+              await session.endSession();
+            }
+          }
+        }
+        
         if (req.method === 'GET') {
           console.log('Buscando contas do usuário...');
           
@@ -337,34 +545,169 @@ module.exports = async (req, res) => {
           });
           
           // Validação básica
-          if (!body.nome || !body.valor || !body.dataVencimento || !body.fornecedor) {
+          if (!body.nome || !body.fornecedor) {
             console.log('❌ Campos obrigatórios faltando');
             return res.status(400).json({ 
               message: 'Campos obrigatórios faltando',
-              required: ['nome', 'valor', 'dataVencimento', 'fornecedor'],
+              required: ['nome', 'fornecedor'],
               received: body
             });
           }
           
-          const conta = await Conta.create({ ...body, usuario: req.user._id });
+          // Para parcelamento manual, verificar se tem parcelas
+          if (body.parcelMode === 'manual') {
+            if (!body.parcelas || !Array.isArray(body.parcelas) || body.parcelas.length === 0) {
+              return res.status(400).json({ 
+                message: 'Parcelamento manual requer a lista de parcelas',
+                required: ['parcelas'],
+                received: body
+              });
+            }
+          } else {
+            // Para contas normais, exigir valor e dataVencimento
+            if (!body.valor || !body.dataVencimento) {
+              console.log('❌ Campos obrigatórios faltando para conta normal');
+              return res.status(400).json({ 
+                message: 'Campos obrigatórios faltando',
+                required: ['nome', 'valor', 'dataVencimento', 'fornecedor'],
+                received: body
+              });
+            }
+          }
+          
+          // Verificar se é parcelamento manual
+          if (body.parcelMode === 'manual' && body.parcelas) {
+            console.log('🔄 Processando parcelamento manual');
+            const parcelasList = Array.isArray(body.parcelas) ? body.parcelas : JSON.parse(body.parcelas);
+            const parcelaIdFinal = Date.now().toString();
+            
+            const contasCriadas = [];
+            for (let i = 0; i < parcelasList.length; i++) {
+              const parcela = parcelasList[i];
+              const [year, month, day] = parcela.data.split('-').map(Number);
+              const dataParcela = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+              
+              const parcelaData = {
+                nome: `${body.nome} - Parcela ${i + 1}`,
+                dataVencimento: dataParcela,
+                valor: parseFloat(parcela.valor),
+                fornecedor: body.fornecedor,
+                observacao: body.observacao,
+                tipoControle: body.tipoControle,
+                usuario: req.user._id,
+                status: 'Pendente',
+                parcelaAtual: i + 1,
+                totalParcelas: parcelasList.length,
+                parcelaId: parcelaIdFinal
+              };
+              
+              const newParcela = await Conta.create(parcelaData);
+              contasCriadas.push(newParcela);
+            }
+            
+            console.log('✅ Parcelas manuais criadas:', contasCriadas.length);
+            return res.status(201).json(contasCriadas);
+          }
+          
+          // Verificar se é parcelamento normal
+          if (body.totalParcelas && parseInt(body.totalParcelas) > 1) {
+            console.log('🔄 Processando parcelamento normal');
+            const totalParcelas = parseInt(body.totalParcelas);
+            const parcelas = [];
+            const parcelaIdFinal = Date.now().toString();
+            let valorParcela;
+            
+            // Parse da data de vencimento
+            let dataVencimentoParsed;
+            if (body.dataVencimento) {
+              const [year, month, day] = body.dataVencimento.split('-').map(Number);
+              // Criar data como meia-noite UTC para evitar problemas de fuso horário
+              dataVencimentoParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            }
+            
+            const dataBase = new Date(dataVencimentoParsed);
+            
+            if (body.parcelMode === 'mesmo_valor') {
+              valorParcela = parseFloat(body.valor);
+            } else {
+              // dividir (default)
+              valorParcela = parseFloat(body.valor) / totalParcelas;
+            }
+            
+            for (let i = 1; i <= totalParcelas; i++) {
+              const dataVencimentoParcela = new Date(dataBase);
+              dataVencimentoParcela.setMonth(dataVencimentoParcela.getMonth() + (i - 1));
+              
+              const parcela = {
+                nome: body.nome,
+                dataVencimento: dataVencimentoParcela,
+                valor: valorParcela,
+                fornecedor: body.fornecedor,
+                observacao: body.observacao,
+                tipoControle: body.tipoControle,
+                usuario: req.user._id,
+                status: 'Pendente',
+                parcelaAtual: i,
+                totalParcelas: totalParcelas,
+                parcelaId: parcelaIdFinal
+              };
+              
+              // Adicionar sufixo apenas para parcelas > 1
+              if (totalParcelas > 1) {
+                parcela.nome = `${body.nome} - Parcela ${i} de ${totalParcelas}`;
+              }
+              
+              parcelas.push(parcela);
+            }
+            
+            const contasCriadas = await Conta.insertMany(parcelas);
+            console.log('✅ Contas parceladas criadas:', contasCriadas.length);
+            return res.status(201).json(contasCriadas);
+          }
+          
+          // Conta simples (sem parcelamento)
+          let dataVencimentoParsed;
+          if (body.dataVencimento) {
+            const [year, month, day] = body.dataVencimento.split('-').map(Number);
+            // Criar data como meia-noite UTC para evitar problemas de fuso horário
+            dataVencimentoParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+          }
+          
+          const contaData = {
+            nome: body.nome,
+            dataVencimento: dataVencimentoParsed,
+            valor: parseFloat(body.valor),
+            fornecedor: body.fornecedor,
+            observacao: body.observacao,
+            tipoControle: body.tipoControle,
+            usuario: req.user._id,
+            status: 'Pendente'
+          };
+          
+          const conta = await Conta.create(contaData);
           console.log('✅ Conta criada com sucesso:', conta);
           return res.status(201).json(conta);
         }
         
         if (req.method === 'DELETE') {
+          // Verificar se é rota de pagamento primeiro
+          if (cleanPath.includes('/pagar')) {
+            return res.status(405).json({ message: 'Método não permitido para esta rota' });
+          }
+          
           // Extrair ID da URL: /contas/6973793cb6a834c848d8976c
           const pathParts = cleanPath.split('/');
           const contaId = pathParts[pathParts.length - 1];
           
-          console.log('Tentando excluir conta:', contaId);
+          console.log('Tentando inativar conta:', contaId);
           
           // Validar se é um ObjectId válido
           if (!mongoose.Types.ObjectId.isValid(contaId)) {
             return res.status(400).json({ message: 'ID de conta inválido' });
           }
           
-          // Buscar e excluir a conta
-          const conta = await Conta.findOneAndDelete({
+          // Buscar a conta para soft inactivate
+          const conta = await Conta.findOne({
             _id: contaId,
             usuario: req.user._id
           });
@@ -373,8 +716,36 @@ module.exports = async (req, res) => {
             return res.status(404).json({ message: 'Conta não encontrada' });
           }
           
-          console.log('Conta excluída com sucesso:', conta.nome);
-          return res.json({ message: 'Conta excluída com sucesso', conta });
+          // Check if there are remaining active installments
+          let hasRemainingInstallments = false;
+          let remainingCount = 0;
+          
+          if (conta.parcelaId) {
+            const remainingInstallments = await Conta.find({
+              parcelaId: conta.parcelaId,
+              usuario: req.user._id,
+              ativo: { $ne: false },
+              _id: { $ne: conta._id } // Excluir a conta atual
+            });
+            remainingCount = remainingInstallments.length;
+            hasRemainingInstallments = remainingCount > 0;
+          }
+          
+          if (hasRemainingInstallments) {
+            return res.json({
+              hasRemainingInstallments: true,
+              remainingCount,
+              message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja cancelar apenas esta ou todas as restantes?`
+            });
+          }
+          
+          // Soft inactivate: set ativo=false and status to 'Cancelada' para clareza
+          conta.ativo = false;
+          conta.status = 'Cancelada';
+          await conta.save();
+          
+          console.log('✅ Conta inativada com sucesso:', conta.nome);
+          return res.json({ message: 'Conta inativada com sucesso', conta });
         }
       }
       
