@@ -1416,38 +1416,25 @@ module.exports = async (req, res) => {
         console.log('Conta origem:', origem.nome, 'ID:', contaOrigem);
         console.log('Conta destino:', destino.nome, 'ID:', contaDestino);
         console.log('Valor transferência:', valorFloat);
-        console.log('Saldo atual da conta origem:', origem.saldo);
         
-        // Usar saldo da conta bancária + saldo do extrato
-        const saldoOrigem = await Extrato.aggregate([
-          {
-            $match: {
-              usuario: req.user._id,
-              contaBancaria: new mongoose.Types.ObjectId(contaOrigem),
-              estornado: { $ne: true }
-            }
-          },
-          {
-            $group: {
-              _id: '$contaBancaria',
-              total: {
-                $sum: {
-                  $cond: [
-                    { $in: ['$tipo', ['Entrada', 'Saldo Inicial']] },
-                    '$valor',
-                    { $multiply: ['$valor', -1] }
-                  ]
-                }
-              }
-            }
+        // Calcular saldo da mesma forma que no GET de contas bancárias
+        const extratosOrigem = await Extrato.find({
+          contaBancaria: contaOrigem,
+          usuario: req.user._id,
+          estornado: false
+        });
+
+        const saldoExtrato = extratosOrigem.reduce((acc, extrato) => {
+          if (extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial') {
+            return acc + extrato.valor;
+          } else {
+            return acc - extrato.valor;
           }
-        ]);
-        
-        console.log('Resultado da query de saldo do extrato:', saldoOrigem);
-        const saldoExtrato = saldoOrigem.length > 0 ? saldoOrigem[0].total : 0;
+        }, 0);
+
         const saldoDisponivel = (origem.saldo || 0) + saldoExtrato;
-        console.log('Saldo conta bancária:', origem.saldo || 0);
-        console.log('Saldo extrato:', saldoExtrato);
+        console.log('Saldo conta bancária (campo):', origem.saldo || 0);
+        console.log('Saldo calculado do extrato:', saldoExtrato);
         console.log('Saldo disponível total:', saldoDisponivel);
         console.log('Comparação: saldoDisponivel < valorFloat?', saldoDisponivel < valorFloat);
         
