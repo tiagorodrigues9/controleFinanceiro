@@ -17,13 +17,29 @@ const EmailLog = require('../models/EmailLog');
 // Handler genérico para rotas CRUD
 module.exports = async (req, res) => {
   // Configurar headers CORS primeiro, antes de qualquer coisa
-  res.setHeader('Access-Control-Allow-Origin', 'https://controlefinanceiro-i7s6.onrender.com');
+  const allowedOrigins = [
+    'https://controlefinanceiro-i7s6.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]); // Default para produção
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Content-Type', 'application/json');
   
+  console.log('CORS - Origin:', origin);
+  console.log('CORS - Allowed Origins:', allowedOrigins);
+  
   // Configurar timeout para evitar problemas no Vercel
-  req.setTimeout(8000); // 8 segundos
+  req.setTimeout(10000); // 10 segundos
   
   // Handle OPTIONS requests (preflight) - responder imediatamente SEM autenticação
   if (req.method === 'OPTIONS') {
