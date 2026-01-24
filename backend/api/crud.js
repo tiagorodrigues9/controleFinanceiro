@@ -1059,6 +1059,13 @@ module.exports = async (req, res) => {
         
         console.log('Body final:', JSON.stringify(gastoData, null, 2));
         
+        // Tratar data para evitar problema de fuso horário
+        if (gastoData.data) {
+          const [year, month, day] = gastoData.data.split('-').map(Number);
+          gastoData.data = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+          console.log('Data tratada:', gastoData.data);
+        }
+        
         const gasto = await Gasto.create(gastoData);
         return res.status(201).json(gasto);
       }
