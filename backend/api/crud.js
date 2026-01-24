@@ -1030,19 +1030,30 @@ module.exports = async (req, res) => {
       }
       
       if (req.method === 'POST') {
+        console.log('=== DEBUG POST GASTOS ===');
+        console.log('req.body original:', JSON.stringify(body, null, 2));
+        
         // Tratar campos vazios para evitar erro de ObjectId
         const gastoData = { ...body, usuario: req.user._id };
+        
+        console.log('✅ Body obtido de req.body:', JSON.stringify(gastoData, null, 2));
         
         // Remover campos vazios que devem ser ObjectId
         if (gastoData.cartao === '') delete gastoData.cartao;
         if (gastoData.contaBancaria === '') delete gastoData.contaBancaria;
         if (gastoData.tipoDespesa?.grupo === '') delete gastoData.tipoDespesa.grupo;
-        if (gastoData.tipoDespesa?.subgrupo === '') delete gastoData.tipoDespesa.subgrupo;
+        if (gastoData.tipoDespesa?.subgrupo === '') {
+          console.log('🔧 Removendo subgrupo vazio');
+          delete gastoData.tipoDespesa.subgrupo;
+        }
         
         // Se tipoDespesa ficou vazio após remover campos, remover o objeto inteiro
         if (gastoData.tipoDespesa && Object.keys(gastoData.tipoDespesa).length === 0) {
+          console.log('🔧 Removendo tipoDespesa vazio');
           delete gastoData.tipoDespesa;
         }
+        
+        console.log('Body final:', JSON.stringify(gastoData, null, 2));
         
         const gasto = await Gasto.create(gastoData);
         return res.status(201).json(gasto);
