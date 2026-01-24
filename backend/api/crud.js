@@ -755,7 +755,7 @@ module.exports = async (req, res) => {
             return res.status(404).json({ message: 'Conta não encontrada' });
           }
           
-          // Check if there are remaining active installments
+          // Check if there are remaining active installments (apenas para informação)
           let hasRemainingInstallments = false;
           let remainingCount = 0;
           
@@ -783,22 +783,21 @@ module.exports = async (req, res) => {
             });
           }
           
-          if (hasRemainingInstallments) {
-            console.log(`Retornando informação sobre ${remainingCount} parcelas restantes`);
-            return res.json({
-              hasRemainingInstallments: true,
-              remainingCount,
-              message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja cancelar apenas esta ou todas as restantes?`
-            });
-          }
-          
-          // Soft inactivate: set ativo=false and status to 'Cancelada' para clareza
+          // Sempre inativar apenas a conta atual (DELETE padrão)
+          // A informação sobre parcelas restantes é apenas para o frontend decidir se quer mostrar opções
           conta.ativo = false;
           conta.status = 'Cancelada';
           await conta.save();
           
           console.log('✅ Conta inativada com sucesso:', conta.nome);
-          return res.json({ message: 'Conta inativada com sucesso', conta });
+          
+          // Retornar informação sobre parcelas restantes para o frontend
+          return res.json({ 
+            message: 'Conta inativada com sucesso', 
+            conta,
+            hasRemainingInstallments,
+            remainingCount
+          });
         }
       }
       

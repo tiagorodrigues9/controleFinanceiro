@@ -458,21 +458,31 @@ const ContasPagar = () => {
   const confirmCancel = async () => {
     if (contaToCancel) {
       try {
-        const response = await api.delete(`/contas/${contaToCancel}`);
-        
-        // Verificar se há parcelas restantes
-        if (response.data.hasRemainingInstallments) {
-          setParcelasInfo({
-            count: response.data.remainingCount,
-            contaId: contaToCancel
-          });
-          setOpenConfirmParcelas(true);
-          setOpenConfirmCancel(false);
-        } else {
-          await fetchContas();
-          setOpenConfirmCancel(false);
-          setContaToCancel(null);
+        // Primeiro, verificar se há parcelas restantes sem inativar
+        const conta = contas.find(c => c._id === contaToCancel);
+        if (conta && conta.parcelaId) {
+          const remainingInstallments = contas.filter(c => 
+            c.parcelaId === conta.parcelaId && 
+            c._id !== contaToCancel && 
+            c.ativo !== false
+          );
+          
+          if (remainingInstallments.length > 0) {
+            setParcelasInfo({
+              count: remainingInstallments.length,
+              contaId: contaToCancel
+            });
+            setOpenConfirmParcelas(true);
+            setOpenConfirmCancel(false);
+            return; // Não inativa ainda, espera escolha do usuário
+          }
         }
+        
+        // Se não há parcelas restantes, inativa diretamente
+        const response = await api.delete(`/contas/${contaToCancel}`);
+        await fetchContas();
+        setOpenConfirmCancel(false);
+        setContaToCancel(null);
       } catch (err) {
         console.error('Erro ao cancelar conta:', err);
         setError('Erro ao cancelar conta');
