@@ -1180,6 +1180,29 @@ module.exports = async (req, res) => {
         }
         
         const gasto = await Gasto.create(gastoData);
+        
+        // Criar registro no extrato e descontar da conta bancária
+        if (gastoData.contaBancaria) {
+          console.log('Criando registro no extrato para o gasto...');
+          
+          await Extrato.create({
+            usuario: req.user._id,
+            contaBancaria: gastoData.contaBancaria,
+            cartao: gastoData.cartao || null,
+            tipo: 'Saída',
+            valor: gastoData.valor,
+            data: gasto.data,
+            descricao: gastoData.descricao || `Gasto: ${gastoData.tipoDespesa?.grupo?.nome || 'Gasto'}`,
+            categoria: gastoData.tipoDespesa?.grupo?.nome || 'Gasto',
+            referencia: {
+              tipo: 'Gasto',
+              id: gasto._id
+            }
+          });
+          
+          console.log('✅ Registro no extrato criado com sucesso');
+        }
+        
         return res.status(201).json(gasto);
       }
       
@@ -1196,6 +1219,15 @@ module.exports = async (req, res) => {
         if (!gasto) {
           return res.status(404).json({ message: 'Gasto não encontrado' });
         }
+        
+        // Excluir registro correspondente no extrato
+        await Extrato.deleteMany({
+          usuario: req.user._id,
+          'referencia.tipo': 'Gasto',
+          'referencia.id': gastoId
+        });
+        
+        console.log('✅ Registro no extrato excluído com sucesso');
         
         await gasto.deleteOne();
         
