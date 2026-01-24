@@ -72,6 +72,65 @@ module.exports = async (req, res) => {
         return res.json({ message: 'Subscribe recebido' });
       }
       
+      // DELETE /notificacoes/:id
+      if (cleanPath.match(/\/notificacoes\/[^\/]+$/) && method === 'DELETE') {
+        const notificacaoId = cleanPath.split('/').pop();
+        console.log('Excluindo notificação:', notificacaoId);
+        
+        const notificacao = await Notificacao.findOne({
+          _id: notificacaoId,
+          usuario: req.user._id
+        });
+        
+        if (!notificacao) {
+          return res.status(404).json({ message: 'Notificação não encontrada' });
+        }
+        
+        await Notificacao.deleteOne({ _id: notificacaoId });
+        return res.json({ message: 'Notificação excluída com sucesso' });
+      }
+      
+      // PUT /notificacoes/:id/marcar-lida
+      if (cleanPath.match(/\/notificacoes\/[^\/]+\/marcar-lida$/) && method === 'PUT') {
+        const notificacaoId = cleanPath.split('/')[2];
+        console.log('Marcando notificação como lida:', notificacaoId);
+        
+        const notificacao = await Notificacao.findOne({
+          _id: notificacaoId,
+          usuario: req.user._id
+        });
+        
+        if (!notificacao) {
+          return res.status(404).json({ message: 'Notificação não encontrada' });
+        }
+        
+        notificacao.lida = true;
+        await notificacao.save();
+        
+        return res.json({ message: 'Notificação marcada como lida' });
+      }
+      
+      // PUT /notificacoes/marcar-todas-lidas
+      if (cleanPath === '/notificacoes/marcar-todas-lidas' && method === 'PUT') {
+        console.log('Marcando todas as notificações como lidas...');
+        
+        await Notificacao.updateMany(
+          { usuario: req.user._id, lida: false },
+          { lida: true }
+        );
+        
+        return res.json({ message: 'Todas as notificações foram marcadas como lidas' });
+      }
+      
+      // DELETE /notificacoes/limpar-todas
+      if (cleanPath === '/notificacoes/limpar-todas' && method === 'DELETE') {
+        console.log('Limpando todas as notificações...');
+        
+        await Notificacao.deleteMany({ usuario: req.user._id });
+        
+        return res.json({ message: 'Todas as notificações foram excluídas' });
+      }
+      
       // Default response
       res.status(404).json({ message: 'Endpoint não encontrado' });
       
