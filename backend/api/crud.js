@@ -270,6 +270,79 @@ module.exports = async (req, res) => {
             totalSaidas
           });
         }
+        
+        if (req.method === 'POST') {
+          console.log('Criando registro no extrato...');
+          
+          // Validação básica
+          if (!body.contaBancaria || !body.valor || !body.tipo) {
+            return res.status(400).json({ 
+              message: 'Campos obrigatórios faltando',
+              required: ['contaBancaria', 'valor', 'tipo']
+            });
+          }
+          
+          const extratoData = {
+            usuario: req.user._id,
+            contaBancaria: body.contaBancaria,
+            cartao: body.cartao || null,
+            tipo: body.tipo,
+            valor: parseFloat(body.valor),
+            data: body.data ? new Date(body.data) : new Date(),
+            motivo: body.motivo || 'Lançamento manual',
+            referencia: body.referencia || null,
+            estornado: false
+          };
+          
+          const extrato = await Extrato.create(extratoData);
+          console.log('✅ Extrato criado com sucesso');
+          
+          return res.status(201).json(extrato);
+        }
+        
+        if (req.method === 'DELETE') {
+          // Extrair ID do extrato da URL
+          const extratoId = cleanPath.replace('/extrato/', '');
+          console.log('Excluindo extrato:', extratoId);
+          
+          const extrato = await Extrato.findOne({
+            _id: extratoId,
+            usuario: req.user._id
+          });
+          
+          if (!extrato) {
+            return res.status(404).json({ message: 'Extrato não encontrado' });
+          }
+          
+          await extrato.deleteOne();
+          return res.json({ message: 'Extrato excluído com sucesso' });
+        }
+        
+        if (req.method === 'PUT') {
+          // Extrair ID do extrato da URL
+          const extratoId = cleanPath.replace('/extrato/', '');
+          console.log('Atualizando extrato:', extratoId);
+          
+          const extrato = await Extrato.findOne({
+            _id: extratoId,
+            usuario: req.user._id
+          });
+          
+          if (!extrato) {
+            return res.status(404).json({ message: 'Extrato não encontrado' });
+          }
+          
+          // Atualizar campos permitidos
+          if (body.motivo) extrato.motivo = body.motivo;
+          if (body.valor) extrato.valor = parseFloat(body.valor);
+          if (body.data) extrato.data = new Date(body.data);
+          if (body.tipo) extrato.tipo = body.tipo;
+          if (body.contaBancaria) extrato.contaBancaria = body.contaBancaria;
+          if (body.cartao !== undefined) extrato.cartao = body.cartao;
+          
+          await extrato.save();
+          return res.json(extrato);
+        }
       }
 
       // Verificar primeiro rota específica de subgrupos
