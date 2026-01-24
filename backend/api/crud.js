@@ -197,7 +197,7 @@ module.exports = async (req, res) => {
       // ROTA DE EXTRATO
       if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
         // ROTA DE ESTORNAR - Prioridade alta para evitar conflito com POST
-        if (req.method === 'PUT' && cleanPath.includes('/estornar')) {
+        if ((req.method === 'PUT' || req.method === 'POST') && cleanPath.includes('/estornar')) {
           // Extrair ID do extrato da URL para estornar
           const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
           console.log('Estornando extrato:', extratoId);
