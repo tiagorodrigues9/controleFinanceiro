@@ -50,50 +50,88 @@ module.exports = async (req, res) => {
   // Aplicar middleware de autenticação apenas para outros métodos
   auth(req, res, async () => {
     try {
-      // Parse do body - abordagem definitiva para Vercel
+      console.log('=== HANDLER CRUD INICIADO ===');
+      console.log('req.method:', req.method);
+      console.log('req.url:', req.url);
+      
+      // Extrair path da URL
+      const url = req.url || '';
+      const path = url.split('?')[0]; // Remover query params
+      const cleanPath = path.replace('/api', '');
+      
+      console.log('cleanPath:', cleanPath);
+      
+      // Obter body para métodos POST/PUT
       let body = {};
       if (req.method === 'POST' || req.method === 'PUT') {
-        console.log('=== DEBUG BODY COMPLETO ===');
-        console.log('req.method:', req.method);
-        console.log('req.headers:', req.headers);
-        console.log('req.body original:', req.body);
-        
         try {
-          // Vercel pode ter parseado o body em req.body
-          if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
-            body = req.body;
-            console.log('✅ Body obtido de req.body:', body);
-          } else {
-            // Tentar parse manual com buffer
-            const chunks = [];
-            for await (const chunk of req) {
-              chunks.push(chunk);
-            }
-            const rawBody = Buffer.concat(chunks).toString();
-            console.log('rawBody buffer:', rawBody);
-
-            if (rawBody && rawBody.trim()) {
-              body = JSON.parse(rawBody);
-              console.log('✅ Body parseado do buffer:', body);
-            } else {
-              console.log('❌ RawBody vazio');
-            }
-          }
+          body = req.body || {};
         } catch (error) {
-          console.log('❌ Erro no parse:', error.message);
+          console.log('❌ Erro ao fazer parse do body:', error.message);
           body = {};
         }
-
-        console.log('Body final:', body);
       }
-
+      
       // Conectar ao MongoDB
       await connectDB();
-
+      
       console.log('req.user._id:', req.user?._id);
-      console.log('cleanPath:', cleanPath);
-      console.log('body:', body);
-      console.log('req.user._id:', req.user._id);
+
+      // ROTAS DE NOTIFICAÇÕES - Prioridade alta para evitar timeout
+      if (cleanPath === '/notificacoes' || cleanPath.includes('notificacoes')) {
+        if (req.method === 'GET') {
+          console.log('Buscando notificações do usuário...');
+          const notificacoes = await Notificacao.find({ usuario: req.user._id }).sort({ data: -1 });
+          return res.json(notificacoes);
+        }
+        
+        if (req.method === 'POST') {
+          const notificacao = await Notificacao.create({ ...body, usuario: req.user._id });
+          return res.status(201).json(notificacao);
+        }
+      }
+      
+      if (cleanPath === '/notificacoes/nao-lidas' || cleanPath.includes('notificacoes/nao-lidas')) {
+        if (req.method === 'GET') {
+          console.log('Buscando notificações não lidas...');
+          const notificacoesNaoLidas = await Notificacao.find({ usuario: req.user._id, lida: false }).sort({ data: -1 });
+          return res.json(notificacoesNaoLidas);
+        }
+      }
+      
+      if (cleanPath === '/notificacoes/teste-criacao' || cleanPath.includes('notificacoes/teste-criacao')) {
+        if (req.method === 'POST') {
+          console.log('=== DEBUG TESTE CRIACAO v2.0 ===');
+          console.log('req.user._id:', req.user._id);
+          
+          if (!req.user || !req.user._id) {
+            return res.status(401).json({ message: 'Usuário não autenticado' });
+          }
+          
+          const notificacaoData = {
+            titulo: 'Notificação de Teste',
+            mensagem: 'Esta é uma notificação de teste do sistema!',
+            tipo: 'outro',
+            usuario: req.user._id,
+            lida: false,
+            data: new Date()
+          };
+          
+          console.log('📝 Dados da notificação:', notificacaoData);
+          
+          try {
+            const notificacaoTeste = await Notificacao.create(notificacaoData);
+            console.log('✅ Notificação criada com sucesso');
+            return res.status(201).json(notificacaoTeste);
+          } catch (error) {
+            console.log('❌ Erro ao criar notificação:', error.message);
+            return res.status(500).json({ 
+              message: 'Erro ao criar notificação de teste', 
+              error: error.message
+            });
+          }
+        }
+      }
 
       // Verificar primeiro rota específica de subgrupos
       if (req.method === 'POST' && cleanPath.match(/\/grupos\/[^\/]+\/subgrupos$/)) {
