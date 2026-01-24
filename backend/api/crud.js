@@ -196,6 +196,50 @@ module.exports = async (req, res) => {
 
       // ROTA DE EXTRATO
       if (cleanPath === '/extrato' || cleanPath.includes('extrato')) {
+        // ROTA DE ESTORNAR - Prioridade alta para evitar conflito com POST
+        if (req.method === 'PUT' && cleanPath.includes('/estornar')) {
+          // Extrair ID do extrato da URL para estornar
+          const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
+          console.log('Estornando extrato:', extratoId);
+          
+          const extrato = await Extrato.findOne({
+            _id: extratoId,
+            usuario: req.user._id
+          });
+          
+          if (!extrato) {
+            return res.status(404).json({ message: 'Extrato não encontrado' });
+          }
+          
+          if (extrato.estornado) {
+            return res.status(400).json({ message: 'Extrato já está estornado' });
+          }
+          
+          // Marcar como estornado
+          extrato.estornado = true;
+          await extrato.save();
+          
+          // Se for uma saída, criar uma entrada correspondente
+          if (extrato.tipo === 'Saída') {
+            await Extrato.create({
+              usuario: req.user._id,
+              contaBancaria: extrato.contaBancaria,
+              cartao: extrato.cartao,
+              tipo: 'Entrada',
+              valor: extrato.valor,
+              data: new Date(),
+              motivo: `Estorno: ${extrato.motivo}`,
+              referencia: {
+                tipo: 'Estorno',
+                id: extrato._id
+              },
+              estornado: false
+            });
+          }
+          
+          return res.json({ message: 'Extrato estornado com sucesso' });
+        }
+        
         if (req.method === 'GET') {
           // Extrair path da URL
           const url = req.url || '';
@@ -333,49 +377,6 @@ module.exports = async (req, res) => {
           
           await extrato.save();
           return res.json(extrato);
-        }
-        
-        if (req.method === 'PUT' && cleanPath.includes('/estornar')) {
-          // Extrair ID do extrato da URL para estornar
-          const extratoId = cleanPath.replace('/extrato/', '').replace('/estornar', '');
-          console.log('Estornando extrato:', extratoId);
-          
-          const extrato = await Extrato.findOne({
-            _id: extratoId,
-            usuario: req.user._id
-          });
-          
-          if (!extrato) {
-            return res.status(404).json({ message: 'Extrato não encontrado' });
-          }
-          
-          if (extrato.estornado) {
-            return res.status(400).json({ message: 'Extrato já está estornado' });
-          }
-          
-          // Marcar como estornado
-          extrato.estornado = true;
-          await extrato.save();
-          
-          // Se for uma saída, criar uma entrada correspondente
-          if (extrato.tipo === 'Saída') {
-            await Extrato.create({
-              usuario: req.user._id,
-              contaBancaria: extrato.contaBancaria,
-              cartao: extrato.cartao,
-              tipo: 'Entrada',
-              valor: extrato.valor,
-              data: new Date(),
-              motivo: `Estorno: ${extrato.motivo}`,
-              referencia: {
-                tipo: 'Estorno',
-                id: extrato._id
-              },
-              estornado: false
-            });
-          }
-          
-          return res.json({ message: 'Extrato estornado com sucesso' });
         }
       }
 
