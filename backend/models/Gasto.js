@@ -9,7 +9,7 @@ const gastoSchema = new mongoose.Schema({
     },
     subgrupo: {
       type: String,
-      required: true
+      required: false
     }
   },
   valor: {
