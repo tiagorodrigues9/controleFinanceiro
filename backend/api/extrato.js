@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
+const Cartao = require('../models/Cartao');
+const Gasto = require('../models/Gasto');
 const auth = require('../middleware/auth');
 
 // Handler principal para Vercel
