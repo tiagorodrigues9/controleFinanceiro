@@ -261,10 +261,28 @@ router.post('/saldo-inicial', [
 // @access  Private
 router.post('/:id/estornar', async (req, res) => {
   try {
+    // Validar se o ID é um ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'ID de lançamento inválido' });
+    }
+
+    console.log('=== ESTORNO DEBUG ===');
+    console.log('req.params.id:', req.params.id);
+    console.log('req.user._id:', req.user._id);
+    console.log('mongoose.connection.readyState:', mongoose.connection.readyState);
+
+    // Verificar conexão com MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB não está conectado');
+      return res.status(503).json({ message: 'Serviço temporariamente indisponível' });
+    }
+
     const extrato = await Extrato.findOne({
       _id: req.params.id,
       usuario: req.user._id
     });
+
+    console.log('Extrato encontrado:', extrato);
 
     if (!extrato) {
       return res.status(404).json({ message: 'Lançamento não encontrado' });
@@ -277,10 +295,24 @@ router.post('/:id/estornar', async (req, res) => {
     extrato.estornado = true;
     await extrato.save();
 
+    console.log('Extrato estornado com sucesso');
     res.json({ message: 'Lançamento estornado com sucesso' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao estornar lançamento' });
+    console.error('Erro ao estornar lançamento:', error);
+    
+    // Tratamento específico para diferentes tipos de erro
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoTimeoutError') {
+      return res.status(503).json({ message: 'Erro de conexão com banco de dados' });
+    }
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Dados inválidos', error: error.message });
+    }
+    
+    res.status(500).json({ 
+      message: 'Erro ao estornar lançamento',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

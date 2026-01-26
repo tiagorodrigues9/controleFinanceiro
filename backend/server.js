@@ -14,6 +14,7 @@ const app = express();
 app.use(cors({
   origin: [
     'https://controlefinanceiro-i7s6.onrender.com',
+    'https://controle-financeiro-backend1.vercel.app',
     'http://localhost:3000'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -25,6 +26,7 @@ app.options('*', cors());
 
 const allowedOrigins = [
   'https://controlefinanceiro-i7s6.onrender.com',
+  'https://controle-financeiro-backend1.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
@@ -108,6 +110,28 @@ app.get('/', (req, res) => {
       dashboard: '/api/dashboard',
       transferencias: '/api/transferencias'
     }
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const healthCheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV || 'development'
+  };
+  
+  res.status(mongoose.connection.readyState === 1 ? 200 : 503).json(healthCheck);
+});
+
+// Ping endpoint (fallback)
+app.get('/ping', (req, res) => {
+  res.json({ 
+    message: 'pong',
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
 });
 
