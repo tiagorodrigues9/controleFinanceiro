@@ -44,10 +44,22 @@ router.get('/', async (req, res) => {
     console.log('Query para extratos:', query);
 
     let extratos = await Extrato.find(query)
-      .populate('contaBancaria')
+      .populate({
+        path: 'contaBancaria',
+        match: { ativo: { $ne: false } }
+      })
       .populate('cartao')
       .populate({ path: 'referencia.id', model: 'Gasto' })
       .sort({ data: -1 });
+
+    // Filtrar extratos onde o populate da conta bancária retornou null (conta não existe)
+    extratos = extratos.filter(extrato => {
+      // Se tem contaBancaria no filtro mas o populate retornou null, remover
+      if (query.contaBancaria && !extrato.contaBancaria) {
+        return false;
+      }
+      return true;
+    });
 
     console.log('Extratos encontrados:', extratos.length);
 

@@ -441,7 +441,7 @@ const Extrato = () => {
                   <TableCell>
                     {format(new Date(extrato.data), 'dd/MM/yyyy', { locale: ptBR })}
                   </TableCell>
-                  <TableCell>{extrato.contaBancaria?.nome}</TableCell>
+                  <TableCell>{extrato.contaBancaria?.nome || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip
                       label={extrato.tipo}
