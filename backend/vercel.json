@@ -47,12 +47,12 @@
       "destination": "/api/crud.js"
     },
     {
-      "source": "/api/extrato/(.*)/estornar",
+      "source": "/api/extrato/saldo-inicial",
       "destination": "/api/crud.js"
     },
     {
-      "source": "/api/extrato/saldo-inicial",
-      "destination": "/api/crud.js"
+      "source": "/api/extrato/(.*)/estornar",
+      "destination": "/routes/extrato.js"
     },
     {
       "source": "/api/cartoes/(.*)/inativar",
@@ -119,9 +119,9 @@
       "maxDuration": 10,
       "memory": 512
     },
-    "api/lib/mongodb.js": {
-      "maxDuration": 10,
-      "memory": 512
+    "api/routes/extrato.js": {
+      "maxDuration": 15,
+      "memory": 1024
     }
   }
 }

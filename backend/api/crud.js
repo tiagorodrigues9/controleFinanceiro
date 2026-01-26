@@ -278,6 +278,8 @@ module.exports = async (req, res) => {
           }
           
           const extratos = await Extrato.find(query)
+            .populate('contaBancaria', 'nome banco')
+            .populate('cartao', 'nome banco tipo')
             .sort({ data: -1 })
             .limit(100) // Limitar para melhor performance
             .lean(); // Mais rápido
@@ -329,9 +331,15 @@ module.exports = async (req, res) => {
           };
           
           const extrato = await Extrato.create(extratoData);
+          
+          // Buscar o extrato criado com populate para retornar dados completos
+          const extratoPopulated = await Extrato.findById(extrato._id)
+            .populate('contaBancaria', 'nome banco')
+            .populate('cartao', 'nome banco tipo');
+          
           console.log('✅ Extrato criado com sucesso');
           
-          return res.status(201).json(extrato);
+          return res.status(201).json(extratoPopulated);
         }
         
         if (req.method === 'DELETE') {
