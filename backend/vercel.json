@@ -52,7 +52,7 @@
     },
     {
       "source": "/api/extrato/(.*)/estornar",
-      "destination": "/routes/extrato.js"
+      "destination": "/api/extrato.js"
     },
     {
       "source": "/api/cartoes/(.*)/inativar",
@@ -119,7 +119,7 @@
       "maxDuration": 10,
       "memory": 512
     },
-    "api/routes/extrato.js": {
+    "api/extrato.js": {
       "maxDuration": 15,
       "memory": 1024
     }

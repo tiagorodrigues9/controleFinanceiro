@@ -37,7 +37,7 @@ const extratoSchema = new mongoose.Schema({
   referencia: {
     tipo: {
       type: String,
-      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial', 'Transferencia']
+      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial', 'Transferencia', 'Estorno']
     },
     id: {
       type: mongoose.Schema.Types.ObjectId
