@@ -171,16 +171,16 @@ if (mongoUser && mongoPass && mongoHost) {
   // MongoDB Atlas (nuvem) - usa mongodb+srv
   // Remove @ do início do host se existir
   const cleanHost = mongoHost.startsWith('@') ? mongoHost.substring(1) : mongoHost;
-  mongoUri = `mongodb+srv://${mongoUser}:${encodeURIComponent(mongoPass)}@${cleanHost}/${mongoDb}?retryWrites=true&w=majority`;
+  mongoUri = `mongodb+srv://${mongoUser}:${encodeURIComponent(mongoPass)}@${cleanHost}/${mongoDb}?retryWrites=true&w=majority&serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000&maxPoolSize=10&minPoolSize=2&maxIdleTimeMS=30000`;
   console.log('✅ Modo: MongoDB Atlas (nuvem)');
 } else if (mongoUser && mongoPass) {
   // MongoDB Local com autenticação
-  mongoUri = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@localhost:27017/${mongoDb}`;
+  mongoUri = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@localhost:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
   console.log('⚠️  Modo: MongoDB Local (com autenticação)');
   console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, adicione MONGO_HOST no .env!');
 } else {
   // MongoDB Local sem autenticação
-  mongoUri = `mongodb://localhost:27017/${mongoDb}`;
+  mongoUri = `mongodb://localhost:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
   console.log('⚠️  Modo: MongoDB Local (sem autenticação)');
   console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, configure MONGO_USER, MONGO_PASS e MONGO_HOST no .env!');
 }
@@ -188,9 +188,46 @@ if (mongoUser && mongoPass && mongoHost) {
 console.log('URI do MongoDB:', mongoUri.replace(/:[^:@]+@/, ':****@')); // Esconde a senha no log
 console.log('');
 
-mongoose.connect(mongoUri)
-.then(() => logger.info('MongoDB conectado'))
-.catch(err => logger.error('Erro ao conectar MongoDB:', err));
+// Configuração do Mongoose com reconexão automática
+mongoose.set('strictQuery', false);
+
+const mongooseOptions = {
+  serverSelectionTimeoutMS: 30000,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  bufferCommands: false,
+  bufferMaxEntries: 0,
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  maxIdleTimeMS: 30000,
+  retryWrites: true,
+  w: 'majority'
+};
+
+mongoose.connect(mongoUri, mongooseOptions)
+  .then(() => logger.info('MongoDB conectado'))
+  .catch(err => logger.error('Erro ao conectar MongoDB:', err));
+
+// Eventos de conexão para monitoramento
+mongoose.connection.on('connected', () => {
+  logger.info('Mongoose conectado ao MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  logger.error('Erro na conexão Mongoose:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  logger.warn('Mongoose desconectado do MongoDB');
+});
+
+mongoose.connection.on('reconnected', () => {
+  logger.info('Mongoose reconectado ao MongoDB');
+});
+
+mongoose.connection.on('reconnectFailed', () => {
+  logger.error('Falha na reconexão do Mongoose');
+});
 
 const PORT = process.env.PORT || 5000;
 app.use(errorHandler);

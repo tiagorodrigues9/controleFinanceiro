@@ -44,10 +44,7 @@ router.get('/', async (req, res) => {
     console.log('Query para extratos:', query);
 
     let extratos = await Extrato.find(query)
-      .populate({
-        path: 'contaBancaria',
-        match: { ativo: { $ne: false } }
-      })
+      .populate('contaBancaria')
       .populate('cartao')
       .populate({ path: 'referencia.id', model: 'Gasto' })
       .sort({ data: -1 });
@@ -271,16 +268,46 @@ router.post('/:id/estornar', async (req, res) => {
     console.log('req.user._id:', req.user._id);
     console.log('mongoose.connection.readyState:', mongoose.connection.readyState);
 
-    // Verificar conexão com MongoDB
+    // Verificar conexão com MongoDB e tentar reconectar se necessário
     if (mongoose.connection.readyState !== 1) {
-      console.error('MongoDB não está conectado');
-      return res.status(503).json({ message: 'Serviço temporariamente indisponível' });
+      console.error('MongoDB não está conectado, tentando reconectar...');
+      
+      // Tentar reconectar
+      try {
+        await mongoose.connection.asPromise();
+        console.log('MongoDB reconectado com sucesso');
+      } catch (reconnectError) {
+        console.error('Falha ao reconectar ao MongoDB:', reconnectError);
+        return res.status(503).json({ 
+          message: 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.' 
+        });
+      }
     }
 
-    const extrato = await Extrato.findOne({
-      _id: req.params.id,
-      usuario: req.user._id
-    });
+    // Tentar a operação com retry
+    let extrato;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        extrato = await Extrato.findOne({
+          _id: req.params.id,
+          usuario: req.user._id
+        });
+        break; // Sucesso, sair do loop
+      } catch (dbError) {
+        retryCount++;
+        console.log(`Tentativa ${retryCount}/${maxRetries} falhou:`, dbError.message);
+        
+        if (retryCount >= maxRetries) {
+          throw dbError;
+        }
+        
+        // Esperar antes de tentar novamente
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
 
     console.log('Extrato encontrado:', extrato);
 
@@ -292,8 +319,24 @@ router.post('/:id/estornar', async (req, res) => {
       return res.status(400).json({ message: 'Lançamento já foi estornado' });
     }
 
-    extrato.estornado = true;
-    await extrato.save();
+    // Tentar salvar com retry também
+    retryCount = 0;
+    while (retryCount < maxRetries) {
+      try {
+        extrato.estornado = true;
+        await extrato.save();
+        break; // Sucesso, sair do loop
+      } catch (saveError) {
+        retryCount++;
+        console.log(`Tentativa de salvar ${retryCount}/${maxRetries} falhou:`, saveError.message);
+        
+        if (retryCount >= maxRetries) {
+          throw saveError;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
 
     console.log('Extrato estornado com sucesso');
     res.json({ message: 'Lançamento estornado com sucesso' });
@@ -301,6 +344,13 @@ router.post('/:id/estornar', async (req, res) => {
     console.error('Erro ao estornar lançamento:', error);
     
     // Tratamento específico para diferentes tipos de erro
+    if (error.name === 'MongooseServerSelectionError' || 
+        error.message.includes('Could not connect to any servers')) {
+      return res.status(503).json({ 
+        message: 'Serviço temporariamente indisponível devido a problemas de conexão. Tente novamente.' 
+      });
+    }
+    
     if (error.name === 'MongoNetworkError' || error.name === 'MongoTimeoutError') {
       return res.status(503).json({ message: 'Erro de conexão com banco de dados' });
     }
