@@ -43,26 +43,10 @@
       "destination": "/api/notificacoes-simple.js"
     },
     {
-      "source": "/api/(contas|contas-pagar|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails)",
+      "source": "/api/(contas|contas-pagar|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails|fatura-cartao|dashboard-faturas)",
       "destination": "/api/crud.js"
     },
-    {
-      "source": "/api/fatura-cartao",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/fatura-cartao/(.*)",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/dashboard-faturas",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/dashboard-faturas/(.*)",
-      "destination": "/api/crud.js"
-    },
-        {
+            {
       "source": "/api/extrato/saldo-inicial",
       "destination": "/api/crud.js"
     },
