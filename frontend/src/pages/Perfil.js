@@ -90,7 +90,15 @@ const Perfil = () => {
 
     try {
       const response = await api.put('/auth/profile', formData);
-      updateUser(response.data.user);
+      const updatedUser = response.data.user;
+      
+      // Atualizar usuário no contexto
+      updateUser(updatedUser);
+      
+      // Atualizar localStorage com os dados atualizados
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log('Perfil atualizado e salvo no localStorage:', updatedUser);
       setMessage('Perfil atualizado com sucesso!');
     } catch (error) {
       setMessage('Erro ao atualizar perfil');

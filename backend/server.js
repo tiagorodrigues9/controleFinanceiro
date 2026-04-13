@@ -82,7 +82,7 @@ app.use('/api/', limiter);
 // Limitador mais restrito para auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // limite cada IP a 5 tentativas de login por windowMs
+  max: 100, // limite cada IP a 100 tentativas de login por windowMs (desenvolvimento)
   message: 'Muitas tentativas de login, tente novamente mais tarde',
   skipSuccessfulRequests: true,
 });
@@ -147,6 +147,8 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/transferencias', require('./routes/transferencias'));
 app.use('/api/formas-pagamento', require('./routes/formas-pagamento'));
 app.use('/api/cartoes', require('./routes/cartoes'));
+app.use('/api/fatura-cartao', require('./routes/faturaCartao'));
+app.use('/api/dashboard-faturas', require('./routes/dashboardFaturas'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/email-test', require('./routes/emailTest'));
@@ -175,12 +177,12 @@ if (mongoUser && mongoPass && mongoHost) {
   console.log('✅ Modo: MongoDB Atlas (nuvem)');
 } else if (mongoUser && mongoPass) {
   // MongoDB Local com autenticação
-  mongoUri = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@localhost:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
+  mongoUri = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@127.0.0.1:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
   console.log('⚠️  Modo: MongoDB Local (com autenticação)');
   console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, adicione MONGO_HOST no .env!');
 } else {
   // MongoDB Local sem autenticação
-  mongoUri = `mongodb://localhost:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
+  mongoUri = `mongodb://127.0.0.1:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
   console.log('⚠️  Modo: MongoDB Local (sem autenticação)');
   console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, configure MONGO_USER, MONGO_PASS e MONGO_HOST no .env!');
 }
@@ -195,8 +197,7 @@ const mongooseOptions = {
   serverSelectionTimeoutMS: 30000,
   connectTimeoutMS: 30000,
   socketTimeoutMS: 45000,
-  bufferCommands: false,
-  bufferMaxEntries: 0,
+  bufferCommands: true,
   maxPoolSize: 10,
   minPoolSize: 2,
   maxIdleTimeMS: 30000,

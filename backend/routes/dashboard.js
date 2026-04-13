@@ -58,89 +58,92 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     usuario: new mongoose.Types.ObjectId(req.user._id)
   };
 
-    // Contas a pagar no mês (corrigido)
-  const totalContasPagar = await Conta.countDocuments({
-    ...baseFilter,
-    status: { $in: ['Pendente', 'Vencida'] },
-    dataVencimento: { $gte: startDate, $lte: endDate }
-  });
-  console.log('totalContasPagar:', totalContasPagar);
-
-  // Valor total de contas a pagar no mês (corrigido)
-  const totalValorContasPagarMes = await Conta.aggregate([
-    { 
-      $match: { 
-        ...baseFilter, 
-        status: { $in: ['Pendente', 'Vencida'] }, 
-        dataVencimento: { $gte: startDate, $lte: endDate } 
-      } 
-    },
-    { $group: { _id: null, total: { $sum: "$valor" } } }
+    // Otimizado: Queries combinadas em agregação única para melhor performance
+  const dashboardData = await Promise.all([
+    // Contas - agregação única para obter todos os dados de contas
+    Conta.aggregate([
+      { 
+        $match: { 
+          usuario: new mongoose.Types.ObjectId(req.user._id),
+          $or: [
+            { 
+              status: { $in: ['Pendente', 'Vencida'] }, 
+              dataVencimento: { $gte: startDate, $lte: endDate } 
+            },
+            { 
+              status: 'Pago',
+              dataPagamento: { $gte: startDate, $lte: endDate } 
+            }
+          ]
+        } 
+      },
+      {
+        $group: {
+          _id: { status: "$status", month: { $month: "$dataVencimento" } },
+          totalValor: { $sum: "$valor" },
+          count: { $sum: 1 }
+        }
+      }
+    ]),
+    
+    // Gastos do mês
+    Gasto.aggregate([
+      {
+        $match: {
+          usuario: new mongoose.Types.ObjectId(req.user._id),
+          data: { $gte: startDate, $lte: endDate }
+        }
+      },
+      { $group: { _id: null, total: { $sum: "$valor" }, count: { $sum: 1 } } }
+    ]),
+    
+    // Extrato do mês (entradas e saídas)
+    Extrato.aggregate([
+      {
+        $match: {
+          usuario: new mongoose.Types.ObjectId(req.user._id),
+          data: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: "$tipo",
+          total: { $sum: "$valor" },
+          count: { $sum: 1 }
+        }
+      }
+    ])
   ]);
-  console.log('totalValorContasPagarMes:', totalValorContasPagarMes);
-  console.log('totalValorContasPagarMes[0]?.total:', totalValorContasPagarMes[0]?.total);
 
-  // Contas pendentes no mês (corrigido - mesmo critério do valor)
-  const totalContasPendentesMes = await Conta.countDocuments({
-    ...baseFilter,
-    status: { $in: ['Pendente', 'Vencida'] },
-    dataVencimento: { $gte: startDate, $lte: endDate }
-  });
-
-  // Contas pagas no mês (corrigido - mais flexível)
-  const totalContasPagas = await Conta.countDocuments({
-    ...baseFilter,
-    status: 'Pago',
-    $or: [
-      { dataPagamento: { $gte: startDate, $lte: endDate } },
-      { dataVencimento: { $gte: startDate, $lte: endDate } }
-    ]
-  });
-
-  // Valor total de contas pagas no mês (corrigido - simplificado)
-  const totalValorContasPagas = await Conta.aggregate([
-    { 
-      $match: { 
-        usuario: new mongoose.Types.ObjectId(req.user._id),
-        status: 'Pago',
-        dataPagamento: { $gte: startDate, $lte: endDate } 
-      } 
-    },
-    { $group: { _id: null, total: { $sum: "$valor" } } }
-  ]);
+  // Processar resultados das agregações
+  const [contasData, gastosData, extratoData] = dashboardData;
   
-  console.log('DEBUG - totalValorContasPagas query result:', JSON.stringify(totalValorContasPagas, null, 2));
-  console.log('DEBUG - startDate:', startDate.toISOString());
-  console.log('DEBUG - endDate:', endDate.toISOString());
+  // Calcular totais de contas a partir da agregação
+  let totalContasPagar = 0;
+  let totalValorContasPagarMes = 0;
+  let totalContasPendentesMes = 0;
+  let totalContasPagas = 0;
+  let totalValorContasPagas = 0;
 
-  // Gastos do mês
-  const gastosMes = await Gasto.aggregate([
-    {
-      $match: {
-        usuario: req.user._id,
-        data: { $gte: startDate, $lte: endDate }
-      }
-    },
-    { $group: { _id: null, total: { $sum: "$valor" } } }
-  ]);
-  console.log('gastosMes:', gastosMes);
-
-  // Extrato do mês (entradas e saídas)
-  const extratoMes = await Extrato.aggregate([
-    {
-      $match: {
-        usuario: req.user._id,
-        data: { $gte: startDate, $lte: endDate }
-      }
-    },
-    {
-      $group: {
-        _id: "$tipo",
-        total: { $sum: "$valor" }
-      }
+  contasData.forEach(item => {
+    if (item._id.status === 'Pendente' || item._id.status === 'Vencida') {
+      totalContasPagar += item.count;
+      totalValorContasPagarMes += item.totalValor;
+      totalContasPendentesMes += item.count;
+    } else if (item._id.status === 'Pago') {
+      totalContasPagas += item.count;
+      totalValorContasPagas += item.totalValor;
     }
-  ]);
-  console.log('extratoMes:', extratoMes);
+  });
+
+  // Processar gastos
+  const gastosMes = gastosData.length > 0 ? [{ total: gastosData[0].total }] : [];
+
+  // Processar extrato
+  const extratoMes = extratoData.map(item => ({
+    _id: item._id,
+    total: item.total
+  }));
 
   // Processar resultados do extrato
   let totalEntradas = 0;

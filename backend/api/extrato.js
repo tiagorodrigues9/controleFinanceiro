@@ -255,6 +255,7 @@ module.exports = async (req, res) => {
           query.cartao = cartao;
         }
 
+        // Se não houver filtro de data, aplicar filtro dos últimos 5 dias
         if (dataInicio && dataFim) {
           // Criar datas em UTC para evitar problemas de timezone
           const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
@@ -263,6 +264,18 @@ module.exports = async (req, res) => {
           query.data = {
             $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
             $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+          };
+        } else {
+          // Aplicar filtro dos últimos 5 dias
+          const hoje = new Date();
+          const cincoDiasAtras = new Date(hoje);
+          cincoDiasAtras.setDate(hoje.getDate() - 5);
+          cincoDiasAtras.setHours(0, 0, 0, 0);
+          hoje.setHours(23, 59, 59, 999);
+
+          query.data = {
+            $gte: cincoDiasAtras,
+            $lte: hoje
           };
         }
 
@@ -283,7 +296,7 @@ module.exports = async (req, res) => {
           return true;
         });
 
-        console.log('Extratos encontrados:', extratos.length);
+        console.log('Extratos encontrados (antes do filtro tipoDespesa):', extratos.length);
 
         // Se filtro por tipo de despesa, filtrar gastos
         if (tipoDespesa) {
@@ -296,10 +309,22 @@ module.exports = async (req, res) => {
           });
         }
 
+        console.log('Extratos encontrados (após filtro tipoDespesa):', extratos.length);
+
         let totalSaldo = 0;
         let totalEntradas = 0;
         let totalSaidas = 0;
         
+        // Calcular totais baseados nos extratos filtrados (incluindo filtro de tipoDespesa)
+        totalEntradas = extratos
+          .filter(extrato => extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial')
+          .reduce((sum, extrato) => sum + extrato.valor, 0);
+        
+        totalSaidas = extratos
+          .filter(extrato => extrato.tipo === 'Saída')
+          .reduce((sum, extrato) => sum + extrato.valor, 0);
+        
+        // Calcular saldo da conta (se houver filtro de conta bancária)
         if (contaBancaria) {
           const saldoAgg = await Extrato.aggregate([
             { 
@@ -325,43 +350,6 @@ module.exports = async (req, res) => {
             }
           ]);
           totalSaldo = saldoAgg[0]?.total || 0;
-        }
-
-        // Calcular totais do período filtrado
-        const matchQuery = { usuario: new mongoose.Types.ObjectId(req.user._id), estornado: false };
-        if (contaBancaria) {
-          matchQuery.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
-        }
-        if (cartao) {
-          matchQuery.cartao = new mongoose.Types.ObjectId(cartao);
-        }
-        if (dataInicio && dataFim) {
-          const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
-          const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
-          matchQuery.data = {
-            $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
-            $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
-          };
-        }
-
-        console.log('MatchQuery para totais:', matchQuery);
-
-        const totaisAgg = await Extrato.aggregate([
-          { $match: matchQuery },
-          { 
-            $group: { 
-              _id: null,
-              totalEntradas: { $sum: { $cond: { if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, then: '$valor', else: 0 } } },
-              totalSaidas: { $sum: { $cond: { if: { $eq: ['$tipo', 'Saída'] }, then: '$valor', else: 0 } } }
-            } 
-          }
-        ]);
-
-        console.log('Resultado do aggregate:', totaisAgg);
-
-        if (totaisAgg.length > 0) {
-          totalEntradas = totaisAgg[0].totalEntradas || 0;
-          totalSaidas = totaisAgg[0].totalSaidas || 0;
         }
 
         return res.json({ extratos, totalSaldo, totalEntradas, totalSaidas });

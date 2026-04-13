@@ -48,6 +48,8 @@ const GastosDiarios = () => {
   const [openCadastro, setOpenCadastro] = useState(false);
   const [filtros, setFiltros] = useState({
     tipoDespesa: '',
+    subgrupo: '',
+    formaPagamento: '',
     dataInicio: '',
     dataFim: '',
   });
@@ -65,12 +67,33 @@ const GastosDiarios = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState(null);
 
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
-    fetchGastos();
+    // Inicializar filtros com os últimos 5 dias
+    const hoje = new Date();
+    const cincoDiasAtras = new Date(hoje);
+    cincoDiasAtras.setDate(hoje.getDate() - 5);
+    
+    const filtrosIniciais = {
+      tipoDespesa: '',
+      subgrupo: '',
+      formaPagamento: '',
+      dataInicio: format(cincoDiasAtras, 'yyyy-MM-dd'),
+      dataFim: format(hoje, 'yyyy-MM-dd'),
+    };
+    
+    setFiltros(filtrosIniciais);
+    
+    // Buscar dados iniciais
     fetchGrupos();
     fetchContasBancarias();
     fetchFormasPagamento();
     fetchCartoes();
+    
+    // Buscar gastos com os filtros iniciais
+    fetchGastosComFiltros(filtrosIniciais);
+    setInitialized(true);
   }, []);
 
   useEffect(() => {
@@ -79,12 +102,14 @@ const GastosDiarios = () => {
     return () => window.removeEventListener('formasUpdated', handler);
   }, []);
 
-  const fetchGastos = async () => {
+  const fetchGastosComFiltros = async (filtrosParaUsar) => {
     try {
       const params = {};
-      if (filtros.tipoDespesa) params.tipoDespesa = filtros.tipoDespesa;
-      if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
-      if (filtros.dataFim) params.dataFim = filtros.dataFim;
+      if (filtrosParaUsar.tipoDespesa) params.tipoDespesa = filtrosParaUsar.tipoDespesa;
+      if (filtrosParaUsar.subgrupo) params.subgrupo = filtrosParaUsar.subgrupo;
+      if (filtrosParaUsar.formaPagamento) params.formaPagamento = filtrosParaUsar.formaPagamento;
+      if (filtrosParaUsar.dataInicio) params.dataInicio = filtrosParaUsar.dataInicio;
+      if (filtrosParaUsar.dataFim) params.dataFim = filtrosParaUsar.dataFim;
 
       const response = await api.get('/gastos', { params });
       setGastos(response.data);
@@ -94,6 +119,11 @@ const GastosDiarios = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (loading) return; // Evitar chamada dupla no carregamento
+    fetchGastosComFiltros(filtros);
+  }, [filtros]);
 
   const fetchGrupos = async () => {
     try {
@@ -131,10 +161,7 @@ const GastosDiarios = () => {
     }
   };
 
-  useEffect(() => {
-    fetchGastos();
-  }, [filtros]);
-
+  
   const handleOpenCadastro = () => {
     setFormData({
       tipoDespesa: { grupo: '', subgrupo: '' },
@@ -157,11 +184,11 @@ const GastosDiarios = () => {
     e.preventDefault();
     try {
       await api.post('/gastos', formData);
-      fetchGastos();
+      fetchGastosComFiltros(filtros);
       handleCloseCadastro();
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erro ao cadastrar gasto');
+      setError(err.response?.data?.message || 'Erro ao criar gasto');
     }
   };
 
@@ -171,7 +198,7 @@ const GastosDiarios = () => {
       await api.delete(`/gastos/${gastoToDelete}`);
       setOpenDeleteConfirm(false);
       setGastoToDelete(null);
-      fetchGastos();
+      fetchGastosComFiltros(filtros);
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao excluir gasto');
       setOpenDeleteConfirm(false);
@@ -335,12 +362,12 @@ const GastosDiarios = () => {
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={2}>
             <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Tipo de Despesa</InputLabel>
               <Select
                 value={filtros.tipoDespesa}
-                onChange={(e) => setFiltros({ ...filtros, tipoDespesa: e.target.value })}
+                onChange={(e) => setFiltros({ ...filtros, tipoDespesa: e.target.value, subgrupo: '' })}
                 label="Tipo de Despesa"
                 size="small"
               >
@@ -353,7 +380,44 @@ const GastosDiarios = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Subgrupo</InputLabel>
+              <Select
+                value={filtros.subgrupo}
+                onChange={(e) => setFiltros({ ...filtros, subgrupo: e.target.value })}
+                label="Subgrupo"
+                size="small"
+                disabled={!filtros.tipoDespesa}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {filtros.tipoDespesa && grupos.find(g => g._id === filtros.tipoDespesa)?.subgrupos?.map((subgrupo, index) => (
+                  <MenuItem key={typeof subgrupo === 'string' ? subgrupo : index} value={typeof subgrupo === 'string' ? subgrupo : subgrupo?.nome || ''}>
+                    {typeof subgrupo === 'string' ? subgrupo : (subgrupo?.nome || String(subgrupo))}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel>Forma de Pagamento</InputLabel>
+              <Select
+                value={filtros.formaPagamento}
+                onChange={(e) => setFiltros({ ...filtros, formaPagamento: e.target.value })}
+                label="Forma de Pagamento"
+                size="small"
+              >
+                <MenuItem value="">Todas</MenuItem>
+                {formasPagamento.map((forma) => (
+                  <MenuItem key={typeof forma === 'string' ? forma : forma._id} value={typeof forma === 'string' ? forma : forma.nome}>
+                    {typeof forma === 'string' ? forma : forma.nome}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={2}>
             <TextField
               fullWidth
               size="small"
@@ -365,7 +429,7 @@ const GastosDiarios = () => {
               onChange={(e) => setFiltros({ ...filtros, dataInicio: e.target.value })}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={2}>
             <TextField
               fullWidth
               size="small"
@@ -376,6 +440,16 @@ const GastosDiarios = () => {
               value={filtros.dataFim}
               onChange={(e) => setFiltros({ ...filtros, dataFim: e.target.value })}
             />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setFiltros({ tipoDespesa: '', subgrupo: '', formaPagamento: '', dataInicio: '', dataFim: '' })}
+              size="small"
+            >
+              Limpar
+            </Button>
           </Grid>
         </Grid>
       </Paper>

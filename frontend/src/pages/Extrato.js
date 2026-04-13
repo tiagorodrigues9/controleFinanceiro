@@ -76,24 +76,38 @@ const Extrato = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchExtratos();
+    // Inicializar filtros com os últimos 5 dias
+    const hoje = new Date();
+    const cincoDiasAtras = new Date(hoje);
+    cincoDiasAtras.setDate(hoje.getDate() - 5);
+    
+    const filtrosIniciais = {
+      contaBancaria: '',
+      tipoDespesa: '',
+      cartao: '',
+      dataInicio: format(cincoDiasAtras, 'yyyy-MM-dd'),
+      dataFim: format(hoje, 'yyyy-MM-dd'),
+    };
+    
+    setFiltros(filtrosIniciais);
+    
+    // Buscar dados iniciais
     fetchContasBancarias();
     fetchGrupos();
     fetchCartoes();
+    
+    // Buscar extratos com os filtros iniciais
+    fetchExtratosComFiltros(filtrosIniciais);
   }, []);
 
-  useEffect(() => {
-    fetchExtratos();
-  }, [filtros]);
-
-  const fetchExtratos = async () => {
+  const fetchExtratosComFiltros = async (filtrosParaUsar) => {
     try {
       const params = {};
-      if (filtros.contaBancaria) params.contaBancaria = filtros.contaBancaria;
-      if (filtros.tipoDespesa) params.tipoDespesa = filtros.tipoDespesa;
-      if (filtros.cartao) params.cartao = filtros.cartao;
-      if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
-      if (filtros.dataFim) params.dataFim = filtros.dataFim;
+      if (filtrosParaUsar.contaBancaria) params.contaBancaria = filtrosParaUsar.contaBancaria;
+      if (filtrosParaUsar.tipoDespesa) params.tipoDespesa = filtrosParaUsar.tipoDespesa;
+      if (filtrosParaUsar.cartao) params.cartao = filtrosParaUsar.cartao;
+      if (filtrosParaUsar.dataInicio) params.dataInicio = filtrosParaUsar.dataInicio;
+      if (filtrosParaUsar.dataFim) params.dataFim = filtrosParaUsar.dataFim;
 
       const response = await api.get('/extrato', { params });
       setExtratos(response.data.extratos || []);
@@ -107,6 +121,12 @@ const Extrato = () => {
     }
   };
 
+  useEffect(() => {
+    if (loading) return; // Evitar chamada dupla no carregamento
+    fetchExtratosComFiltros(filtros);
+  }, [filtros]);
+
+  
   const fetchContasBancarias = async () => {
     try {
       const response = await api.get('/contas-bancarias');
@@ -135,7 +155,8 @@ const Extrato = () => {
   };
 
   useEffect(() => {
-    fetchExtratos();
+    if (loading) return; // Evitar chamada dupla no carregamento
+    fetchExtratosComFiltros(filtros);
   }, [filtros]);
 
   const handleOpenLancamento = () => {
@@ -156,8 +177,45 @@ const Extrato = () => {
   const handleSubmitLancamento = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/extrato', formData);
-      fetchExtratos();
+      const response = await api.post('/extrato', formData);
+      const novoExtrato = response.data;
+      
+      // Otimização: adicionar item localmente em vez de recarregar tudo
+      setExtratos(prevExtratos => {
+        // Adicionar o novo extrato no início (ordenado por data descendente)
+        const atualizados = [novoExtrato, ...prevExtratos];
+        
+        // Aplicar filtros atuais para manter consistência
+        return atualizados.filter(extrato => {
+          // Filtro de conta bancária
+          if (filtros.contaBancaria && extrato.contaBancaria?._id !== filtros.contaBancaria) {
+            return false;
+          }
+          
+          // Filtro de cartão
+          if (filtros.cartao && extrato.cartao?._id !== filtros.cartao) {
+            return false;
+          }
+          
+          // Filtro de tipo de despesa
+          if (filtros.tipoDespesa) {
+            if (extrato.referencia?.tipo === 'Gasto' && extrato.referencia?.id) {
+              // Nota: não temos acesso ao gasto completo no frontend, então mantemos o item
+              // Em produção ideal, o backend deveria retornar o gasto populado
+            }
+          }
+          
+          return true;
+        });
+      });
+      
+      // Atualizar totais localmente
+      if (novoExtrato.tipo === 'Entrada' || novoExtrato.tipo === 'Saldo Inicial') {
+        setTotalEntradas(prev => prev + novoExtrato.valor);
+      } else {
+        setTotalSaidas(prev => prev + novoExtrato.valor);
+      }
+      
       handleCloseLancamento();
       setError('');
     } catch (err) {
@@ -181,8 +239,33 @@ const Extrato = () => {
   const handleSubmitSaldoInicial = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/extrato/saldo-inicial', saldoInicialData);
-      fetchExtratos();
+      const response = await api.post('/extrato/saldo-inicial', saldoInicialData);
+      const novoExtrato = response.data;
+      
+      // Otimização: adicionar item localmente em vez de recarregar tudo
+      setExtratos(prevExtratos => {
+        // Adicionar o novo extrato no início (ordenado por data descendente)
+        const atualizados = [novoExtrato, ...prevExtratos];
+        
+        // Aplicar filtros atuais para manter consistência
+        return atualizados.filter(extrato => {
+          // Filtro de conta bancária
+          if (filtros.contaBancaria && extrato.contaBancaria?._id !== filtros.contaBancaria) {
+            return false;
+          }
+          
+          // Filtro de cartão (saldo inicial não tem cartão)
+          if (filtros.cartao) {
+            return false;
+          }
+          
+          return true;
+        });
+      });
+      
+      // Atualizar totais localmente (saldo inicial conta como entrada)
+      setTotalEntradas(prev => prev + novoExtrato.valor);
+      
       handleCloseSaldoInicial();
       setError('');
     } catch (err) {
@@ -196,6 +279,7 @@ const Extrato = () => {
   };
 
   const limparFiltros = () => {
+    // Limpar filtros manuais do usuário
     setFiltros({
       contaBancaria: '',
       tipoDespesa: '',
@@ -208,7 +292,22 @@ const Extrato = () => {
   const confirmEstorno = async () => {
     try {
       await api.post(`/extrato/${estornoId}/estornar`);
-      fetchExtratos();
+      
+      // Otimização: remover item localmente em vez de recarregar tudo
+      setExtratos(prevExtratos => {
+        return prevExtratos.filter(extrato => extrato._id !== estornoId);
+      });
+      
+      // Encontrar o extrato estornado para atualizar totais
+      const extratoEstornado = extratos.find(extrato => extrato._id === estornoId);
+      if (extratoEstornado) {
+        if (extratoEstornado.tipo === 'Entrada' || extratoEstornado.tipo === 'Saldo Inicial') {
+          setTotalEntradas(prev => prev - extratoEstornado.valor);
+        } else {
+          setTotalSaidas(prev => prev - extratoEstornado.valor);
+        }
+      }
+      
       setOpenConfirmEstorno(false);
       setEstornoId(null);
     } catch (err) {
@@ -431,7 +530,6 @@ const Extrato = () => {
                 <TableCell>Tipo</TableCell>
                 <TableCell>Motivo</TableCell>
                 <TableCell>Valor</TableCell>
-                <TableCell>Status</TableCell>
                 <TableCell>Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -460,13 +558,6 @@ const Extrato = () => {
                     >
                       {extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial' ? '+' : '-'} R$ {extrato.valor.toFixed(2).replace('.', ',')}
                     </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={extrato.estornado ? 'Estornado' : 'Ativo'}
-                      color={extrato.estornado ? 'default' : 'primary'}
-                      size="small"
-                    />
                   </TableCell>
                   <TableCell>
                     {extrato.tipo !== 'Saldo Inicial' && !extrato.estornado && (

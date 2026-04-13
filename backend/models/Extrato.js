@@ -37,7 +37,7 @@ const extratoSchema = new mongoose.Schema({
   referencia: {
     tipo: {
       type: String,
-      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial', 'Transferencia', 'Estorno']
+      enum: ['Conta', 'Gasto', 'Lancamento', 'Saldo Inicial', 'Transferencia', 'Estorno', 'FaturaCartao']
     },
     id: {
       type: mongoose.Schema.Types.ObjectId
@@ -56,11 +56,14 @@ const extratoSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para performance
-extratoSchema.index({ usuario: 1, contaBancaria: 1, data: 1 });
-extratoSchema.index({ usuario: 1, tipo: 1, data: 1 });
-extratoSchema.index({ contaBancaria: 1, estornado: 1, data: 1 });
-extratoSchema.index({ 'referencia.tipo': 1, 'referencia.id': 1 });
+// Índices para performance - otimizados para as queries principais
+extratoSchema.index({ usuario: 1, estornado: 1, data: -1 }); // Query principal do extrato
+extratoSchema.index({ usuario: 1, contaBancaria: 1, estornado: 1, data: -1 }); // Filtro por conta
+extratoSchema.index({ usuario: 1, tipo: 1, estornado: 1, data: -1 }); // Filtro por tipo
+extratoSchema.index({ usuario: 1, cartao: 1, estornado: 1, data: -1 }); // Filtro por cartão
+extratoSchema.index({ 'referencia.tipo': 1, 'referencia.id': 1 }); // Lookup para gastos
+extratoSchema.index({ usuario: 1, estornado: 1 }); // Índice simples para filtros básicos
+extratoSchema.index({ data: -1, estornado: 1 }); // Para queries sem filtro de usuário (admin)
 
 module.exports = mongoose.model('Extrato', extratoSchema);
 

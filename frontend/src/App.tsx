@@ -20,6 +20,7 @@ import DashboardCompleto from './pages/DashboardCompleto';
 import Perfil from './pages/Perfil';
 import FormasPagamento from './pages/FormasPagamento';
 import Cartoes from './pages/Cartoes';
+import FaturasCartao from './pages/FaturasCartao';
 import Notificacoes from './pages/Notificacoes';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import PWAInstallBanner from './components/PWAInstallBanner';
@@ -74,6 +75,7 @@ function AppContent() {
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/formas-pagamento" element={<FormasPagamento />} />
                 <Route path="/cartoes" element={<Cartoes />} />
+                <Route path="/faturas-cartao" element={<FaturasCartao />} />
                 <Route path="/notificacoes" element={<Notificacoes />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

@@ -43,38 +43,86 @@ router.get('/', async (req, res) => {
 
     console.log('Query para extratos:', query);
 
-    let extratos = await Extrato.find(query)
-      .populate('contaBancaria')
-      .populate('cartao')
-      .populate({ path: 'referencia.id', model: 'Gasto' })
-      .sort({ data: -1 });
-
-    // Filtrar extratos onde o populate da conta bancária retornou null (conta não existe)
-    extratos = extratos.filter(extrato => {
-      // Se tem contaBancaria no filtro mas o populate retornou null, remover
-      if (query.contaBancaria && !extrato.contaBancaria) {
-        return false;
-      }
-      return true;
-    });
+    // Otimização: mover filtro de tipoDespesa para MongoDB usando aggregation
+    let extratos;
+    
+    if (tipoDespesa) {
+      // Usar aggregation para filtro de tipoDespesa no banco
+      extratos = await Extrato.aggregate([
+        { $match: query },
+        { 
+          $lookup: {
+            from: 'gastos',
+            localField: 'referencia.id',
+            foreignField: '_id',
+            as: 'gastoRef',
+            pipeline: [
+              {
+                $match: {
+                  'tipoDespesa.grupo': new mongoose.Types.ObjectId(tipoDespesa)
+                }
+              }
+            ]
+          }
+        },
+        {
+          $match: {
+            $or: [
+              { 'referencia.tipo': { $ne: 'Gasto' } },
+              { 'gastoRef.0': { $exists: true } }
+            ]
+          }
+        },
+        {
+          $lookup: {
+            from: 'contabancarias',
+            localField: 'contaBancaria',
+            foreignField: '_id',
+            as: 'contaBancaria'
+          }
+        },
+        { $unwind: { path: '$contaBancaria', preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            from: 'cartoes',
+            localField: 'cartao',
+            foreignField: '_id',
+            as: 'cartao'
+          }
+        },
+        { $unwind: { path: '$cartao', preserveNullAndEmptyArrays: true } },
+        { $sort: { data: -1 } }
+      ]);
+      
+      // Remover campo temporário
+      extratos = extratos.map(extrato => {
+        const { gastoRef, ...rest } = extrato;
+        return rest;
+      });
+    } else {
+      // Query normal sem filtro de tipoDespesa
+      extratos = await Extrato.find(query)
+        .populate('contaBancaria', 'nome banco')
+        .populate('cartao', 'nome banco tipo')
+        .sort({ data: -1 });
+    }
 
     console.log('Extratos encontrados:', extratos.length);
-
-    // Se filtro por tipo de despesa, filtrar gastos
-    if (tipoDespesa) {
-      extratos = extratos.filter(extrato => {
-        if (extrato.referencia?.tipo === 'Gasto' && extrato.referencia?.id) {
-          const gasto = extrato.referencia.id;
-          return gasto.tipoDespesa?.grupo?.toString() === tipoDespesa;
-        }
-        return false;
-      });
-    }
 
     let totalSaldo = 0;
     let totalEntradas = 0;
     let totalSaidas = 0;
     
+    // Calcular totais baseados nos extratos filtrados (incluindo filtro de tipoDespesa)
+    totalEntradas = extratos
+      .filter(extrato => extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial')
+      .reduce((sum, extrato) => sum + extrato.valor, 0);
+    
+    totalSaidas = extratos
+      .filter(extrato => extrato.tipo === 'Saída')
+      .reduce((sum, extrato) => sum + extrato.valor, 0);
+    
+    // Calcular saldo da conta (se houver filtro de conta bancária)
     if (contaBancaria) {
       const saldoAgg = await Extrato.aggregate([
         { 
@@ -100,43 +148,6 @@ router.get('/', async (req, res) => {
         }
       ]);
       totalSaldo = saldoAgg[0]?.total || 0;
-    }
-
-    // Calcular totais do período filtrado
-    const matchQuery = { usuario: new mongoose.Types.ObjectId(req.user._id), estornado: false };
-    if (contaBancaria) {
-      matchQuery.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
-    }
-    if (cartao) {
-      matchQuery.cartao = new mongoose.Types.ObjectId(cartao);
-    }
-    if (dataInicio && dataFim) {
-      const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
-      const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
-      matchQuery.data = {
-        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
-        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
-      };
-    }
-
-    console.log('MatchQuery para totais:', matchQuery);
-
-    const totaisAgg = await Extrato.aggregate([
-      { $match: matchQuery },
-      { 
-        $group: { 
-          _id: null,
-          totalEntradas: { $sum: { $cond: { if: { $in: ['$tipo', ['Entrada','Saldo Inicial']] }, then: '$valor', else: 0 } } },
-          totalSaidas: { $sum: { $cond: { if: { $eq: ['$tipo', 'Saída'] }, then: '$valor', else: 0 } } }
-        } 
-      }
-    ]);
-
-    console.log('Resultado do aggregate:', totaisAgg);
-
-    if (totaisAgg.length > 0) {
-      totalEntradas = totaisAgg[0].totalEntradas || 0;
-      totalSaidas = totaisAgg[0].totalSaidas || 0;
     }
 
     res.json({ extratos, totalSaldo, totalEntradas, totalSaidas });
@@ -335,6 +346,25 @@ router.post('/:id/estornar', async (req, res) => {
         }
         
         await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
+
+    // Se o extrato tiver referência a um gasto, excluir o gasto também
+    if (extrato.referencia?.tipo === 'Gasto' && extrato.referencia?.id) {
+      try {
+        const Gasto = require('../models/Gasto');
+        const gasto = await Gasto.findOne({
+          _id: extrato.referencia.id,
+          usuario: req.user._id
+        });
+
+        if (gasto) {
+          await gasto.deleteOne();
+          console.log('Gasto correspondente excluído com sucesso');
+        }
+      } catch (gastoError) {
+        console.error('Erro ao excluir gasto correspondente:', gastoError);
+        // Não falhar a operação principal se não conseguir excluir o gasto
       }
     }
 

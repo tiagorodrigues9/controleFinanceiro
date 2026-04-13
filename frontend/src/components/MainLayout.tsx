@@ -31,6 +31,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CategoryIcon from '@mui/icons-material/Category';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 
 const drawerWidth = 240;
 
@@ -50,6 +51,7 @@ const menuItems: MenuItem[] = [
   { text: 'Contas Bancárias', icon: <AccountBalanceWalletIcon />, path: '/contas-bancarias' },
   { text: 'Transferências', icon: <SwapHorizIcon />, path: '/transferencias' },
   { text: 'Cartões', icon: <CreditCardIcon />, path: '/cartoes' },
+  { text: 'Faturas de Cartão', icon: <ReceiptLongIcon />, path: '/faturas-cartao' },
   { text: 'Formas de Pagamento', icon: <PaymentIcon />, path: '/formas-pagamento' },
   { text: 'Notificações', icon: <NotificationsIcon />, path: '/notificacoes' },
   { text: 'Extrato', icon: <CategoryIcon />, path: '/extrato' },

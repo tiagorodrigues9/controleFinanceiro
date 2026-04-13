@@ -213,7 +213,7 @@ router.put('/profile', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, endereco, bairro, cidade } = req.body;
+    const { nome, endereco, bairro, cidade, configuracoes } = req.body;
     const userId = req.user._id || req.user.id;
 
     const updateData = {};
@@ -221,6 +221,11 @@ router.put('/profile', auth, [
     if (endereco !== undefined) updateData.endereco = endereco;
     if (bairro !== undefined) updateData.bairro = bairro;
     if (cidade !== undefined) updateData.cidade = cidade;
+    
+    // Adicionar configurações de notificações se fornecidas
+    if (configuracoes !== undefined) {
+      updateData.configuracoes = configuracoes;
+    }
 
     const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
 
@@ -235,7 +240,8 @@ router.put('/profile', auth, [
         email: user.email,
         endereco: user.endereco,
         bairro: user.bairro,
-        cidade: user.cidade
+        cidade: user.cidade,
+        configuracoes: user.configuracoes
       }
     });
   } catch (error) {

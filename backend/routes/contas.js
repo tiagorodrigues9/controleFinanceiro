@@ -75,15 +75,27 @@ router.get('/', async (req, res) => {
     logger.info('Buscando contas', { userId: req.user._id, filters: { mes, ano, ativo, status } });
 
     // Atualizar status de contas vencidas
-    await Conta.updateMany(
+    // Criar data de hoje sem hora (meia-noite) para comparação correta
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+    
+    const result = await Conta.updateMany(
       {
         usuario: req.user._id,
         status: 'Pendente',
-        dataVencimento: { $lt: new Date() },
+        dataVencimento: { $lt: hoje }, // Contas com data de vencimento anterior a hoje
         ativo: { $ne: false }
       },
       { status: 'Vencida' }
     );
+
+    if (result.modifiedCount > 0) {
+      logger.info('Contas atualizadas para Vencida', { 
+        count: result.modifiedCount,
+        userId: req.user._id,
+        dataReferencia: hoje.toISOString().split('T')[0]
+      });
+    }
 
     const contas = await Conta.find(query)
       .populate('fornecedor')
@@ -273,16 +285,38 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
 });
 
 // @route   DELETE /api/contas/:id
-// @desc    Cancelar conta
+// @desc    Excluir conta permanentemente
 // @access  Private
 router.delete('/:id', async (req, res) => {
   try {
+    console.log('DEBUG: Tentando excluir conta com ID:', req.params.id);
+    console.log('DEBUG: Usuario ID:', req.user._id);
+    console.log('DEBUG: Tipo do ID:', typeof req.params.id);
+    
+    // Validar se o ID é um ObjectId válido
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('DEBUG: ID inválido - não é um ObjectId válido');
+      return res.status(400).json({ message: 'ID de conta inválido' });
+    }
+    
+    // Primeiro tentar encontrar sem filtro de usuário para debug
+    const contaAnyUser = await Conta.findOne({ _id: req.params.id });
+    console.log('DEBUG: Conta encontrada (qualquer usuário):', contaAnyUser ? 'SIM' : 'NÃO');
+    if (contaAnyUser) {
+      console.log('DEBUG: Dono da conta:', contaAnyUser.usuario);
+      console.log('DEBUG: Usuario logado:', req.user._id);
+      console.log('DEBUG: São iguais?', contaAnyUser.usuario.toString() === req.user._id.toString());
+    }
+    
     const conta = await Conta.findOne({
       _id: req.params.id,
       usuario: req.user._id
     });
 
+    console.log('DEBUG: Conta encontrada (com filtro usuário):', conta ? 'SIM' : 'NÃO');
+
     if (!conta) {
+      console.log('DEBUG: Retornando 404 - Conta não encontrada');
       return res.status(404).json({ message: 'Conta não encontrada' });
     }
 
@@ -305,19 +339,17 @@ router.delete('/:id', async (req, res) => {
       return res.json({
         hasRemainingInstallments: true,
         remainingCount,
-        message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja cancelar apenas esta ou todas as restantes?`
+        message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja excluir apenas esta ou todas as restantes?`
       });
     }
 
-    // Soft inactivate: set ativo=false and status to 'Cancelada' for clarity
-    conta.ativo = false;
-    conta.status = 'Cancelada';
-    await conta.save();
+    // Excluir permanentemente
+    await Conta.deleteOne({ _id: req.params.id, usuario: req.user._id });
 
-    res.json({ message: 'Conta inativada com sucesso' });
+    res.json({ message: 'Conta excluída permanentemente com sucesso' });
   } catch (error) {
-    logger.error('Erro ao cancelar conta', { error: error.message, stack: error.stack });
-    res.status(500).json({ message: 'Erro ao cancelar conta' });
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
 
@@ -359,7 +391,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
 });
 
 // @route   DELETE /api/contas/:id/cancel-all-remaining
-// @desc    Cancelar todas as parcelas do mesmo grupo
+// @desc    Excluir todas as parcelas do mesmo grupo
 // @access  Private
 router.delete('/:id/cancel-all-remaining', async (req, res) => {
   try {
@@ -373,23 +405,24 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
       return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
     }
 
-    // Cancelar todas as parcelas do mesmo parcelaId
-    await Conta.updateMany(
-      {
-        parcelaId: conta.parcelaId,
-        usuario: req.user._id,
-        ativo: { $ne: false }
-      },
-      {
-        ativo: false,
-        status: 'Cancelada'
-      }
-    );
+    // Excluir permanentemente todas as parcelas do mesmo parcelaId
+    const result = await Conta.deleteMany({
+      parcelaId: conta.parcelaId,
+      usuario: req.user._id
+    });
 
-    res.json({ message: 'Todas as parcelas foram canceladas com sucesso' });
+    logger.info('Parcelas excluídas permanentemente', { 
+      parcelaId: conta.parcelaId, 
+      count: result.deletedCount 
+    });
+
+    res.json({ 
+      message: `${result.deletedCount} parcela(s) excluída(s) permanentemente com sucesso`,
+      count: result.deletedCount
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Erro ao cancelar parcelas' });
+    res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
 
@@ -535,21 +568,66 @@ router.post('/:id/pagar', [
       }
       await conta.save({ session });
 
-      // Criar registro no extrato
-      const valorPago = conta.valor + (conta.jurosPago || 0);
-      await Extrato.create([{
-        contaBancaria: contaBancaria, // ✅ Garantir que seja enviado
-        cartao: cartaoObj ? cartaoObj._id : null,
-        tipo: 'Saída',
-        valor: valorPago,
-        data: new Date(),
-        motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}${juros ? ` (juros: R$ ${juros})` : ''}`,
-        referencia: {
-          tipo: 'Conta',
-          id: conta._id
-        },
-        usuario: req.user._id
-      }], { session });
+      // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
+      if (formaPagamento !== 'Cartão de Crédito') {
+        const valorPago = conta.valor + (conta.jurosPago || 0);
+        await Extrato.create([{
+          contaBancaria: contaBancaria, // 
+          cartao: cartaoObj ? cartaoObj._id : null,
+          tipo: 'Saída',
+          valor: valorPago,
+          data: new Date(),
+          motivo: `Pagamento: ${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}${juros ? ` (juros: R$ ${juros})` : ''}`,
+          referencia: {
+            tipo: 'Conta',
+            id: conta._id
+          },
+          usuario: req.user._id
+        }], { session });
+      } else {
+        // Para cartão de crédito, adicionar à fatura do cartão
+        if (cartaoObj) {
+          const FaturaCartao = require('../models/FaturaCartao');
+          
+          // Determinar o mês de referência da fatura
+          const dataPagamento = new Date();
+          const mesReferencia = dataPagamento.toISOString().slice(0, 7); // "YYYY-MM"
+
+          // Buscar ou criar fatura do mês
+          let fatura = await FaturaCartao.findOne({
+            cartao: cartaoObj._id,
+            mesReferencia: mesReferencia,
+            usuario: req.user._id
+          });
+
+          if (!fatura) {
+            // Criar nova fatura
+            const dataVencimento = new Date(dataPagamento);
+            dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
+            dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
+
+            const dataFechamento = new Date(dataVencimento);
+            dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
+
+            fatura = new FaturaCartao({
+              cartao: cartaoObj._id,
+              usuario: req.user._id,
+              mesReferencia: mesReferencia,
+              dataVencimento: dataVencimento,
+              dataFechamento: dataFechamento
+            });
+          }
+
+          // Adicionar despesa à fatura
+          const valorPago = conta.valor + (conta.jurosPago || 0);
+          await fatura.adicionarDespesa(
+            conta._id,
+            valorPago,
+            dataPagamento,
+            `${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}`
+          );
+        }
+      }
 
       await session.commitTransaction();
       res.json(conta);

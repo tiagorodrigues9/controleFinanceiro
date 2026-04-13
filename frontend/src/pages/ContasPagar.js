@@ -497,6 +497,7 @@ const ContasPagar = () => {
 
   const confirmHardDelete = async () => {
     if (!contaToHardDelete) return;
+    console.log('DEBUG Frontend: Tentando excluir conta com ID:', contaToHardDelete);
     try {
       // Primeiro, verificar se há parcelas restantes
       const response = await api.delete(`/contas/${contaToHardDelete}`);
@@ -626,7 +627,7 @@ const ContasPagar = () => {
               size="small"
               color="warning"
               onClick={() => handleCancelar(conta._id)}
-              title="Inativar (Cancelar)"
+              title="Excluir"
             >
               <DeleteIcon />
             </IconButton>
@@ -634,7 +635,7 @@ const ContasPagar = () => {
               size="small"
               color="error"
               onClick={() => handleHardDelete(conta._id)}
-              title="Excluir permanentemente"
+              title="Excluir"
             >
               <DeleteForeverIcon />
             </IconButton>
@@ -645,7 +646,7 @@ const ContasPagar = () => {
             size="small"
             color="error"
             onClick={() => handleHardDelete(conta._id)}
-            title="Excluir permanentemente"
+            title="Excluir"
           >
             <DeleteForeverIcon />
           </IconButton>
@@ -834,7 +835,7 @@ const ContasPagar = () => {
                             size="small"
                             color="warning"
                             onClick={() => handleCancelar(conta._id)}
-                            title="Inativar (Cancelar)"
+                            title="Excluir"
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -842,7 +843,7 @@ const ContasPagar = () => {
                             size="small"
                             color="error"
                             onClick={() => handleHardDelete(conta._id)}
-                            title="Excluir permanentemente"
+                            title="Excluir"
                           >
                             <DeleteForeverIcon />
                           </IconButton>
@@ -853,7 +854,7 @@ const ContasPagar = () => {
                           size="small"
                           color="error"
                           onClick={() => handleHardDelete(conta._id)}
-                          title="Excluir permanentemente"
+                          title="Excluir"
                         >
                           <DeleteForeverIcon />
                         </IconButton>
@@ -1234,31 +1235,32 @@ const ContasPagar = () => {
 
       {/* Dialog Confirmar Cancelamento */}
       <Dialog open={openConfirmCancel} onClose={() => setOpenConfirmCancel(false)}>
-        <DialogTitle>Confirmar Cancelamento</DialogTitle>
+        <DialogTitle>Confirmar Exclusão</DialogTitle>
         <DialogContent>
-          <Typography>Tem certeza que deseja cancelar esta conta?</Typography>
+          <Typography>Tem certeza que deseja excluir esta conta?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenConfirmCancel(false)}>Não</Button>
           <Button onClick={confirmCancel} variant="contained" color="error">
-            Sim, Cancelar
+            Sim, Excluir
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog Confirmar Cancelamento de Parcelas */}
       <Dialog open={openConfirmParcelas} onClose={() => setOpenConfirmParcelas(false)}>
-        <DialogTitle>Inativar Parcelas Restantes</DialogTitle>
+        <DialogTitle>Excluir Parcelas Restantes</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, textAlign: 'left' }}>
             Existem <strong>{parcelasInfo.count}</strong> parcela(s) restante(s) deste grupo.
+            Deseja excluir apenas esta parcela ou todas as restantes?
           </Typography>
           <Typography>
             Como você deseja proceder com o **cancelamento**?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            • <strong>Inativar apenas esta</strong>: Cancela apenas a parcela atual<br/>
-            • <strong>Inativar todas</strong>: Cancela esta e todas as parcelas restantes
+            • <strong>Excluir apenas esta</strong>: Exclui apenas a parcela atual<br/>
+            • <strong>Excluir todas</strong>: Exclui esta e todas as parcelas restantes
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1267,14 +1269,14 @@ const ContasPagar = () => {
             variant="outlined"
             color="primary"
           >
-            Inativar apenas esta
+            Excluir apenas esta
           </Button>
           <Button 
             onClick={cancelarTodasParcelas}
             variant="contained"
             color="warning"
           >
-            Inativar todas
+            Excluir todas
           </Button>
         </DialogActions>
       </Dialog>

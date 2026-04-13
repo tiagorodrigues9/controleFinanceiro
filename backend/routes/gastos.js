@@ -15,13 +15,22 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const { tipoDespesa, dataInicio, dataFim } = req.query;
+    const { tipoDespesa, subgrupo, formaPagamento, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id };
 
     if (tipoDespesa) {
       query['tipoDespesa.grupo'] = tipoDespesa;
     }
 
+    if (subgrupo) {
+      query['tipoDespesa.subgrupo'] = subgrupo;
+    }
+
+    if (formaPagamento) {
+      query.formaPagamento = formaPagamento;
+    }
+
+    // Se não houver filtro de data, aplicar filtro dos últimos 5 dias
     if (dataInicio && dataFim) {
       // Criar datas em UTC para evitar problemas de timezone
       const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
@@ -30,6 +39,18 @@ router.get('/', async (req, res) => {
       query.data = {
         $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
         $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+      };
+    } else {
+      // Aplicar filtro dos últimos 5 dias
+      const hoje = new Date();
+      const cincoDiasAtras = new Date(hoje);
+      cincoDiasAtras.setDate(hoje.getDate() - 5);
+      cincoDiasAtras.setHours(0, 0, 0, 0);
+      hoje.setHours(23, 59, 59, 999);
+
+      query.data = {
+        $gte: cincoDiasAtras,
+        $lte: hoje
       };
     }
 
@@ -175,20 +196,64 @@ router.post('/', [
     console.log('  Valor no objeto:', gasto.valor);
     console.log('  Tipo do valor:', typeof gasto.valor);
 
-    // Criar registro no extrato
-    await Extrato.create({
-      contaBancaria,
-      cartao: cartaoObj ? cartaoObj._id : null,
-      tipo: 'Saída',
-      valor: Math.round(parseFloat(valor) * 100) / 100, // Precisão de centavos
-      data: new Date(data),
-      motivo: `Gasto: ${local || 'Sem local'}`,
-      referencia: {
-        tipo: 'Gasto',
-        id: gasto._id
-      },
-      usuario: req.user._id
-    });
+    // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
+    if (formaPagamento !== 'Cartão de Crédito') {
+      await Extrato.create({
+        contaBancaria,
+        cartao: cartaoObj ? cartaoObj._id : null,
+        tipo: 'Saída',
+        valor: Math.round(parseFloat(valor) * 100) / 100, // Precisão de centavos
+        data: new Date(data),
+        motivo: `Gasto: ${local || 'Sem local'}`,
+        referencia: {
+          tipo: 'Gasto',
+          id: gasto._id
+        },
+        usuario: req.user._id
+      });
+    } else {
+      // Para cartão de crédito, adicionar à fatura do cartão
+      if (cartaoObj) {
+        const FaturaCartao = require('../models/FaturaCartao');
+        
+        // Determinar o mês de referência da fatura
+        const dataGasto = new Date(data);
+        const mesReferencia = dataGasto.toISOString().slice(0, 7); // "YYYY-MM"
+
+        // Buscar ou criar fatura do mês
+        let fatura = await FaturaCartao.findOne({
+          cartao: cartaoObj._id,
+          mesReferencia: mesReferencia,
+          usuario: req.user._id
+        });
+
+        if (!fatura) {
+          // Criar nova fatura
+          const dataVencimento = new Date(dataGasto);
+          dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
+          dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
+
+          const dataFechamento = new Date(dataVencimento);
+          dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
+
+          fatura = new FaturaCartao({
+            cartao: cartaoObj._id,
+            usuario: req.user._id,
+            mesReferencia: mesReferencia,
+            dataVencimento: dataVencimento,
+            dataFechamento: dataFechamento
+          });
+        }
+
+        // Adicionar despesa à fatura
+        await fatura.adicionarDespesa(
+          gasto._id,
+          Math.round(parseFloat(valor) * 100) / 100,
+          dataGasto,
+          `Gasto: ${local || 'Sem local'}`
+        );
+      }
+    }
 
     res.status(201).json(gasto);
   } catch (error) {
@@ -222,19 +287,69 @@ router.post('/:id/duplicar', async (req, res) => {
       usuario: req.user._id
     });
 
-    // Criar registro no extrato
-    await Extrato.create({
-      contaBancaria: novoGasto.contaBancaria,
-      tipo: 'Saída',
-      valor: novoGasto.valor,
-      data: new Date(),
-      motivo: `Gasto: ${novoGasto.local || 'Sem local'}`,
-      referencia: {
-        tipo: 'Gasto',
-        id: novoGasto._id
-      },
-      usuario: req.user._id
-    });
+    // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
+    if (novoGasto.formaPagamento !== 'Cartão de Crédito') {
+      await Extrato.create({
+        contaBancaria: novoGasto.contaBancaria,
+        tipo: 'Saída',
+        valor: novoGasto.valor,
+        data: new Date(),
+        motivo: `Gasto: ${novoGasto.local || 'Sem local'}`,
+        referencia: {
+          tipo: 'Gasto',
+          id: novoGasto._id
+        },
+        usuario: req.user._id
+      });
+    } else {
+      // Para cartão de crédito, adicionar à fatura do cartão
+      if (novoGasto.cartao) {
+        const FaturaCartao = require('../models/FaturaCartao');
+        const Cartao = require('../models/Cartao');
+        
+        // Buscar o cartão para obter informações
+        const cartaoObj = await Cartao.findOne({ _id: novoGasto.cartao, usuario: req.user._id, ativo: true });
+        
+        if (cartaoObj) {
+          // Determinar o mês de referência da fatura
+          const dataGasto = new Date();
+          const mesReferencia = dataGasto.toISOString().slice(0, 7); // "YYYY-MM"
+
+          // Buscar ou criar fatura do mês
+          let fatura = await FaturaCartao.findOne({
+            cartao: cartaoObj._id,
+            mesReferencia: mesReferencia,
+            usuario: req.user._id
+          });
+
+          if (!fatura) {
+            // Criar nova fatura
+            const dataVencimento = new Date(dataGasto);
+            dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
+            dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
+
+            const dataFechamento = new Date(dataVencimento);
+            dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
+
+            fatura = new FaturaCartao({
+              cartao: cartaoObj._id,
+              usuario: req.user._id,
+              mesReferencia: mesReferencia,
+              dataVencimento: dataVencimento,
+              dataFechamento: dataFechamento
+            });
+          }
+
+          // Adicionar despesa à fatura
+          await fatura.adicionarDespesa(
+            novoGasto._id,
+            novoGasto.valor,
+            dataGasto,
+            `Gasto: ${novoGasto.local || 'Sem local'}`
+          );
+        }
+      }
+    }
 
     res.status(201).json(novoGasto);
   } catch (error) {
