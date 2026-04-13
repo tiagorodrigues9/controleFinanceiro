@@ -352,7 +352,48 @@ module.exports = async (req, res) => {
       // ROTA DE GASTOS - Prioridade alta para evitar timeout
       if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
         if (req.method === 'GET') {
-          const gastos = await Gasto.find({ usuario: req.user._id })
+          // Extrair query params para filtros
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          const tipoDespesa = params.get('tipoDespesa');
+          const subgrupo = params.get('subgrupo');
+          const formaPagamento = params.get('formaPagamento');
+          const dataInicio = params.get('dataInicio');
+          const dataFim = params.get('dataFim');
+          
+          // Construir query base
+          let query = { usuario: req.user._id };
+          
+          // filtro por tipo de despesa
+          if (tipoDespesa) {
+            query['tipoDespesa.grupo'] = tipoDespesa;
+          }
+          
+          // filtro por subgrupo
+          if (subgrupo) {
+            query['tipoDespesa.subgrupo'] = subgrupo;
+          }
+          
+          // filtro por forma de pagamento
+          if (formaPagamento) {
+            query.formaPagamento = formaPagamento;
+          }
+          
+          // filtro por data range
+          if (dataInicio && dataFim) {
+            // Adicionar 1 dia à data fim para incluir o dia completo
+            const dataFimComHora = new Date(dataFim + 'T23:59:59');
+            const dataInicioComHora = new Date(dataInicio + 'T00:00:00');
+            
+            query.data = { 
+              $gte: dataInicioComHora, 
+              $lte: dataFimComHora 
+            };
+          }
+          
+          const gastos = await Gasto.find(query)
             .populate('tipoDespesa.grupo', 'nome')
             .sort({ data: -1 })
             .limit(50) // Reduzido para melhor performance
@@ -490,9 +531,13 @@ module.exports = async (req, res) => {
           
           // filtro por data range
           if (dataInicio && dataFim) {
+            // Adicionar 1 dia à data fim para incluir o dia completo
+            const dataFimComHora = new Date(dataFim + 'T23:59:59');
+            const dataInicioComHora = new Date(dataInicio + 'T00:00:00');
+            
             query.data = { 
-              $gte: new Date(dataInicio), 
-              $lte: new Date(dataFim) 
+              $gte: dataInicioComHora, 
+              $lte: dataFimComHora 
             };
           }
           
