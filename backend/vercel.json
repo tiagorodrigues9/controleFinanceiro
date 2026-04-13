@@ -48,21 +48,21 @@
     },
     {
       "source": "/api/fatura-cartao",
-      "destination": "/api/faturaCartao.js"
+      "destination": "/api/crud.js"
     },
     {
       "source": "/api/fatura-cartao/(.*)",
-      "destination": "/api/faturaCartao.js"
+      "destination": "/api/crud.js"
     },
     {
       "source": "/api/dashboard-faturas",
-      "destination": "/api/dashboardFaturas.js"
+      "destination": "/api/crud.js"
     },
     {
       "source": "/api/dashboard-faturas/(.*)",
-      "destination": "/api/dashboardFaturas.js"
+      "destination": "/api/crud.js"
     },
-    {
+        {
       "source": "/api/extrato/saldo-inicial",
       "destination": "/api/crud.js"
     },

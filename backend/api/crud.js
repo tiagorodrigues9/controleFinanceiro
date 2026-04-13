@@ -13,6 +13,7 @@ const FormaPagamento = require('../models/FormaPagamento');
 const Cartao = require('../models/Cartao');
 const Notificacao = require('../models/Notificacao');
 const EmailLog = require('../models/EmailLog');
+const FaturaCartao = require('../models/FaturaCartao');
 
 // Handler genérico para rotas CRUD
 module.exports = async (req, res) => {
