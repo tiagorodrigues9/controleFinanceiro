@@ -130,6 +130,224 @@ module.exports = async (req, res) => {
           }
         }
       }
+      
+      // ROTAS DE FATURAS DE CARTÃO
+      if (cleanPath === '/fatura-cartao' || cleanPath.includes('fatura-cartao')) {
+        if (req.method === 'GET') {
+          console.log('Buscando faturas de cartão...');
+          
+          // Extrair query params
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          const cartao = params.get('cartao');
+          const filter = { usuario: req.user._id };
+          
+          if (cartao) {
+            filter.cartao = cartao;
+          }
+          
+          const faturas = await FaturaCartao.find(filter)
+            .populate('cartao')
+            .sort({ mesReferencia: -1 });
+          
+          return res.json(faturas);
+        }
+        
+        if (req.method === 'POST') {
+          const { contaId, cartaoId, valorPago } = body;
+          
+          if (!contaId || !cartaoId || !valorPago) {
+            return res.status(400).json({ message: 'Dados incompletos' });
+          }
+          
+          // Buscar conta
+          const conta = await Conta.findOne({
+            _id: contaId,
+            usuario: req.user._id
+          });
+          
+          if (!conta) {
+            return res.status(404).json({ message: 'Conta não encontrada' });
+          }
+          
+          // Buscar cartão
+          const cartao = await Cartao.findOne({
+            _id: cartaoId,
+            usuario: req.user._id,
+            ativo: true
+          });
+          
+          if (!cartao) {
+            return res.status(400).json({ message: 'Cartão não encontrado' });
+          }
+          
+          // Determinar mês de referência
+          const dataVencimento = new Date(conta.dataVencimento);
+          const mesReferencia = dataVencimento.toISOString().slice(0, 7);
+          
+          // Buscar ou criar fatura
+          let fatura = await FaturaCartao.findOne({
+            cartao: cartaoId,
+            mesReferencia: mesReferencia,
+            usuario: req.user._id
+          });
+          
+          if (!fatura) {
+            const dataVenc = new Date(dataVencimento);
+            dataVenc.setMonth(dataVenc.getMonth() + 1);
+            dataVenc.setDate(cartao.diaVencimento || 10);
+            
+            const dataFechamento = new Date(dataVenc);
+            dataFechamento.setDate(dataFechamento.getDate() - 5);
+            
+            fatura = new FaturaCartao({
+              cartao: cartaoId,
+              usuario: req.user._id,
+              mesReferencia: mesReferencia,
+              dataVencimento: dataVenc,
+              dataFechamento: dataFechamento
+            });
+          }
+          
+          await fatura.adicionarDespesa(contaId, valorPago, dataVencimento, conta.nome);
+          return res.json({ message: 'Despesa adicionada à fatura', fatura });
+        }
+      }
+      
+      // Rota para pagar fatura específica
+      if (cleanPath.includes('/fatura-cartao/') && cleanPath.endsWith('/pagar')) {
+        if (req.method === 'POST') {
+          const pathParts = cleanPath.split('/');
+          const faturaId = pathParts[pathParts.length - 2];
+          const { contaBancaria } = body;
+          
+          if (!contaBancaria) {
+            return res.status(400).json({ message: 'Conta bancária é obrigatória' });
+          }
+          
+          const fatura = await FaturaCartao.findOne({
+            _id: faturaId,
+            usuario: req.user._id
+          }).populate('cartao');
+          
+          if (!fatura) {
+            return res.status(404).json({ message: 'Fatura não encontrada' });
+          }
+          
+          if (fatura.status === 'Paga') {
+            return res.status(400).json({ message: 'Fatura já está paga' });
+          }
+          
+          const contaBancariaObj = await ContaBancaria.findOne({
+            _id: contaBancaria,
+            usuario: req.user._id,
+            ativo: { $ne: false }
+          });
+          
+          if (!contaBancariaObj) {
+            return res.status(400).json({ message: 'Conta bancária inválida' });
+          }
+          
+          await fatura.pagarFatura(contaBancaria);
+          
+          await Extrato.create({
+            contaBancaria: contaBancaria,
+            cartao: fatura.cartao._id,
+            tipo: 'Saída',
+            valor: fatura.valorTotal,
+            data: new Date(),
+            motivo: `Pagamento Fatura Cartão ${fatura.cartao.nome} - ${fatura.mesReferencia}`,
+            referencia: {
+              tipo: 'FaturaCartao',
+              id: fatura._id
+            },
+            usuario: req.user._id
+          });
+          
+          return res.json({ message: 'Fatura paga com sucesso', fatura });
+        }
+      }
+      
+      // ROTAS DE DASHBOARD-FATURAS
+      if (cleanPath === '/dashboard-faturas' || cleanPath.includes('dashboard-faturas')) {
+        if (req.method === 'GET') {
+          const url = req.url || '';
+          const queryString = url.split('?')[1] || '';
+          const params = new URLSearchParams(queryString);
+          
+          if (cleanPath.includes('/resumo')) {
+            const usuarioId = req.user._id;
+            const hoje = new Date();
+            const mesAtual = hoje.toISOString().slice(0, 7);
+            const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1).toISOString().slice(0, 7);
+            
+            const faturas = await FaturaCartao.find({
+              usuario: usuarioId,
+              mesReferencia: { $in: [mesAnterior, mesAtual] }
+            }).populate('cartao');
+            
+            const resumo = {
+              totalAberto: 0,
+              totalFechado: 0,
+              totalPago: 0,
+              faturasAbertas: [],
+              faturasVencendo: [],
+              faturasVencidas: []
+            };
+            
+            faturas.forEach(fatura => {
+              if (fatura.status === 'Aberta') {
+                resumo.totalAberto += fatura.valorTotal;
+                resumo.faturasAbertas.push(fatura);
+                
+                const diasParaVencimento = Math.ceil((fatura.dataVencimento - hoje) / (1000 * 60 * 60 * 24));
+                if (diasParaVencimento <= 7 && diasParaVencimento >= 0) {
+                  resumo.faturasVencendo.push({ ...fatura.toObject(), diasParaVencimento });
+                }
+                if (diasParaVencimento < 0) {
+                  resumo.faturasVencidas.push(fatura);
+                }
+              } else if (fatura.status === 'Fechada') {
+                resumo.totalFechado += fatura.valorTotal;
+              } else if (fatura.status === 'Paga') {
+                resumo.totalPago += fatura.valorTotal;
+              }
+            });
+            
+            return res.json(resumo);
+          }
+          
+          if (cleanPath.includes('/tendencias')) {
+            const meses = [];
+            const hoje = new Date();
+            
+            for (let i = 5; i >= 0; i--) {
+              const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+              meses.push(data.toISOString().slice(0, 7));
+            }
+            
+            const faturas = await FaturaCartao.find({
+              usuario: req.user._id,
+              mesReferencia: { $in: meses }
+            }).populate('cartao');
+            
+            const tendencias = meses.map(mes => {
+              const faturasDoMes = faturas.filter(f => f.mesReferencia === mes);
+              const totalMes = faturasDoMes.reduce((sum, f) => sum + f.valorTotal, 0);
+              
+              return {
+                mes,
+                total: totalMes,
+                quantidade: faturasDoMes.length
+              };
+            });
+            
+            return res.json(tendencias);
+          }
+        }
+      }
 
       // ROTA DE GASTOS - Prioridade alta para evitar timeout
       if (cleanPath === '/gastos' || cleanPath.includes('gastos')) {
