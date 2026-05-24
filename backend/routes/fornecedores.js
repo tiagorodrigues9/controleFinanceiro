@@ -3,8 +3,12 @@ const { body, validationResult } = require('express-validator');
 const Fornecedor = require('../models/Fornecedor');
 const Conta = require('../models/Conta');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -20,7 +24,7 @@ router.get('/', async (req, res) => {
 
     res.json(fornecedores);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar fornecedores' });
   }
 });
@@ -41,7 +45,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(fornecedor);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar fornecedor' });
   }
 });
@@ -69,7 +73,7 @@ router.post('/', [
 
     res.status(201).json(fornecedor);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar fornecedor' });
   }
 });
@@ -107,7 +111,7 @@ router.put('/:id', [
 
     res.json(fornecedor);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar fornecedor' });
   }
 });
@@ -144,7 +148,7 @@ router.put('/:id/inativar', async (req, res) => {
 
     res.json({ message: 'Fornecedor inativado com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao inativar fornecedor' });
   }
 });

@@ -3,8 +3,12 @@ const { body, validationResult } = require('express-validator');
 const ContaBancaria = require('../models/ContaBancaria');
 const Extrato = require('../models/Extrato');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -22,33 +26,42 @@ router.get('/', async (req, res) => {
 
     const contasBancarias = await ContaBancaria.find(filter).sort({ nome: 1 });
 
-    // Calcular saldo para cada conta
-    const contasComSaldo = await Promise.all(
-      contasBancarias.map(async (conta) => {
-        const extratos = await Extrato.find({
-          contaBancaria: conta._id,
+    // Calcular saldo para todas as contas de uma vez via aggregation
+    const saldosAgg = await Extrato.aggregate([
+      {
+        $match: {
           usuario: req.user._id,
-          estornado: false
-        });
-
-        const saldo = extratos.reduce((acc, extrato) => {
-          if (extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial') {
-            return acc + extrato.valor;
-          } else {
-            return acc - extrato.valor;
+          estornado: false,
+          contaBancaria: { $in: contasBancarias.map(c => c._id) }
+        }
+      },
+      {
+        $group: {
+          _id: '$contaBancaria',
+          saldo: {
+            $sum: {
+              $cond: {
+                if: { $in: ['$tipo', ['Entrada', 'Saldo Inicial']] },
+                then: '$valor',
+                else: { $multiply: ['$valor', -1] }
+              }
+            }
           }
-        }, 0);
+        }
+      }
+    ]);
 
-        return {
-          ...conta.toObject(),
-          saldo
-        };
-      })
-    );
+    const saldoMap = {};
+    saldosAgg.forEach(s => { saldoMap[s._id.toString()] = s.saldo; });
+
+    const contasComSaldo = contasBancarias.map(conta => ({
+      ...conta.toObject(),
+      saldo: saldoMap[conta._id.toString()] || 0
+    }));
 
     res.json(contasComSaldo);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar contas bancárias' });
   }
 });
@@ -87,7 +100,7 @@ router.get('/:id', async (req, res) => {
       saldo
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar conta bancária' });
   }
 });
@@ -117,7 +130,7 @@ router.post('/', [
 
     res.status(201).json(contaBancaria);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar conta bancária' });
   }
 });
@@ -154,7 +167,7 @@ router.put('/:id', [
 
     res.json(contaBancaria);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar conta bancária' });
   }
 });
@@ -179,7 +192,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Conta bancária inativada com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir conta bancária' });
   }
 });

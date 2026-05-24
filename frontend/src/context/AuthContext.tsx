@@ -25,22 +25,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Verificar se já existe usuário logado ao carregar a página
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
-    console.log('🔍 Debug AuthContext - Token no localStorage:', token ? 'SIM' : 'NÃO');
-    console.log('🔍 Debug AuthContext - User data no localStorage:', userData ? 'SIM' : 'NÃO');
 
     if (token && userData) {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        console.log('✅ Usuário restaurado do localStorage:', parsedUser.email);
-      } catch (error) {
-        console.error('❌ Erro ao carregar usuário do localStorage:', error);
+      } catch {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
       }
-    } else {
-      console.log('🔍 Nenhum token encontrado, usuário não está logado');
     }
     
     // Finaliza verificação inicial
@@ -52,19 +46,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       
       const response = await api.post('/auth/login', { email, password });
-      const { token, user } = response.data;
-
-      console.log('🔑 Login - Token recebido:', token ? 'SIM' : 'NÃO');
-      console.log('👤 Login - User recebido:', user.email);
+      const { token, refreshToken, user } = response.data;
 
       localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
-      
-      // Verificar se foi salvo corretamente
-      const tokenSalvo = localStorage.getItem('token');
-      const userSalvo = localStorage.getItem('user');
-      console.log('💾 Login - Token salvo no localStorage:', tokenSalvo ? 'SIM' : 'NÃO');
-      console.log('💾 Login - User salvo no localStorage:', userSalvo ? 'SIM' : 'NÃO');
 
       setUser(user);
 
@@ -78,15 +64,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         message: errorMessage,
       };
     }
-    // Removido setLoading - não usa mais loading do contexto
   };
 
   const register = async (nome: string, email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const response = await api.post('/auth/register', { nome, email, password });
-      const { token, user } = response.data;
+      const { token, refreshToken, user } = response.data;
 
       localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
 
@@ -101,6 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = (): void => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
   };

@@ -78,6 +78,15 @@ const contaSchema = new mongoose.Schema({
   ativo: {
     type: Boolean,
     default: true
+  },
+  frequencia: {
+    type: String,
+    enum: ['Nenhuma', 'Semanal', 'Mensal', 'Anual'],
+    default: 'Nenhuma'
+  },
+  parcelaGerada: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
@@ -90,7 +99,10 @@ contaSchema.index({ fornecedor: 1, usuario: 1 });
 contaSchema.index({ dataVencimento: 1, status: 1 });
 
 contaSchema.pre('save', function(next) {
-  if (this.status === 'Pendente' && this.dataVencimento < new Date()) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  
+  if (this.status === 'Pendente' && this.dataVencimento < hoje) {
     this.status = 'Vencida';
   }
   next();

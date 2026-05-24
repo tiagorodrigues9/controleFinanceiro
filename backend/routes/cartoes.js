@@ -2,8 +2,12 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Cartao = require('../models/Cartao');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -17,7 +21,7 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(cartoes);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar cartões' });
   }
 });
@@ -36,13 +40,13 @@ router.post('/', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('Erros de validação:', errors.array());
+      logger.debug('Erros de validação:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { nome, tipo, banco, limite, diaFatura, dataVencimento } = req.body;
     
-    console.log('Dados recebidos:', { nome, tipo, banco, limite, diaFatura, dataVencimento });
+    logger.debug('Dados recebidos:', { nome, tipo, banco, limite, diaFatura, dataVencimento });
 
     // Verificar se já existe cartão com mesmo nome para este usuário
     const cartaoExistente = await Cartao.findOne({ 
@@ -64,10 +68,10 @@ router.post('/', [
       usuario: req.user._id
     });
 
-    console.log('Cartão criado:', cartao);
+    logger.debug('Cartão criado:', cartao);
     res.status(201).json(cartao);
   } catch (error) {
-    console.error('Erro ao criar cartão:', error);
+    logger.error('Erro ao criar cartão:', error);
     res.status(500).json({ message: 'Erro ao criar cartão', error: error.message });
   }
 });
@@ -131,7 +135,7 @@ router.put('/:id', [
     await cartao.save();
     res.json(cartao);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar cartão' });
   }
 });
@@ -158,7 +162,7 @@ router.put('/:id/inativar', async (req, res) => {
       cartao 
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao alterar status do cartão' });
   }
 });
@@ -180,7 +184,7 @@ router.delete('/:id', async (req, res) => {
     await Cartao.deleteOne({ _id: req.params.id });
     res.json({ message: 'Cartão excluído com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir cartão' });
   }
 });
@@ -238,7 +242,7 @@ router.get('/relatorio-gastos', async (req, res) => {
 
     res.json(relatorio);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao gerar relatório de gastos' });
   }
 });

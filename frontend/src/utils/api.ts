@@ -1,50 +1,112 @@
-import axios, { AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`,
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 // Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('🔍 Interceptor - Verificando token para URL:', config.url);
-    console.log('🔍 Interceptor - Token encontrado:', token ? 'SIM' : 'NÃO');
-    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Token adicionado à requisição:', token.substring(0, 20) + '...');
-    } else {
-      console.log('🔍 Nenhum token encontrado no localStorage');
     }
     return config;
   },
-  (error) => {
-    console.error('❌ Erro no interceptor de requisição:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor para tratar erros de autenticação
+// Interceptor para tratar erros de autenticação com refresh automático
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      console.log('❌ Erro 401 - Token inválido ou expirado');
-      console.log('📍 URL que causou 401:', error.config?.url);
-      console.log('📍 Método que causou 401:', error.config?.method);
-      
-      // Limpar localStorage imediatamente
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Se não é 401 ou já tentou retry, rejeitar
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Não tentar refresh na própria rota de refresh ou login
+    if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
-      
-      // Redirecionar para login se não estiver na página de login
       if (window.location.pathname !== '/login') {
-        console.log('🔄 Redirecionando para login...');
         window.location.href = '/login';
       }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    // Se já está fazendo refresh, enfileirar a requisição
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({
+          resolve: (token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          },
+          reject,
+        });
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      isRefreshing = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    }
+
+    try {
+      const { data } = await axios.post(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/refresh`,
+        { refreshToken }
+      );
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+
+      originalRequest.headers.Authorization = `Bearer ${data.token}`;
+      processQueue(null, data.token);
+
+      return api(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 

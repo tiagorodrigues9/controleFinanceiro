@@ -18,6 +18,21 @@ class NotificationService {
       console.log(`Data atual: ${hoje.toISOString()}`);
       console.log(`Data limite (7 dias): ${daqui7dias.toISOString()}`);
 
+      // 1. Atualizar status de todas as contas que venceram para 'Vencida'
+      const dataParaVencimento = new Date(hoje);
+      dataParaVencimento.setHours(0, 0, 0, 0);
+
+      const updateResult = await Conta.updateMany(
+        {
+          status: 'Pendente',
+          dataVencimento: { $lt: dataParaVencimento },
+          ativo: { $ne: false }
+        },
+        { status: 'Vencida' }
+      );
+      
+      console.log(`Atualização global: ${updateResult.modifiedCount} contas pendentes marcadas como Vencida.`);
+
       // Buscar todos os usuários e verificar configurações individualmente
       const usuarios = await User.find({});
       console.log(`Total de usuários encontrados: ${usuarios.length}`);

@@ -22,8 +22,8 @@ import FormasPagamento from './pages/FormasPagamento';
 import Cartoes from './pages/Cartoes';
 import FaturasCartao from './pages/FaturasCartao';
 import Notificacoes from './pages/Notificacoes';
+import Orcamentos from './pages/Orcamentos';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import PWAInstallBanner from './components/PWAInstallBanner';
 import UpdateNotification from './components/UpdateNotification';
 
 const theme = createTheme({
@@ -77,6 +77,7 @@ function AppContent() {
                 <Route path="/cartoes" element={<Cartoes />} />
                 <Route path="/faturas-cartao" element={<FaturasCartao />} />
                 <Route path="/notificacoes" element={<Notificacoes />} />
+                <Route path="/orcamentos" element={<Orcamentos />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </MainLayout>
@@ -97,7 +98,6 @@ function App() {
         </Router>
       </AuthProvider>
       <PWAInstallPrompt />
-      <PWAInstallBanner />
       <UpdateNotification />
     </ThemeProvider>
   );

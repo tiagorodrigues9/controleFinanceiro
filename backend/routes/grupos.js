@@ -2,6 +2,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Grupo = require('../models/Grupo');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -19,7 +21,7 @@ router.get('/', async (req, res) => {
 
     res.json(grupos);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar grupos' });
   }
 });
@@ -40,7 +42,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(grupo);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar grupo' });
   }
 });
@@ -67,7 +69,7 @@ router.post('/', [
 
     res.status(201).json(grupo);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar grupo' });
   }
 });
@@ -101,7 +103,7 @@ router.put('/:id', [
 
     res.json(grupo);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar grupo' });
   }
 });
@@ -132,7 +134,7 @@ router.post('/:id/subgrupos', [
 
     res.json(grupo);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao adicionar subgrupo' });
   }
 });
@@ -155,7 +157,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Grupo excluído com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir grupo' });
   }
 });
@@ -185,7 +187,7 @@ router.delete('/:id/subgrupos/:subId', async (req, res) => {
 
     res.json({ message: 'Subgrupo excluído com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir subgrupo' });
   }
 });

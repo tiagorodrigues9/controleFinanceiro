@@ -1,10 +1,13 @@
 const express = require('express');
-const router = express.Router();
 const EmailLog = require('../models/EmailLog');
 const auth = require('../middleware/auth');
+const emailService = require('../services/emailService');
+const { logger } = require('../utils/logger');
+
+const router = express.Router();
 
 // Listar e-mails salvos (só admin)
-router.get('/emails', auth, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, to } = req.query;
     
@@ -27,29 +30,13 @@ router.get('/emails', auth, async (req, res) => {
       total
     });
   } catch (error) {
-    console.error('Erro ao listar e-mails:', error);
+    logger.error('Erro ao listar e-mails:', error);
     res.status(500).json({ message: 'Erro ao listar e-mails' });
   }
 });
 
-// Ver detalhes de um e-mail
-router.get('/emails/:id', auth, async (req, res) => {
-  try {
-    const email = await EmailLog.findById(req.params.id);
-    
-    if (!email) {
-      return res.status(404).json({ message: 'E-mail não encontrado' });
-    }
-    
-    res.json(email);
-  } catch (error) {
-    console.error('Erro ao buscar e-mail:', error);
-    res.status(500).json({ message: 'Erro ao buscar e-mail' });
-  }
-});
-
 // Estatísticas dos e-mails
-router.get('/emails/stats', auth, async (req, res) => {
+router.get('/stats', auth, async (req, res) => {
   try {
     const stats = await EmailLog.aggregate([
       {
@@ -69,9 +56,26 @@ router.get('/emails/stats', auth, async (req, res) => {
       recentCount: recent
     });
   } catch (error) {
-    console.error('Erro ao buscar estatísticas:', error);
+    logger.error('Erro ao buscar estatísticas:', error);
     res.status(500).json({ message: 'Erro ao buscar estatísticas' });
   }
 });
+
+// Ver detalhes de um e-mail
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const email = await EmailLog.findById(req.params.id);
+    
+    if (!email) {
+      return res.status(404).json({ message: 'E-mail não encontrado' });
+    }
+    
+    res.json(email);
+  } catch (error) {
+    logger.error('Erro ao buscar e-mail:', error);
+    res.status(500).json({ message: 'Erro ao buscar e-mail' });
+  }
+});
+
 
 module.exports = router;

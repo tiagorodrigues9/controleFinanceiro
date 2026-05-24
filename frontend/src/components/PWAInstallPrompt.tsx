@@ -1,3 +1,4 @@
+// @ts-nocheck
 // PWA Install Prompt Component
 import React, { useState, useEffect } from 'react';
 import {

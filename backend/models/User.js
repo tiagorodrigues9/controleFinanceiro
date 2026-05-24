@@ -31,12 +31,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  resetPasswordToken: {
-    type: String
-  },
-  resetPasswordExpire: {
-    type: Date
-  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+  refreshToken: String,
   configuracoes: {
     notificacoes: {
       ativo: {

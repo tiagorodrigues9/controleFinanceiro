@@ -67,8 +67,8 @@ router.get('/:id', async (req, res) => {
 // @desc    Adicionar despesa à fatura do cartão de crédito
 // @access  Private
 router.post('/pagar-conta', [
-  body('contaId').notEmpty().withMessage('ID da conta é obrigatório'),
-  body('cartaoId').notEmpty().withMessage('ID do cartão é obrigatório')
+  body('contaId').notEmpty().withMessage('ID da conta é obrigatório').isMongoId().withMessage('ID da conta inválido'),
+  body('cartaoId').notEmpty().withMessage('ID do cartão é obrigatório').isMongoId().withMessage('ID do cartão inválido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -99,9 +99,35 @@ router.post('/pagar-conta', [
       return res.status(404).json({ message: 'Cartão não encontrado ou inativo' });
     }
 
-    // Determinar o mês de referência da fatura
-    const dataPagamento = new Date(conta.dataPagamento);
-    const mesReferencia = dataPagamento.toISOString().slice(0, 7); // "YYYY-MM"
+    // Determinar o mês de referência da fatura com base na data de fechamento
+    const diaVenc = cartao.diaFatura || 10;
+    
+    // Simples aproximação: data de fechamento é 5 dias antes
+    let diaFech = diaVenc - 5;
+    if (diaFech <= 0) diaFech = 25; 
+
+    let mesFatura = dataPagamento.getMonth();
+    let anoFatura = dataPagamento.getFullYear();
+
+    // Calcular a data exata de fechamento para o mês do gasto
+    const tempDataFechamento = new Date(anoFatura, mesFatura, diaVenc);
+    tempDataFechamento.setDate(tempDataFechamento.getDate() - 5);
+
+    // Se o pagamento ocorreu DEPOIS da data de fechamento, cai na fatura do próximo mês
+    if (dataPagamento > tempDataFechamento) {
+      mesFatura++;
+      if (mesFatura > 11) {
+        mesFatura = 0;
+        anoFatura++;
+      }
+    }
+
+    const dataVencimento = new Date(anoFatura, mesFatura, diaVenc);
+    const dataFechamento = new Date(dataVencimento);
+    dataFechamento.setDate(dataFechamento.getDate() - 5);
+    
+    const mesStr = String(mesFatura + 1).padStart(2, '0');
+    const mesReferencia = `${anoFatura}-${mesStr}`;
 
     // Buscar ou criar fatura do mês
     let fatura = await FaturaCartao.findOne({
@@ -111,14 +137,6 @@ router.post('/pagar-conta', [
     });
 
     if (!fatura) {
-      // Criar nova fatura
-      const dataVencimento = new Date(dataPagamento);
-      dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
-      dataVencimento.setDate(cartao.diaVencimento || 10); // Dia de vencimento do cartão
-
-      const dataFechamento = new Date(dataVencimento);
-      dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
-
       fatura = new FaturaCartao({
         cartao: cartaoId,
         usuario: req.user._id,
@@ -159,7 +177,7 @@ router.post('/pagar-conta', [
 // @desc    Pagar fatura do cartão de crédito
 // @access  Private
 router.post('/:id/pagar', [
-  body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória')
+  body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória').isMongoId().withMessage('ID da conta bancária inválido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

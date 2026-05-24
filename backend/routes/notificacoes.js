@@ -1,6 +1,7 @@
 const express = require('express');
 const Notificacao = require('../models/Notificacao');
 const auth = require('../middleware/auth');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
     
     res.json(notificacoes);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar notificações' });
   }
 });
@@ -37,7 +38,7 @@ router.get('/nao-lidas', async (req, res) => {
     
     res.json(notificacoes);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar notificações não lidas' });
   }
 });
@@ -61,7 +62,7 @@ router.put('/:id/marcar-lida', async (req, res) => {
 
     res.json(notificacao);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao marcar notificação como lida' });
   }
 });
@@ -78,7 +79,7 @@ router.put('/marcar-todas-lidas', async (req, res) => {
 
     res.json({ message: 'Todas as notificações marcadas como lidas' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao marcar notificações como lidas' });
   }
 });
@@ -88,18 +89,17 @@ router.put('/marcar-todas-lidas', async (req, res) => {
 // @access  Private
 router.delete('/limpar-todas', async (req, res) => {
   try {
-    console.log('🗑️ Tentando limpar notificações do usuário:', req.user._id);
-    console.log('🔑 Token recebido:', req.header('Authorization')?.substring(0, 20) + '...');
+    logger.debug('🗑️ Tentando limpar notificações do usuário:', req.user._id);
     
     const resultado = await Notificacao.deleteMany({ usuario: req.user._id });
-    console.log('📊 Resultado da exclusão:', resultado);
+    logger.debug('📊 Resultado da exclusão:', resultado);
 
     res.json({ 
       message: 'Todas as notificações excluídas com sucesso',
       deletadas: resultado.deletedCount 
     });
   } catch (error) {
-    console.error('❌ Erro ao limpar notificações:', error);
+    logger.error('❌ Erro ao limpar notificações:', error);
     res.status(500).json({ message: 'Erro ao limpar notificações' });
   }
 });
@@ -122,7 +122,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Notificação excluída com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir notificação' });
   }
 });
@@ -131,7 +131,7 @@ router.delete('/:id', async (req, res) => {
 // @desc    Teste simples de conexão
 // @access  Private
 router.get('/ping', async (req, res) => {
-  console.log('🏓 PING recebido do usuário:', req.user._id);
+  logger.debug('🏓 PING recebido do usuário:', req.user._id);
   res.json({ 
     message: 'PONG - Servidor respondendo!',
     usuario: req.user._id,
@@ -139,144 +139,40 @@ router.get('/ping', async (req, res) => {
   });
 });
 
+// @route   POST /api/notificacoes/teste-criacao
+// @desc    Criar uma notificação de teste
+// @access  Private
+router.post('/teste-criacao', async (req, res) => {
+  try {
+    const NotificationService = require('../services/NotificationService');
+    const notificacao = await NotificationService.criarNotificacao(
+      req.user._id,
+      'sistema',
+      'Notificação de Teste',
+      'Esta é uma notificação de teste gerada pelo sistema.'
+    );
+    res.json(notificacao || { titulo: 'Notificação de Teste', mensagem: 'Esta é uma notificação de teste gerada pelo sistema.' });
+  } catch (error) {
+    logger.error('Erro ao criar notificação de teste:', error);
+    res.status(500).json({ message: 'Erro ao criar notificação de teste' });
+  }
+});
 // @route   POST /api/notificacoes/verificar-agora
 // @desc    Verificar notificações imediatamente (para teste)
 // @access  Private
 router.post('/verificar-agora', async (req, res) => {
   try {
-    console.log('🚀 Iniciando verificação manual de notificações...');
-    console.log('Usuário:', req.user._id);
+    logger.debug('🚀 Iniciando verificação manual de notificações...');
+    logger.debug('Usuário:', req.user._id);
     
     const NotificationService = require('../services/NotificationService');
     await NotificationService.verificarContasVencidas();
     await NotificationService.verificarLimitesCartoes();
     
-    console.log('✅ Verificação manual concluída!');
-    res.json({ message: 'Verificação de notificações executada com sucesso' });
+    res.json({ message: 'Verificação concluída' });
   } catch (error) {
-    console.error('❌ Erro na verificação manual:', error);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ message: 'Erro ao verificar notificações', error: error.message });
-  }
-});
-
-// @route   GET /api/notificacoes/debug
-// @desc    Debug do sistema de notificações
-// @access  Private
-router.get('/debug', async (req, res) => {
-  try {
-    const Conta = require('../models/Conta');
-    const User = require('../models/User');
-    const hoje = new Date();
-    
-    // Verificar configurações do usuário
-    const usuario = await User.findById(req.user._id);
-    const configNotificacoes = usuario?.configuracoes?.notificacoes;
-    
-    // Verificar contas vencidas
-    const contasVencidas = await Conta.find({
-      usuario: req.user._id,
-      dataVencimento: { $lt: hoje },
-      status: { $in: ['Pendente', 'Vencida'] },
-      ativo: { $ne: false }
-    }).populate('fornecedor');
-    
-    // Verificar contas existentes
-    const totalContas = await Conta.countDocuments({ usuario: req.user._id });
-    
-    // Verificar notificações existentes
-    const totalNotificacoes = await Notificacao.countDocuments({ usuario: req.user._id });
-    const notificacoesNaoLidas = await Notificacao.countDocuments({ 
-      usuario: req.user._id, 
-      lida: false 
-    });
-    
-    res.json({
-      debug: {
-        usuario: {
-          id: req.user._id,
-          nome: usuario.nome,
-          configuracoesNotificacoes: configNotificacoes
-        },
-        contas: {
-          total: totalContas,
-          vencidas: contasVencidas.length,
-          detalhes: contasVencidas.map(c => ({
-            nome: c.nome,
-            fornecedor: c.fornecedor?.nome,
-            dataVencimento: c.dataVencimento,
-            status: c.status,
-            valor: c.valor
-          }))
-        },
-        notificacoes: {
-          total: totalNotificacoes,
-          naoLidas: notificacoesNaoLidas
-        },
-        dataAtual: hoje
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erro ao obter debug' });
-  }
-});
-
-// @route   POST /api/notificacoes/teste-criacao
-// @desc    Teste simples de criação de notificação
-// @access  Private
-router.post('/teste-criacao', async (req, res) => {
-  try {
-    console.log('🧪 Teste de criação de notificação...');
-    console.log('Usuário ID:', req.user._id);
-    
-    // Testar se o modelo Notificacao está funcionando
-    console.log('Tentando criar notificação...');
-    
-    const notificacao = await Notificacao.create({
-      usuario: req.user._id,
-      tipo: 'conta_vencida',
-      titulo: 'TESTE - Conta Vencida',
-      mensagem: 'Esta é uma notificação de teste para verificar se o sistema funciona.',
-      // Removendo referencia para testar sem ele
-    });
-
-    console.log('✅ Notificação de teste criada:', notificacao);
-    res.json({ 
-      message: 'Notificação de teste criada com sucesso',
-      notificacao 
-    });
-  } catch (error) {
-    console.error('❌ Erro ao criar notificação de teste:', error);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ 
-      message: 'Erro ao criar notificação de teste', 
-      error: error.message,
-      stack: error.stack 
-    });
-  }
-});
-
-// @route   GET /api/notificacoes/teste-simples
-// @desc    Teste simples sem criar nada
-// @access  Private
-router.get('/teste-simples', async (req, res) => {
-  try {
-    console.log('🔍 Teste simples - verificando se a rota funciona...');
-    console.log('Usuário ID:', req.user._id);
-    console.log('Modelo Notificacao carregado:', !!Notificacao);
-    
-    res.json({ 
-      message: 'Teste simples funcionou',
-      usuario: req.user._id,
-      modeloNotificacao: !!Notificacao
-    });
-  } catch (error) {
-    console.error('❌ Erro no teste simples:', error);
-    res.status(500).json({ 
-      message: 'Erro no teste simples', 
-      error: error.message 
-    });
+    logger.error('Erro na verificação manual:', error);
+    res.status(500).json({ message: 'Erro na verificação manual' });
   }
 });
 
@@ -289,21 +185,13 @@ router.get('/contar', async (req, res) => {
     const naoLidas = await Notificacao.countDocuments({ usuario: req.user._id, lida: false });
     const todas = await Notificacao.find({ usuario: req.user._id }).sort({ createdAt: -1 });
     
-    console.log(`📊 Usuário ${req.user._id} tem ${total} notificações (${naoLidas} não lidas)`);
-    console.log('📋 Todas as notificações:', todas.map(n => ({
-      titulo: n.titulo,
-      tipo: n.tipo,
-      lida: n.lida,
-      criada: n.createdAt
-    })));
-    
     res.json({ 
       total,
       naoLidas,
       notificacoes: todas
     });
   } catch (error) {
-    console.error('Erro ao contar notificações:', error);
+    logger.error('Erro ao contar notificações:', error);
     res.status(500).json({ message: 'Erro ao contar notificações' });
   }
 });
@@ -316,19 +204,19 @@ router.post('/subscribe', async (req, res) => {
     const { endpoint, keys } = req.body;
     const usuarioId = req.user._id;
 
-    console.log('📱 Registrando inscrição push para usuário:', usuarioId);
+    logger.debug('📱 Registrando inscrição push para usuário:', usuarioId);
     
     // Salvar inscrição no banco de dados (poderia ser no modelo User)
     // Por enquanto, vamos apenas logar
-    console.log('Endpoint:', endpoint);
-    console.log('Keys:', keys);
+    logger.debug('Endpoint:', endpoint);
+    logger.debug('Keys:', keys);
 
     res.json({ 
       message: 'Inscrição push registrada com sucesso',
       status: 'registered'
     });
   } catch (error) {
-    console.error('Erro ao registrar inscrição push:', error);
+    logger.error('Erro ao registrar inscrição push:', error);
     res.status(500).json({ message: 'Erro ao registrar inscrição push' });
   }
 });
@@ -341,7 +229,7 @@ router.post('/send-push', async (req, res) => {
     const { titulo, mensagem, url } = req.body;
     const usuarioId = req.user._id;
 
-    console.log('📱 Enviando notificação push:', { titulo, mensagem, url });
+    logger.debug('📱 Enviando notificação push:', { titulo, mensagem, url });
     
     // Simular envio de notificação push
     // Em produção, aqui você usaria Web Push Protocol
@@ -351,7 +239,7 @@ router.post('/send-push', async (req, res) => {
       status: 'sent'
     });
   } catch (error) {
-    console.error('Erro ao enviar notificação push:', error);
+    logger.error('Erro ao enviar notificação push:', error);
     res.status(500).json({ message: 'Erro ao enviar notificação push' });
   }
 });
@@ -361,7 +249,7 @@ router.post('/send-push', async (req, res) => {
 // @access  Private
 router.post('/sync', async (req, res) => {
   try {
-    console.log('🔄 Sincronização em background solicitada');
+    logger.debug('🔄 Sincronização em background solicitada');
     
     // Aqui você poderia verificar se há novas notificações
     // e enviar para o cliente via WebSocket ou Polling
@@ -371,7 +259,7 @@ router.post('/sync', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Erro na sincronização:', error);
+    logger.error('Erro na sincronização:', error);
     res.status(500).json({ message: 'Erro na sincronização' });
   }
 });

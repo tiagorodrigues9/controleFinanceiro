@@ -7,23 +7,19 @@ require('dotenv').config();
 const { logger } = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { keepAlive } = require('./utils/keepAlive');
+const { initCronJobs } = require('./jobs/cronJobs');
+
+// Inicializar cron jobs
+initCronJobs();
 
 const app = express();
 
-// Middleware CORS mais seguro
-app.use(cors({
-  origin: [
-    'https://controlefinanceiro-i7s6.onrender.com',
-    'https://controle-financeiro-backend1.vercel.app',
-    'http://localhost:3000'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+const helmet = require('helmet');
 
-app.options('*', cors());
+// Ativar Helmet para security headers (substitui headers manuais)
+app.use(helmet());
 
+// Lista de origens permitidas
 const allowedOrigins = [
   'https://controlefinanceiro-i7s6.onrender.com',
   'https://controle-financeiro-backend1.vercel.app',
@@ -44,7 +40,7 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      logger.warn('CORS blocked', { origin, userAgent: req.get('User-Agent') });
+      logger.warn('CORS blocked', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -56,15 +52,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Security headers
-app.use((req, res, next) => {
-  res.header('X-Content-Type-Options', 'nosniff');
-  res.header('X-Frame-Options', 'DENY');
-  res.header('X-XSS-Protection', '1; mode=block');
-  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  next();
-});
 
 // Rate limiting básico
 const rateLimit = require('express-rate-limit');
@@ -152,6 +139,12 @@ app.use('/api/dashboard-faturas', require('./routes/dashboardFaturas'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/email-test', require('./routes/emailTest'));
+app.use('/api/exportar', require('./routes/exportar'));
+app.use('/api/orcamentos', require('./routes/orcamentos'));
+
+// Swagger UI
+const setupSwagger = require('./swagger');
+setupSwagger(app);
 
 // Conexão com MongoDB
 const mongoUser = process.env.MONGO_USER || '';
@@ -206,8 +199,13 @@ const mongooseOptions = {
 };
 
 mongoose.connect(mongoUri, mongooseOptions)
-  .then(() => logger.info('MongoDB conectado'))
-  .catch(err => logger.error('Erro ao conectar MongoDB:', err));
+  .then(() => {
+    logger.info('MongoDB conectado com sucesso via Mongoose');
+    initCronJobs(); // Inicia os cron jobs de contas recorrentes
+  })
+  .catch(err => {
+    logger.error('Erro ao conectar MongoDB:', err);
+  });
 
 // Eventos de conexão para monitoramento
 mongoose.connection.on('connected', () => {
@@ -230,9 +228,38 @@ mongoose.connection.on('reconnectFailed', () => {
   logger.error('Falha na reconexão do Mongoose');
 });
 
+const http = require('http');
+const socket = require('./utils/socket');
+
 const PORT = process.env.PORT || 5000;
 app.use(errorHandler);
-app.listen(PORT, () => {
-  logger.info(`Servidor rodando na porta ${PORT}`);
-});
 
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  // Iniciar agendador de notificações
+  const NotificationScheduler = require('./schedulers/NotificationScheduler');
+  NotificationScheduler.iniciar();
+
+  const server = http.createServer(app);
+  
+  // Iniciar WebSocket
+  const io = socket.init(server);
+  io.on('connection', (socketConn) => {
+    logger.info(`Novo cliente WebSocket conectado: ${socketConn.id}`);
+    
+    // Autenticar sala do usuário
+    socketConn.on('join_user_room', (userId) => {
+      socketConn.join(userId);
+      logger.info(`WebSocket ${socketConn.id} entrou na sala ${userId}`);
+    });
+
+    socketConn.on('disconnect', () => {
+      logger.info(`Cliente WebSocket desconectado: ${socketConn.id}`);
+    });
+  });
+
+  server.listen(PORT, () => {
+    logger.info(`Servidor rodando na porta ${PORT}`);
+  });
+}
+
+module.exports = app;

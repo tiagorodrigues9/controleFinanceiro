@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -14,17 +15,24 @@ const generateToken = (id) => {
   }
   
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d',
+    expiresIn: process.env.JWT_EXPIRE || '15m', // Reduzido para 15min
     algorithm: 'HS256',
     issuer: 'controle-financeiro',
     audience: 'controle-financeiro-users'
   });
 };
 
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id, type: 'refresh' }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+    algorithm: 'HS256'
+  });
+};
+
 router.post('/register', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').isEmail().withMessage('Email inválido'),
-  body('password').isLength({ min: 5 }).withMessage('Senha deve ter no mínimo 6 caracteres')
+  body('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -41,9 +49,14 @@ router.post('/register', [
 
     const user = await User.create({ nome, email, password });
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    
+    user.refreshToken = refreshToken;
+    await user.save();
 
     res.status(201).json({
       token,
+      refreshToken,
       user: {
         id: user._id,
         nome: user.nome,
@@ -51,7 +64,7 @@ router.post('/register', [
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao registrar usuário' });
   }
 });
@@ -78,9 +91,14 @@ router.post('/login', [
     }
 
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    user.refreshToken = refreshToken;
+    await user.save();
 
     res.json({
       token,
+      refreshToken,
       user: {
         id: user._id,
         nome: user.nome,
@@ -88,7 +106,7 @@ router.post('/login', [
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao fazer login' });
   }
 });
@@ -101,6 +119,36 @@ router.get('/me', auth, async (req, res) => {
       email: req.user.email
     }
   });
+});
+
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token é obrigatório' });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ message: 'Token inválido' });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ message: 'Refresh token inválido ou revogado' });
+    }
+
+    const newToken = generateToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    res.json({ token: newToken, refreshToken: newRefreshToken });
+  } catch (error) {
+    logger.error(error);
+    return res.status(401).json({ message: 'Refresh token expirado ou inválido' });
+  }
 });
 
 router.post('/forgot-password', [
@@ -116,7 +164,8 @@ router.post('/forgot-password', [
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      // Retornar 200 genérico mesmo se o usuário não existir (evitar enumeração)
+      return res.json({ message: 'Se o email estiver cadastrado, você receberá um link de recuperação.' });
     }
 
     const resetToken = crypto.randomBytes(20).toString('hex');
@@ -141,10 +190,10 @@ router.post('/forgot-password', [
 
     try {
       const result = await emailService.sendMail(mailOptions);
-      console.log('Email de recuperação enviado para:', user.email, 'via', result.provider);
-      res.json({ message: 'Email de recuperação enviado' });
+      logger.debug('Email de recuperação enviado para:', user.email, 'via', result.provider);
+      res.json({ message: 'Se o email estiver cadastrado, você receberá um link de recuperação.' });
     } catch (emailError) {
-      console.error('Erro ao enviar email de recuperação:', emailError.message);
+      logger.error('Erro ao enviar email de recuperação:', emailError.message);
       
       if (emailError.message.includes('timeout') || emailError.message.includes('connection')) {
         return res.status(500).json({ 
@@ -161,7 +210,7 @@ router.post('/forgot-password', [
       res.status(500).json({ message: 'Erro ao enviar email de recuperação' });
     }
   } catch (error) {
-    console.error('Erro geral no forgot-password:', error);
+    logger.error('Erro geral no forgot-password:', error);
     res.status(500).json({ message: 'Erro ao processar solicitação de recuperação' });
   }
 });
@@ -196,7 +245,7 @@ router.post('/reset-password', [
 
     res.json({ message: 'Senha redefinida com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao redefinir senha' });
   }
 });
@@ -245,7 +294,7 @@ router.put('/profile', auth, [
       }
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar perfil' });
   }
 });

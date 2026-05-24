@@ -1,4 +1,9 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const NodeCache = require('node-cache');
+
+// Cache para evitar queries repetitivas ao banco (TTL de 5 minutos)
+const userAuthCache = new NodeCache({ stdTTL: 300 });
 
 const auth = async (req, res, next) => {
   try {
@@ -8,20 +13,31 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Acesso negado. Token não fornecido.' });
     }
 
-    // Apenas decodificar o token, sem buscar no MongoDB (evita timeouts)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Criar objeto user mínimo com dados do JWT
-    req.user = {
-      _id: decoded.id,
-      email: decoded.email || 'user@example.com'
-    };
+    // Verificar se o usuário está no cache
+    let user = userAuthCache.get(decoded.id);
     
+    if (!user) {
+      // Se não estiver no cache, buscar no banco
+      user = await User.findById(decoded.id).select('_id email nome').lean();
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Acesso negado. Usuário não encontrado.' });
+      }
+      
+      // Salvar no cache
+      userAuthCache.set(decoded.id, user);
+    }
+    
+    req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Token inválido.' });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expirado.' });
+    }
+    return res.status(401).json({ message: 'Token inválido.' });
   }
 };
 
 module.exports = auth;
-

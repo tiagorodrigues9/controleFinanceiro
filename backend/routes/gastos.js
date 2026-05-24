@@ -4,8 +4,13 @@ const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
 const Cartao = require('../models/Cartao');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { asyncHandler } = require('../utils/errors');
+const socket = require('../utils/socket');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -54,14 +59,33 @@ router.get('/', async (req, res) => {
       };
     }
 
-    const gastos = await Gasto.find(query)
+    const limit = parseInt(req.query.limit);
+    const page = parseInt(req.query.page);
+    
+    let dbQuery = Gasto.find(query)
       .populate('tipoDespesa.grupo')
       .populate('contaBancaria')
       .sort({ data: -1 });
 
+    if (limit && page) {
+      const skip = (page - 1) * limit;
+      dbQuery = dbQuery.skip(skip).limit(limit);
+    }
+    
+    const [gastos, total] = await Promise.all([
+      dbQuery,
+      Gasto.countDocuments(query)
+    ]);
+    
+    // Header pagination para compatibilidade
+    res.setHeader('X-Total-Count', total);
+    if (limit) {
+      res.setHeader('X-Total-Pages', Math.ceil(total / limit));
+    }
+
     res.json(gastos);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar gastos' });
   }
 });
@@ -84,7 +108,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(gasto);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar gasto' });
   }
 });
@@ -127,57 +151,11 @@ router.post('/', [
     const dataParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
     // Processar valor com precisão de centavos (abordagem ultra-robusta para valores gigantescos)
-    let valorProcessado;
-    
-    // Verificar se o valor é extremamente grande (além do limite do JavaScript)
-    if (valor.includes('e') || parseFloat(valor) > Number.MAX_SAFE_INTEGER) {
-      // Valor muito grande - usar manipulação de string pura
-      console.log('🔍 Valor extremamente grande detectado, usando manipulação de string');
-      
-      // Remover caracteres não numéricos exceto ponto e vírgula
-      const valorLimpo = valor.replace(/[^0-9.,]/g, '');
-      
-      // Substituir vírgula por ponto para padronizar
-      const valorPadronizado = valorLimpo.replace(',', '.');
-      
-      // Separar parte inteira e decimal
-      const partes = valorPadronizado.split('.');
-      let parteInteira = partes[0] || '0';
-      const parteDecimal = partes[1] ? partes[1].substring(0, 2) : '00';
-      
-      // Limitar parte inteira para evitar problemas (truncar se necessário)
-      if (parteInteira.length > 15) {
-        parteInteira = parteInteira.substring(0, 15);
-        console.log('🔍 Parte inteira truncada para:', parteInteira);
-      }
-      
-      // Construir valor final como string
-      const valorFinalString = `${parteInteira}.${parteDecimal}`;
-      valorProcessado = parseFloat(valorFinalString);
-      
-      console.log('🔍 Valor processado (string):', valorFinalString);
-      console.log('🔍 Valor processado (número):', valorProcessado);
-      
-    } else {
-      // Valor normal - usar abordagem padrão
-      const valorOriginal = parseFloat(valor);
-      
-      if (Math.abs(valorOriginal) > 1000000) { // Se for maior que 1 milhão
-        // Converter para string, manipular como centavos, depois voltar para número
-        const valorString = valorOriginal.toFixed(2);
-        const [parteInteira, parteDecimal] = valorString.split('.');
-        const centavos = parseInt(parteInteira) * 100 + parseInt(parteDecimal || '00');
-        valorProcessado = centavos / 100;
-      } else {
-        // Para valores normais, usar Math.round
-        valorProcessado = Math.round(valorOriginal * 100) / 100;
-      }
+    let valorProcessado = parseFloat(valor);
+    if (isNaN(valorProcessado) || valorProcessado < 0) {
+      return res.status(400).json({ message: 'Valor inválido' });
     }
-    
-    console.log('🔍 Debug - Processamento de valor:');
-    console.log('  Valor recebido:', valor);
-    console.log('  Valor processado final:', valorProcessado);
-    console.log('  Tipo do valor processado:', typeof valorProcessado);
+    valorProcessado = Math.round(valorProcessado * 100) / 100;
     
     const gasto = await Gasto.create({
       tipoDespesa,
@@ -191,10 +169,10 @@ router.post('/', [
       usuario: req.user._id
     });
     
-    console.log('🔍 Debug - Gasto salvo:');
-    console.log('  ID:', gasto._id);
-    console.log('  Valor no objeto:', gasto.valor);
-    console.log('  Tipo do valor:', typeof gasto.valor);
+    logger.debug('🔍 Debug - Gasto salvo:');
+    logger.debug('  ID:', gasto._id);
+    logger.debug('  Valor no objeto:', gasto.valor);
+    logger.debug('  Tipo do valor:', typeof gasto.valor);
 
     // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
     if (formaPagamento !== 'Cartão de Crédito') {
@@ -216,9 +194,35 @@ router.post('/', [
       if (cartaoObj) {
         const FaturaCartao = require('../models/FaturaCartao');
         
-        // Determinar o mês de referência da fatura
-        const dataGasto = new Date(data);
-        const mesReferencia = dataGasto.toISOString().slice(0, 7); // "YYYY-MM"
+        // Determinar o mês de referência da fatura com base na data de fechamento
+        const diaVenc = cartaoObj.diaFatura || 10;
+        
+        // Simples aproximação: data de fechamento é 5 dias antes
+        let diaFech = diaVenc - 5;
+        if (diaFech <= 0) diaFech = 25; // fallback básico se o vencimento for dia 5, o fechamento vai para o final do mês anterior, mas para manter simples, usaremos a lógica abaixo mais completa
+
+        let mesFatura = dataGasto.getMonth();
+        let anoFatura = dataGasto.getFullYear();
+
+        // Calcular a data exata de fechamento para o mês do gasto
+        const tempDataFechamento = new Date(anoFatura, mesFatura, diaVenc);
+        tempDataFechamento.setDate(tempDataFechamento.getDate() - 5);
+
+        // Se o gasto ocorreu DEPOIS da data de fechamento, cai na fatura do próximo mês
+        if (dataGasto > tempDataFechamento) {
+          mesFatura++;
+          if (mesFatura > 11) {
+            mesFatura = 0;
+            anoFatura++;
+          }
+        }
+
+        const dataVencimento = new Date(anoFatura, mesFatura, diaVenc);
+        const dataFechamento = new Date(dataVencimento);
+        dataFechamento.setDate(dataFechamento.getDate() - 5);
+        
+        const mesStr = String(mesFatura + 1).padStart(2, '0');
+        const mesReferencia = `${anoFatura}-${mesStr}`;
 
         // Buscar ou criar fatura do mês
         let fatura = await FaturaCartao.findOne({
@@ -228,14 +232,6 @@ router.post('/', [
         });
 
         if (!fatura) {
-          // Criar nova fatura
-          const dataVencimento = new Date(dataGasto);
-          dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
-          dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
-
-          const dataFechamento = new Date(dataVencimento);
-          dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
-
           fatura = new FaturaCartao({
             cartao: cartaoObj._id,
             usuario: req.user._id,
@@ -255,9 +251,16 @@ router.post('/', [
       }
     }
 
-    res.status(201).json(gasto);
+    res.status(201).json(gastoSalvo);
+
+    // Emitir evento websocket
+    try {
+      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', gastoSalvo);
+    } catch (e) {
+      logger.warn('Erro ao emitir evento websocket novo_gasto', e);
+    }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar gasto' });
   }
 });
@@ -353,7 +356,7 @@ router.post('/:id/duplicar', async (req, res) => {
 
     res.status(201).json(novoGasto);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao duplicar gasto' });
   }
 });
@@ -384,9 +387,28 @@ router.put('/:id', async (req, res) => {
 
     await gasto.save();
 
+    // Atualizar extrato correspondente
+    if (gasto.formaPagamento !== 'Cartão de Crédito') {
+      await Extrato.findOneAndUpdate(
+        {
+          'referencia.tipo': 'Gasto',
+          'referencia.id': gasto._id,
+          usuario: req.user._id
+        },
+        {
+          $set: {
+            valor: gasto.valor,
+            data: gasto.data,
+            contaBancaria: gasto.contaBancaria,
+            motivo: `Gasto: ${gasto.local || 'Sem local'}`
+          }
+        }
+      );
+    }
+
     res.json(gasto);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar gasto' });
   }
 });
@@ -419,7 +441,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Gasto excluído com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir gasto' });
   }
 });

@@ -2,8 +2,12 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const FormaPagamento = require('../models/FormaPagamento');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -33,7 +37,7 @@ router.get('/', async (req, res) => {
     const formas = existing.filter(f => f.ativo !== false);
     res.json(formas);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar formas de pagamento' });
   }
 });
@@ -59,7 +63,7 @@ router.post('/', [
 
     res.status(201).json(forma);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar forma de pagamento' });
   }
 });
@@ -90,7 +94,7 @@ router.put('/:id', [
 
     res.json(forma);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao atualizar forma de pagamento' });
   }
 });
@@ -112,7 +116,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Forma de pagamento removida' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao remover forma de pagamento' });
   }
 });

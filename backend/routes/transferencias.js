@@ -4,14 +4,14 @@ const router = express.Router();
 const ContaBancaria = require('../models/ContaBancaria');
 const Extrato = require('../models/Extrato');
 const auth = require('../middleware/auth');
-const sanitizeNumericFields = require('../middleware/sanitizeNumeric');
 const { body, validationResult } = require('express-validator');
 const { logger } = require('../utils/logger');
 const { asyncHandler } = require('../utils/errors');
+const validateObjectId = require('../middleware/validateObjectId');
 
 // Aplicar middlewares
+router.param('id', validateObjectId);
 router.use(auth);
-router.use(sanitizeNumericFields);
 
 // @route   POST /api/transferencias
 // @desc    Realizar transferência entre contas bancárias

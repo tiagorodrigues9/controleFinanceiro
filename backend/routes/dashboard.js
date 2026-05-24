@@ -8,13 +8,13 @@ const Grupo = require('../models/Grupo');
 const Cartao = require('../models/Cartao');
 const auth = require('../middleware/auth');
 const { cacheMiddleware, invalidateUserCache } = require('../utils/cache');
-const { validateDashboard } = require('../middleware/validation');
+const { query, validationResult } = require('express-validator');
 const { logger, logApiError, logPerformance } = require('../utils/logger');
 const { asyncHandler, ValidationError } = require('../utils/errors');
 
 const router = express.Router();
 
-console.log('🔥 Dashboard router carregado!');
+logger.debug('🔥 Dashboard router carregado!');
 
 router.use(auth);
 
@@ -26,32 +26,31 @@ router.get('/clear-cache', asyncHandler(async (req, res) => {
 }));
 
 // Aplicar validação e cache na rota do dashboard
-router.get('/', validateDashboard, asyncHandler(async (req, res) => {
+router.get('/', [
+  query('mes').optional().isInt({ min: 1, max: 12 }).withMessage('Mês deve estar entre 1 e 12'),
+  query('ano').optional().isInt({ min: 2020, max: 2030 }).withMessage('Ano deve estar entre 2020 e 2030')
+], asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const startTime = Date.now();
   
   const { mes, ano } = req.query;
   const mesAtual = mes ? parseInt(mes) : new Date().getMonth() + 1;
   const anoAtual = ano ? parseInt(ano) : new Date().getFullYear();
 
-  // Validação dos parâmetros
-  if (isNaN(mesAtual) || mesAtual < 1 || mesAtual > 12) {
-    throw new ValidationError('Mês inválido. Deve estar entre 1 e 12.');
-  }
-
-  if (isNaN(anoAtual) || anoAtual < 2020 || anoAtual > 2030) {
-    throw new ValidationError('Ano inválido. Deve estar entre 2020 e 2030.');
-  }
-
-    const startDate = new Date(anoAtual, mesAtual - 1, 1);
+  const startDate = new Date(anoAtual, mesAtual - 1, 1);
   const endDate = new Date(anoAtual, mesAtual, 0, 23, 59, 59);
   const nextMonthStart = new Date(anoAtual, mesAtual, 1);
   const nextMonthEnd = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
 
-  console.log('=== DASHBOARD DEBUG ===');
-  console.log('req.user._id:', req.user._id);
-  console.log('mesAtual:', mesAtual, 'anoAtual:', anoAtual);
-  console.log('startDate:', startDate);
-  console.log('endDate:', endDate);
+  logger.debug('=== DASHBOARD DEBUG ===');
+  logger.debug('req.user._id:', req.user._id);
+  logger.debug('mesAtual:', mesAtual, 'anoAtual:', anoAtual);
+  logger.debug('startDate:', startDate);
+  logger.debug('endDate:', endDate);
 
   // Filtro base para todas as queries - CORRIGIDO COM ObjectId
   const baseFilter = {
@@ -163,10 +162,10 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   const totalSaidasMesValor = totalSaidas;
   const saldoMesValor = totalEntradas - totalSaidas;
 
-  console.log('gastosMes:', gastosMes);
-  console.log('totalGastosMesValor:', totalGastosMesValor);
-  console.log('totalEntradasMesValor:', totalEntradasMesValor);
-  console.log('totalSaidasMesValor:', totalSaidasMesValor);
+  logger.debug('gastosMes:', gastosMes);
+  logger.debug('totalGastosMesValor:', totalGastosMesValor);
+  logger.debug('totalEntradasMesValor:', totalEntradasMesValor);
+  logger.debug('totalSaidasMesValor:', totalSaidasMesValor);
 
   // Contas vencidas no mês
   const totalContasVencidas = await Conta.countDocuments({
@@ -219,15 +218,15 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   ]);
 
   // Comparação últimos 6 meses - VERSÃO CORRIGIDA
-  console.log('🔍 Iniciando comparação de meses...');
+  logger.debug('🔍 Iniciando comparação de meses...');
   const mesesComparacao = await Promise.all(
     Array.from({ length: 6 }, async (_, i) => {
       const mesRef = new Date(anoAtual, mesAtual - 1 - i, 1);
       const mesRefEnd = new Date(anoAtual, mesAtual - i, 0, 23, 59, 59);
       
-      console.log(`📊 Processando mês: ${mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}`);
-      console.log(`  - Período: ${mesRef.toISOString()} a ${mesRefEnd.toISOString()}`);
-      console.log(`  - User ID: ${req.user._id}`);
+      logger.debug(`📊 Processando mês: ${mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}`);
+      logger.debug(`  - Período: ${mesRef.toISOString()} a ${mesRefEnd.toISOString()}`);
+      logger.debug(`  - User ID: ${req.user._id}`);
       
       // Query para contas - mais flexível
       const contasMes = await Conta.aggregate([
@@ -255,8 +254,8 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
       
-      console.log(`  - Contas: ${JSON.stringify(contasMes)}`);
-      console.log(`  - Gastos: ${JSON.stringify(gastosMes)}`);
+      logger.debug(`  - Contas: ${JSON.stringify(contasMes)}`);
+      logger.debug(`  - Gastos: ${JSON.stringify(gastosMes)}`);
       
       const totalContas = contasMes.length > 0 ? contasMes[0].total : 0;
       const totalGastos = gastosMes.length > 0 ? gastosMes[0].total : 0;
@@ -270,7 +269,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     })
   );
   
-  console.log('📊 MesesComparação (dinâmico):', JSON.stringify(mesesComparacao, null, 2));
+  logger.debug('📊 MesesComparação (dinâmico):', JSON.stringify(mesesComparacao, null, 2));
   
   mesesComparacao.reverse();
 
@@ -278,7 +277,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
   const gastos = await Gasto.find({
     usuario: req.user._id,
     data: { $gte: startDate, $lte: endDate }
-  }).populate('tipoDespesa.grupo');
+  }).populate('tipoDespesa.grupo').lean();
 
   const gastosPorGrupo = {};
   gastos.forEach(gasto => {
@@ -293,7 +292,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     .map(([nome, valor]) => ({ nome, valor }));
 
   // Evolução do saldo
-  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id });
+  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).lean();
   const monthsRange = [];
   for (let i = 5; i >= 0; i--) {
     const ref = new Date(anoAtual, mesAtual - 1 - i, 1);
@@ -301,90 +300,92 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     monthsRange.push(refEnd);
   }
 
-  const evolucaoSaldo = await Promise.all(
-    contasBancarias.map(async (conta) => {
-      const saldos = await Promise.all(
-        monthsRange.map(async (monthEnd) => {
-          const extratos = await Extrato.find({
-            contaBancaria: conta._id,
-            usuario: req.user._id,
-            estornado: false,
-            data: { $lte: monthEnd }
-          });
+  // Buscar todos os extratos até a última data para calcular saldos
+  const lastMonthEnd = monthsRange[monthsRange.length - 1];
+  const extratosEvolucao = await Extrato.find({
+    usuario: req.user._id,
+    estornado: false,
+    data: { $lte: lastMonthEnd }
+  }).lean();
 
-          const saldo = extratos.reduce((acc, ext) => {
-            if (ext.tipo === 'Entrada' || ext.tipo === 'Saldo Inicial') return acc + ext.valor;
-            return acc - ext.valor;
-          }, 0);
+  const evolucaoSaldo = contasBancarias.map((conta) => {
+    // Filtrar extratos apenas desta conta bancária e ordenar cronologicamente
+    const extratosConta = extratosEvolucao
+      .filter(ext => ext.contaBancaria.toString() === conta._id.toString())
+      .sort((a, b) => new Date(a.data) - new Date(b.data));
 
-          return { data: monthEnd, saldo };
-        })
-      );
+    let saldoAcumulado = 0;
+    let indexExtrato = 0;
 
-      return { conta: conta.nome, saldos };
-    })
-  );
+    const saldos = monthsRange.map((monthEnd) => {
+      // Adicionar ao saldo acumulado os extratos que ocorreram até este monthEnd
+      while (indexExtrato < extratosConta.length && new Date(extratosConta[indexExtrato].data) <= monthEnd) {
+        const ext = extratosConta[indexExtrato];
+        if (ext.tipo === 'Entrada' || ext.tipo === 'Saldo Inicial') {
+          saldoAcumulado += ext.valor;
+        } else {
+          saldoAcumulado -= ext.valor;
+        }
+        indexExtrato++;
+      }
+      return { data: monthEnd, saldo: saldoAcumulado };
+    });
+
+    return { conta: conta.nome, saldos };
+  });
 
   // Percentual por categoria
-  const grupos = await Grupo.find({ usuario: req.user._id });
+  const grupos = await Grupo.find({ usuario: req.user._id }).lean();
   const totalGeral = gastos.reduce((acc, gasto) => {
     const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
     return acc + valorGasto;
   }, 0);
   
-  const percentualPorCategoria = await Promise.all(
-    grupos.map(async (grupo) => {
-      const gastosGrupo = await Gasto.find({
-        usuario: req.user._id,
-        'tipoDespesa.grupo': grupo._id,
-        data: { $gte: startDate, $lte: endDate }
-      });
+  const percentualPorCategoria = Object.entries(gastosPorGrupo).map(([nome, totalValor]) => {
+    return {
+      categoria: nome,
+      percentual: totalGeral > 0 ? parseFloat(((totalValor / totalGeral) * 100).toFixed(2)) : 0,
+      valor: totalValor
+    };
+  });
 
-      const totalGrupo = gastosGrupo.reduce((acc, gasto) => {
-        const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
-        return acc + valorGasto;
-      }, 0);
-      const percentual = totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0;
+  // Relatório detalhado por tipo de despesa (otimizado usando a array gastos já carregada)
+  const relatorioMap = {};
+  
+  gastos.forEach(gasto => {
+    if (!gasto.tipoDespesa || !gasto.tipoDespesa.grupo) return;
+    
+    const grupoId = gasto.tipoDespesa.grupo._id.toString();
+    const grupoNome = gasto.tipoDespesa.grupo.nome;
+    const subgrupoNome = gasto.tipoDespesa.subgrupo || 'Não categorizado';
+    const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
 
-      return {
-        categoria: grupo.nome,
-        percentual: parseFloat(percentual.toFixed(2)),
-        valor: totalGrupo
+    if (!relatorioMap[grupoId]) {
+      relatorioMap[grupoId] = {
+        grupoId,
+        grupoNome,
+        totalGrupo: 0,
+        subgruposMap: {}
       };
-    })
-  );
+    }
 
-  // Relatório detalhado por tipo de despesa
-  const relatorioTiposDespesa = await Promise.all(
-    grupos.map(async (grupo) => {
-      const gastosGrupo = await Gasto.find({
-        usuario: req.user._id,
-        'tipoDespesa.grupo': grupo._id,
-        data: { $gte: startDate, $lte: endDate }
-      }).populate('tipoDespesa.grupo');
+    relatorioMap[grupoId].totalGrupo += valorGasto;
+    relatorioMap[grupoId].subgruposMap[subgrupoNome] = (relatorioMap[grupoId].subgruposMap[subgrupoNome] || 0) + valorGasto;
+  });
 
-      const gastosPorSubgrupo = {};
-      gastosGrupo.forEach(gasto => {
-        const subgrupoNome = gasto.tipoDespesa.subgrupo || 'Não categorizado';
-        const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
-        gastosPorSubgrupo[subgrupoNome] = (gastosPorSubgrupo[subgrupoNome] || 0) + valorGasto;
-      });
-
-      const totalGrupo = Object.values(gastosPorSubgrupo).reduce((acc, valor) => acc + valor, 0);
-
-      return {
-        grupoId: grupo._id,
-        grupoNome: grupo.nome,
-        totalGrupo: totalGrupo,
-        percentualGrupo: totalGeral > 0 ? (totalGrupo / totalGeral) * 100 : 0,
-        subgrupos: Object.entries(gastosPorSubgrupo).map(([subgrupoNome, valor]) => ({
-          subgrupoNome,
-          valor,
-          percentualSubgrupo: totalGrupo > 0 ? (valor / totalGrupo) * 100 : 0
-        })).sort((a, b) => b.valor - a.valor)
-      };
-    })
-  );
+  const relatorioTiposDespesa = Object.values(relatorioMap).map(grupoData => {
+    return {
+      grupoId: grupoData.grupoId,
+      grupoNome: grupoData.grupoNome,
+      totalGrupo: grupoData.totalGrupo,
+      percentualGrupo: totalGeral > 0 ? (grupoData.totalGrupo / totalGeral) * 100 : 0,
+      subgrupos: Object.entries(grupoData.subgruposMap).map(([subgrupoNome, valor]) => ({
+        subgrupoNome,
+        valor,
+        percentualSubgrupo: grupoData.totalGrupo > 0 ? (valor / grupoData.totalGrupo) * 100 : 0
+      })).sort((a, b) => b.valor - a.valor)
+    };
+  });
 
   const relatorioTiposDespesaFiltrado = relatorioTiposDespesa
     .filter(item => item.totalGrupo > 0)
@@ -408,7 +409,7 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     }));
 
   // Relatório de cartões - REMOVIDO FILTRO ATIVO
-  const cartoes = await Cartao.find({ usuario: req.user._id });
+  const cartoes = await Cartao.find({ usuario: req.user._id }).lean();
   const relatorioCartoes = await Promise.all(
     cartoes.map(async (cartao) => {
       const gastosCartao = await Gasto.find({
@@ -554,8 +555,8 @@ router.get('/', validateDashboard, asyncHandler(async (req, res) => {
     relatorioFormasPagamento
   };
 
-  console.log('Dashboard data gerada:', JSON.stringify(responseData, null, 2));
-  console.log('mesesComparacao:', JSON.stringify(mesesComparacao, null, 2));
+  logger.debug('Dashboard data gerada:', JSON.stringify(responseData, null, 2));
+  logger.debug('mesesComparacao:', JSON.stringify(mesesComparacao, null, 2));
 
   // Log de performance
   const duration = Date.now() - startTime;

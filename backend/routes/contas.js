@@ -9,39 +9,58 @@ const Cartao = require('../models/Cartao');
 const Fornecedor = require('../models/Fornecedor');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
-const sanitizeNumericFields = require('../middleware/sanitizeNumeric');
+const NotificationService = require('../services/NotificationService');
 const { logger } = require('../utils/logger');
+const validateObjectId = require('../middleware/validateObjectId');
 
 const router = express.Router();
 
-// Configurar multer para upload de arquivos
+router.param('id', validateObjectId);
+
+const crypto = require('crypto');
+
+// Configurar multer para upload de arquivos de forma segura
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
+    // Sanitizar nome do arquivo usando UUID e manter apenas a extensão original
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = crypto.randomUUID() + ext;
+    cb(null, safeName);
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limite de 5MB
+  fileFilter: (req, file, cb) => {
+    // Permitir apenas imagens e PDFs
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de arquivo não permitido. Apenas JPEG, PNG e PDF são aceitos.'));
+    }
+  }
+});
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
-router.use(sanitizeNumericFields);
 
 // @route   GET /api/contas
 // @desc    Obter todas as contas do usuário
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    console.log('🔍 Rotas Contas - GET /api/contas chamado');
-    console.log('🔍 Rotas Contas - req.user._id:', req.user._id);
+    logger.debug('🔍 Rotas Contas - GET /api/contas chamado');
+    logger.debug('🔍 Rotas Contas - req.user._id:', req.user._id);
     
     const { mes, ano, ativo, status, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, valor: { $ne: null } };
 
-    console.log('🔍 Rotas Contas - Query params:', { mes, ano, ativo, status });
+    logger.debug('🔍 Rotas Contas - Query params:', { mes, ano, ativo, status });
 
     // filtro por mês/ano (dataVencimento)
     if (mes && ano) {
@@ -74,35 +93,35 @@ router.get('/', async (req, res) => {
 
     logger.info('Buscando contas', { userId: req.user._id, filters: { mes, ano, ativo, status } });
 
-    // Atualizar status de contas vencidas
-    // Criar data de hoje sem hora (meia-noite) para comparação correta
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Zerar horas, minutos, segundos e milissegundos
+    // O status de contas vencidas agora é atualizado pelo NotificationScheduler diariamente
+    // e no momento da criação/edição através do pre-save hook no modelo Conta.
+
+    const limit = parseInt(req.query.limit);
+    const page = parseInt(req.query.page);
     
-    const result = await Conta.updateMany(
-      {
-        usuario: req.user._id,
-        status: 'Pendente',
-        dataVencimento: { $lt: hoje }, // Contas com data de vencimento anterior a hoje
-        ativo: { $ne: false }
-      },
-      { status: 'Vencida' }
-    );
-
-    if (result.modifiedCount > 0) {
-      logger.info('Contas atualizadas para Vencida', { 
-        count: result.modifiedCount,
-        userId: req.user._id,
-        dataReferencia: hoje.toISOString().split('T')[0]
-      });
-    }
-
-    const contas = await Conta.find(query)
+    let dbQuery = Conta.find(query)
       .populate('fornecedor')
       .populate('contaBancaria')
       .sort({ dataVencimento: 1 });
+      
+    if (limit && page) {
+      const skip = (page - 1) * limit;
+      dbQuery = dbQuery.skip(skip).limit(limit);
+    }
+    
+    const [contas, total] = await Promise.all([
+      dbQuery,
+      Conta.countDocuments(query)
+    ]);
 
-    logger.info('Contas encontradas', { count: contas.length });
+    logger.info('Contas encontradas', { count: contas.length, total });
+    
+    // Header pagination para compatibilidade
+    res.setHeader('X-Total-Count', total);
+    if (limit) {
+      res.setHeader('X-Total-Pages', Math.ceil(total / limit));
+    }
+    
     res.json(contas);
   } catch (error) {
     logger.error('Erro ao buscar contas', { error: error.message, stack: error.stack });
@@ -284,28 +303,44 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
   }
 });
 
+// @route   GET /api/contas/:id/check-installments
+// @desc    Verificar se há parcelas restantes para a conta
+// @access  Private
+router.get('/:id/check-installments', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'ID de conta inválido' });
+    }
+
+    const conta = await Conta.findOne({ _id: req.params.id, usuario: req.user._id });
+    if (!conta) return res.status(404).json({ message: 'Conta não encontrada' });
+
+    let remainingCount = 0;
+    if (conta.parcelaId) {
+      const remainingInstallments = await Conta.find({
+        parcelaId: conta.parcelaId,
+        usuario: req.user._id,
+        ativo: { $ne: false },
+        _id: { $ne: conta._id }
+      });
+      remainingCount = remainingInstallments.length;
+    }
+
+    res.json({ hasRemainingInstallments: remainingCount > 0, remainingCount });
+  } catch (error) {
+    logger.error('Erro ao verificar parcelas', { error: error.message });
+    res.status(500).json({ message: 'Erro ao verificar parcelas' });
+  }
+});
+
 // @route   DELETE /api/contas/:id
 // @desc    Excluir conta permanentemente
 // @access  Private
 router.delete('/:id', async (req, res) => {
   try {
-    console.log('DEBUG: Tentando excluir conta com ID:', req.params.id);
-    console.log('DEBUG: Usuario ID:', req.user._id);
-    console.log('DEBUG: Tipo do ID:', typeof req.params.id);
-    
     // Validar se o ID é um ObjectId válido
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      console.log('DEBUG: ID inválido - não é um ObjectId válido');
       return res.status(400).json({ message: 'ID de conta inválido' });
-    }
-    
-    // Primeiro tentar encontrar sem filtro de usuário para debug
-    const contaAnyUser = await Conta.findOne({ _id: req.params.id });
-    console.log('DEBUG: Conta encontrada (qualquer usuário):', contaAnyUser ? 'SIM' : 'NÃO');
-    if (contaAnyUser) {
-      console.log('DEBUG: Dono da conta:', contaAnyUser.usuario);
-      console.log('DEBUG: Usuario logado:', req.user._id);
-      console.log('DEBUG: São iguais?', contaAnyUser.usuario.toString() === req.user._id.toString());
     }
     
     const conta = await Conta.findOne({
@@ -313,10 +348,8 @@ router.delete('/:id', async (req, res) => {
       usuario: req.user._id
     });
 
-    console.log('DEBUG: Conta encontrada (com filtro usuário):', conta ? 'SIM' : 'NÃO');
-
     if (!conta) {
-      console.log('DEBUG: Retornando 404 - Conta não encontrada');
+      logger.debug('DEBUG: Retornando 404 - Conta não encontrada');
       return res.status(404).json({ message: 'Conta não encontrada' });
     }
 
@@ -336,7 +369,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     if (hasRemainingInstallments) {
-      return res.json({
+      return res.status(409).json({
         hasRemainingInstallments: true,
         remainingCount,
         message: `Existem ${remainingCount} parcela(s) restante(s) deste grupo. Deseja excluir apenas esta ou todas as restantes?`
@@ -348,7 +381,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ message: 'Conta excluída permanentemente com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
@@ -385,7 +418,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
       updatedCount: result.modifiedCount
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao inativar parcelas' });
   }
 });
@@ -421,7 +454,7 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
       count: result.deletedCount
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
@@ -441,7 +474,7 @@ router.delete('/:id/hard', async (req, res) => {
     
     res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao inativar conta' });
   }
 });
@@ -638,9 +671,9 @@ router.post('/:id/pagar', [
       await session.endSession();
     }
   } catch (error) {
-    console.error('❌ Erro ao pagar conta:', error.message);
-    console.error('❌ Stack completo:', error.stack);
-    console.error('❌ Dados da requisição:', {
+    logger.error('❌ Erro ao pagar conta:', error.message);
+    logger.error('❌ Stack completo:', error.stack);
+    logger.error('❌ Dados da requisição:', {
       contaId: req.params.id,
       formaPagamento: req.body.formaPagamento,
       contaBancaria: req.body.contaBancaria,

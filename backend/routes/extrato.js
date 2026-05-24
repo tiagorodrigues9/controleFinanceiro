@@ -4,8 +4,12 @@ const { body, validationResult } = require('express-validator');
 const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const auth = require('../middleware/auth');
+const validateObjectId = require('../middleware/validateObjectId');
+const { logger } = require('../utils/logger');
 
 const router = express.Router();
+
+router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
 router.use(auth);
@@ -15,9 +19,9 @@ router.use(auth);
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    console.log('=== EXTRATO DEBUG ===');
-    console.log('req.user._id:', req.user._id);
-    console.log('req.query:', req.query);
+    logger.debug('=== EXTRATO DEBUG ===');
+    logger.debug('req.user._id:', req.user._id);
+    logger.debug('req.query:', req.query);
     
     const { contaBancaria, tipoDespesa, cartao, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, estornado: false };
@@ -41,7 +45,7 @@ router.get('/', async (req, res) => {
       };
     }
 
-    console.log('Query para extratos:', query);
+    logger.debug('Query para extratos:', query);
 
     // Otimização: mover filtro de tipoDespesa para MongoDB usando aggregation
     let extratos;
@@ -107,7 +111,7 @@ router.get('/', async (req, res) => {
         .sort({ data: -1 });
     }
 
-    console.log('Extratos encontrados:', extratos.length);
+    logger.debug('Extratos encontrados:', extratos.length);
 
     let totalSaldo = 0;
     let totalEntradas = 0;
@@ -152,7 +156,7 @@ router.get('/', async (req, res) => {
 
     res.json({ extratos, totalSaldo, totalEntradas, totalSaidas });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar extrato' });
   }
 });
@@ -206,7 +210,7 @@ router.post('/', [
 
     res.status(201).json(extrato);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao criar lançamento' });
   }
 });
@@ -259,7 +263,7 @@ router.post('/saldo-inicial', [
 
     res.status(201).json(extrato);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ message: 'Erro ao lançar saldo inicial' });
   }
 });
@@ -274,21 +278,21 @@ router.post('/:id/estornar', async (req, res) => {
       return res.status(400).json({ message: 'ID de lançamento inválido' });
     }
 
-    console.log('=== ESTORNO DEBUG ===');
-    console.log('req.params.id:', req.params.id);
-    console.log('req.user._id:', req.user._id);
-    console.log('mongoose.connection.readyState:', mongoose.connection.readyState);
+    logger.debug('=== ESTORNO DEBUG ===');
+    logger.debug('req.params.id:', req.params.id);
+    logger.debug('req.user._id:', req.user._id);
+    logger.debug('mongoose.connection.readyState:', mongoose.connection.readyState);
 
     // Verificar conexão com MongoDB e tentar reconectar se necessário
     if (mongoose.connection.readyState !== 1) {
-      console.error('MongoDB não está conectado, tentando reconectar...');
+      logger.error('MongoDB não está conectado, tentando reconectar...');
       
       // Tentar reconectar
       try {
         await mongoose.connection.asPromise();
-        console.log('MongoDB reconectado com sucesso');
+        logger.debug('MongoDB reconectado com sucesso');
       } catch (reconnectError) {
-        console.error('Falha ao reconectar ao MongoDB:', reconnectError);
+        logger.error('Falha ao reconectar ao MongoDB:', reconnectError);
         return res.status(503).json({ 
           message: 'Serviço temporariamente indisponível. Tente novamente em alguns instantes.' 
         });
@@ -309,7 +313,7 @@ router.post('/:id/estornar', async (req, res) => {
         break; // Sucesso, sair do loop
       } catch (dbError) {
         retryCount++;
-        console.log(`Tentativa ${retryCount}/${maxRetries} falhou:`, dbError.message);
+        logger.debug(`Tentativa ${retryCount}/${maxRetries} falhou:`, dbError.message);
         
         if (retryCount >= maxRetries) {
           throw dbError;
@@ -320,7 +324,7 @@ router.post('/:id/estornar', async (req, res) => {
       }
     }
 
-    console.log('Extrato encontrado:', extrato);
+    logger.debug('Extrato encontrado:', extrato);
 
     if (!extrato) {
       return res.status(404).json({ message: 'Lançamento não encontrado' });
@@ -339,7 +343,7 @@ router.post('/:id/estornar', async (req, res) => {
         break; // Sucesso, sair do loop
       } catch (saveError) {
         retryCount++;
-        console.log(`Tentativa de salvar ${retryCount}/${maxRetries} falhou:`, saveError.message);
+        logger.debug(`Tentativa de salvar ${retryCount}/${maxRetries} falhou:`, saveError.message);
         
         if (retryCount >= maxRetries) {
           throw saveError;
@@ -360,18 +364,35 @@ router.post('/:id/estornar', async (req, res) => {
 
         if (gasto) {
           await gasto.deleteOne();
-          console.log('Gasto correspondente excluído com sucesso');
+          logger.debug('Gasto correspondente excluído com sucesso');
         }
       } catch (gastoError) {
-        console.error('Erro ao excluir gasto correspondente:', gastoError);
-        // Não falhar a operação principal se não conseguir excluir o gasto
+        logger.error('Erro ao excluir gasto correspondente:', gastoError);
+      }
+    } else if (extrato.referencia?.tipo === 'Conta' && extrato.referencia?.id) {
+      // Se for pagamento de conta, voltar o status da conta para Pendente
+      try {
+        const Conta = require('../models/Conta');
+        const conta = await Conta.findOne({
+          _id: extrato.referencia.id,
+          usuario: req.user._id
+        });
+
+        if (conta) {
+          conta.status = 'Pendente';
+          conta.dataPagamento = null;
+          await conta.save();
+          logger.debug('Conta correspondente voltou para Pendente com sucesso');
+        }
+      } catch (contaError) {
+        logger.error('Erro ao reverter status da conta:', contaError);
       }
     }
 
-    console.log('Extrato estornado com sucesso');
+    logger.debug('Extrato estornado com sucesso');
     res.json({ message: 'Lançamento estornado com sucesso' });
   } catch (error) {
-    console.error('Erro ao estornar lançamento:', error);
+    logger.error('Erro ao estornar lançamento:', error);
     
     // Tratamento específico para diferentes tipos de erro
     if (error.name === 'MongooseServerSelectionError' || 

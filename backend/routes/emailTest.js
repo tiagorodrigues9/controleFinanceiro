@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const emailService = require('../services/emailService');
+const { logger } = require('../utils/logger');
 const auth = require('../middleware/auth');
 
 // Testar todos os provedores de e-mail
 router.get('/test', auth, async (req, res) => {
   try {
-    console.log('🧪 Testando todos os provedores de e-mail...');
+    logger.debug('🧪 Testando todos os provedores de e-mail...');
     
     const results = await emailService.testAllConfigurations();
     
@@ -17,7 +18,7 @@ router.get('/test', auth, async (req, res) => {
       failed: results.filter(r => r.status === 'failed').length
     });
   } catch (error) {
-    console.error('Erro ao testar provedores:', error);
+    logger.error('Erro ao testar provedores:', error);
     res.status(500).json({ message: 'Erro ao testar provedores' });
   }
 });
@@ -49,7 +50,7 @@ router.post('/test-send', auth, async (req, res) => {
       result
     });
   } catch (error) {
-    console.error('Erro ao enviar e-mail de teste:', error);
+    logger.error('Erro ao enviar e-mail de teste:', error);
     res.status(500).json({ message: 'Erro ao enviar e-mail de teste' });
   }
 });

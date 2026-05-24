@@ -1,127 +1,18 @@
 {
   "version": 2,
-  "name": "controle-financeiro-backend",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/auth/login",
-      "destination": "/api/auth/login.js"
-    },
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
-      "source": "/api/auth/register",
-      "destination": "/api/auth/register.js"
-    },
-    {
-      "source": "/api/auth/profile",
-      "destination": "/api/auth/profile.js"
-    },
-    {
-      "source": "/api/auth/me",
-      "destination": "/api/auth/profile.js"
-    },
-    {
-      "source": "/api/auth/forgot-password",
-      "destination": "/api/auth/profile.js"
-    },
-    {
-      "source": "/api/auth/reset-password",
-      "destination": "/api/auth/profile.js"
-    },
-    {
-      "source": "/api/dashboard",
-      "destination": "/api/dashboard.js"
-    },
-    {
-      "source": "/api/dashboard/(.*)",
-      "destination": "/api/dashboard.js"
-    },
-    {
-      "source": "/api/notificacoes",
-      "destination": "/api/notificacoes-simple.js"
-    },
-    {
-      "source": "/api/notificacoes/(.*)",
-      "destination": "/api/notificacoes-simple.js"
-    },
-    {
-      "source": "/api/(contas|contas-pagar|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails|fatura-cartao|dashboard-faturas)",
-      "destination": "/api/crud.js"
-    },
-            {
-      "source": "/api/extrato/saldo-inicial",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/extrato/(.*)/estornar",
-      "destination": "/api/extrato.js"
-    },
-    {
-      "source": "/api/cartoes/(.*)/inativar",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/cartoes/(.*)/ativar",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/grupos/(.*)/subgrupos",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/grupos/(.*)/subgrupos/(.*)",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/api/(contas|fornecedores|gastos|contas-bancarias|grupos|extrato|transferencias|formas-pagamento|cartoes|emails)/(.*)",
-      "destination": "/api/crud.js"
-    },
-    {
-      "source": "/(health|ping)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.js"
+      "src": "/(.*)",
+      "dest": "/api/index.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/auth/login.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/auth/register.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/auth/profile.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/dashboard.js": {
-      "maxDuration": 15,
-      "memory": 1024
-    },
-    "api/crud.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/notificacoes-simple.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/lib/middleware.js": {
-      "maxDuration": 10,
-      "memory": 512
-    },
-    "api/extrato.js": {
-      "maxDuration": 15,
-      "memory": 1024
-    }
   }
 }
