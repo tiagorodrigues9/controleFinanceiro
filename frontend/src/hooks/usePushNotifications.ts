@@ -60,7 +60,7 @@ const usePushNotifications = () => {
           pushSubscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlB64ToUint8Array(
-              'BDd3fhVQH-q4Jy3S2kBDjQYcK9-6a2Y5L6nX8mP7rQ9sT0uV1wX2yZ3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9'
+              'BHEqzi9eqU0WRAoVjdRP6o_D3vjdV0FuOxBj5Dg8El3ZTTGXolN8_5J7B0LqQtg6BFULAIyHneqhm72fydqCfjI'
             )
           });
           
