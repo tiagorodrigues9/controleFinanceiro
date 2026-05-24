@@ -36,7 +36,13 @@ const auth = async (req, res, next) => {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ message: 'Token expirado.' });
     }
-    return res.status(401).json({ message: 'Token inválido.' });
+    if (error.name === 'JsonWebTokenError' || error.name === 'NotBeforeError') {
+      return res.status(401).json({ message: 'Token inválido.' });
+    }
+    
+    // Se não for um erro do JWT (como erro de banco de dados, timeout, etc)
+    console.error('Erro interno no middleware de auth:', error);
+    return res.status(500).json({ message: 'Erro interno no servidor ao validar autenticação.' });
   }
 };
 
