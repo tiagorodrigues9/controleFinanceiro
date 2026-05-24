@@ -52,6 +52,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// Confiar no proxy reverso (Vercel, Render, etc.)
+app.set('trust proxy', 1);
 
 // Rate limiting básico
 const rateLimit = require('express-rate-limit');
@@ -62,6 +64,7 @@ const limiter = rateLimit({
   message: 'Muitas requisições deste IP, tente novamente mais tarde',
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 app.use('/api/', limiter);
@@ -72,6 +75,7 @@ const authLimiter = rateLimit({
   max: 100, // limite cada IP a 100 tentativas de login por windowMs (desenvolvimento)
   message: 'Muitas tentativas de login, tente novamente mais tarde',
   skipSuccessfulRequests: true,
+  validate: { xForwardedForHeader: false },
 });
 
 app.use('/api/auth/login', authLimiter);
