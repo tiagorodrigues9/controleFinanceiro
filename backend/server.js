@@ -195,6 +195,7 @@ const mongooseOptions = {
   connectTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   bufferCommands: true,
+  bufferTimeoutMS: 30000, // Aumentado para evitar timeout em cold starts da Vercel
   maxPoolSize: 10,
   minPoolSize: 2,
   maxIdleTimeMS: 30000,
