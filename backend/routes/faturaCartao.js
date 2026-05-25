@@ -8,6 +8,7 @@ const Extrato = require('../models/Extrato');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const { logger } = require('../utils/logger');
+const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/faturaUtils');
 
 const router = express.Router();
 
@@ -99,52 +100,20 @@ router.post('/pagar-conta', [
       return res.status(404).json({ message: 'Cartão não encontrado ou inativo' });
     }
 
-    // Determinar o mês de referência da fatura com base na data de fechamento
-    const diaVenc = cartao.diaFatura || 10;
+    // Determinar o mês de referência da fatura com base na data do pagamento
+    const diaFech = cartao.diaFatura || 25;
+    const diaVenc = cartao.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
     
-    // Simples aproximação: data de fechamento é 5 dias antes
-    let diaFech = diaVenc - 5;
-    if (diaFech <= 0) diaFech = 25; 
+    const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(conta.dataPagamento || new Date(), diaFech, diaVenc);
 
-    let mesFatura = dataPagamento.getMonth();
-    let anoFatura = dataPagamento.getFullYear();
-
-    // Calcular a data exata de fechamento para o mês do gasto
-    const tempDataFechamento = new Date(anoFatura, mesFatura, diaVenc);
-    tempDataFechamento.setDate(tempDataFechamento.getDate() - 5);
-
-    // Se o pagamento ocorreu DEPOIS da data de fechamento, cai na fatura do próximo mês
-    if (dataPagamento > tempDataFechamento) {
-      mesFatura++;
-      if (mesFatura > 11) {
-        mesFatura = 0;
-        anoFatura++;
-      }
-    }
-
-    const dataVencimento = new Date(anoFatura, mesFatura, diaVenc);
-    const dataFechamento = new Date(dataVencimento);
-    dataFechamento.setDate(dataFechamento.getDate() - 5);
-    
-    const mesStr = String(mesFatura + 1).padStart(2, '0');
-    const mesReferencia = `${anoFatura}-${mesStr}`;
-
-    // Buscar ou criar fatura do mês
-    let fatura = await FaturaCartao.findOne({
-      cartao: cartaoId,
-      mesReferencia: mesReferencia,
-      usuario: req.user._id
-    });
-
-    if (!fatura) {
-      fatura = new FaturaCartao({
-        cartao: cartaoId,
-        usuario: req.user._id,
-        mesReferencia: mesReferencia,
-        dataVencimento: dataVencimento,
-        dataFechamento: dataFechamento
-      });
-    }
+    // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+    let fatura = await buscarOuCriarFaturaAberta(
+      cartao._id, 
+      req.user._id, 
+      dataVencimento, 
+      dataFechamento, 
+      mesReferencia
+    );
 
     // Adicionar despesa à fatura
     const valorPago = conta.valor + (conta.jurosPago || 0);

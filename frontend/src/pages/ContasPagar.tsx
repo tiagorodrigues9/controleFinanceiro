@@ -38,6 +38,7 @@ import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import EditIcon from '@mui/icons-material/Edit';
 import api from '../utils/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -68,6 +69,8 @@ const ContasPagar = () => {
   const [openPagamento, setOpenPagamento] = useState(false);
   const [openFornecedor, setOpenFornecedor] = useState(false);
   const [contaSelecionada, setContaSelecionada] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [contaEditId, setContaEditId] = useState(null);
   const [fornecedorData, setFornecedorData] = useState({ nome: '', tipo: '' });
   const [formData, setFormData] = useState({
     nome: '',
@@ -95,6 +98,7 @@ const ContasPagar = () => {
   const [error, setError] = useState('');
   const [parcelasList, setParcelasList] = useState([]);
   const [parcelaData, setParcelaData] = useState({ valor: '', data: '' });
+  const [actionType, setActionType] = useState('cancel');
 
   // Normaliza o campo `ativo` que pode vir como boolean, string, number ou undefined
   const isActive = (conta) => {
@@ -262,6 +266,8 @@ const ContasPagar = () => {
     setParcelasList([]);
     setParcelaData({ valor: '', data: '' });
     setSubgrupos([]); // Limpar subgrupos ao resetar
+    setEditMode(false);
+    setContaEditId(null);
   };
 
   const handleOpenCadastro = () => {
@@ -271,6 +277,33 @@ const ContasPagar = () => {
 
   const handleCloseCadastro = () => {
     setOpenCadastro(false);
+  };
+
+  const handleEdit = (conta) => {
+    setFormData({
+      nome: conta.nome,
+      dataVencimento: conta.dataVencimento ? conta.dataVencimento.split('T')[0] : '',
+      valor: conta.valor.toString(),
+      fornecedor: conta.fornecedor?._id || conta.fornecedor || '',
+      observacao: conta.observacao || '',
+      tipoControle: conta.tipoControle || '',
+      subgrupo: conta.tipoDespesa?.subgrupo || '',
+      totalParcelas: '1',
+      parcelMode: 'dividir',
+    });
+    setEditMode(true);
+    setContaEditId(conta._id);
+    
+    if (conta.tipoControle) {
+      const grupoSelecionado = grupos.find(g => g.nome === conta.tipoControle);
+      if (grupoSelecionado && grupoSelecionado.subgrupos) {
+        setSubgrupos(grupoSelecionado.subgrupos);
+      } else {
+        setSubgrupos([]);
+      }
+    }
+    
+    setOpenCadastro(true);
   };
 
   const handleOpenFornecedor = () => {
@@ -333,7 +366,7 @@ const ContasPagar = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.parcelMode === 'manual') {
+    if (!editMode && formData.parcelMode === 'manual') {
       const totalParcelas = parseInt(formData.totalParcelas);
       if (parcelasList.length !== totalParcelas) {
         setError(`Número de parcelas adicionadas (${parcelasList.length}) não corresponde ao informado (${totalParcelas}).`);
@@ -357,19 +390,35 @@ const ContasPagar = () => {
         tipoControle: formData.tipoControle
       };
 
-      if (formData.parcelMode === 'manual') {
-        jsonData.parcelas = parcelasList;
-        jsonData.parcelMode = formData.parcelMode;
-        delete jsonData.dataVencimento; // Not needed for manual mode
-        delete jsonData.valor; // Individual parcel values are in parcelas array
-      } else {
-        if (parseInt(formData.totalParcelas) > 1) {
-          jsonData.totalParcelas = formData.totalParcelas;
-          jsonData.parcelMode = formData.parcelMode;
+      if (formData.tipoControle) {
+        const grupoSelecionado = grupos.find(g => g.nome === formData.tipoControle);
+        if (grupoSelecionado) {
+          jsonData.tipoDespesa = {
+            grupo: grupoSelecionado._id,
+            subgrupo: formData.subgrupo || ''
+          };
         }
       }
 
-      await api.post('/contas', jsonData);
+      if (!editMode) {
+        if (formData.parcelMode === 'manual') {
+          jsonData.parcelas = parcelasList;
+          jsonData.parcelMode = formData.parcelMode;
+          delete jsonData.dataVencimento; // Not needed for manual mode
+          delete jsonData.valor; // Individual parcel values are in parcelas array
+        } else {
+          if (parseInt(formData.totalParcelas) > 1) {
+            jsonData.totalParcelas = formData.totalParcelas;
+            jsonData.parcelMode = formData.parcelMode;
+          }
+        }
+      }
+
+      if (editMode && contaEditId) {
+        await api.put(`/contas/${contaEditId}`, jsonData);
+      } else {
+        await api.post('/contas', jsonData);
+      }
 
       fetchContas();
       handleCloseCadastro();
@@ -452,6 +501,7 @@ const ContasPagar = () => {
   };
 
   const handleCancelar = (id) => {
+    setActionType('cancel');
     setContaToCancel(id);
     setOpenConfirmCancel(true);
   };
@@ -459,28 +509,21 @@ const ContasPagar = () => {
   const confirmCancel = async () => {
     if (contaToCancel) {
       try {
-        // Primeiro, verificar se há parcelas restantes sem inativar
-        const conta = contas.find(c => c._id === contaToCancel);
-        if (conta && conta.parcelaId) {
-          const remainingInstallments = contas.filter(c => 
-            c.parcelaId === conta.parcelaId && 
-            c._id !== contaToCancel && 
-            c.ativo !== false
-          );
-          
-          if (remainingInstallments.length > 0) {
-            setParcelasInfo({
-              count: remainingInstallments.length,
-              contaId: contaToCancel
-            });
-            setOpenConfirmParcelas(true);
-            setOpenConfirmCancel(false);
-            return; // Não inativa ainda, espera escolha do usuário
-          }
+        // Verificar no backend se há parcelas restantes
+        const checkResponse = await api.get(`/contas/${contaToCancel}/check-installments`);
+        
+        if (checkResponse.data.hasRemainingInstallments) {
+          setParcelasInfo({
+            count: checkResponse.data.remainingCount,
+            contaId: contaToCancel
+          });
+          setOpenConfirmParcelas(true);
+          setOpenConfirmCancel(false);
+          return; // Não inativa ainda, espera escolha do usuário
         }
         
         // Se não há parcelas restantes, inativa diretamente
-        const response = await api.delete(`/contas/${contaToCancel}`);
+        const response = await api.delete(`/contas/${contaToCancel}/hard`);
         await fetchContas();
         setOpenConfirmCancel(false);
         setContaToCancel(null);
@@ -492,6 +535,7 @@ const ContasPagar = () => {
   };
 
   const handleHardDelete = (id) => {
+    setActionType('hardDelete');
     setContaToHardDelete(id);
     setOpenConfirmHardDelete(true);
   };
@@ -537,26 +581,36 @@ const ContasPagar = () => {
   // Função para inativar apenas esta parcela
   const cancelarApenasEsta = async () => {
     try {
-      await api.delete(`/contas/${parcelasInfo.contaId}`);
+      if (actionType === 'cancel') {
+        await api.delete(`/contas/${parcelasInfo.contaId}/hard`);
+      } else {
+        await api.delete(`/contas/${parcelasInfo.contaId}?force=true`);
+      }
       await fetchContas();
       setOpenConfirmParcelas(false);
       setParcelasInfo({ count: 0, contaId: null });
       setContaToCancel(null);
+      setContaToHardDelete(null);
     } catch (err) {
-      setError('Erro ao inativar parcela');
+      setError('Erro ao inativar/excluir parcela');
     }
   };
 
   // Função para inativar todas as parcelas restantes
   const cancelarTodasParcelas = async () => {
     try {
-      await api.delete(`/contas/${parcelasInfo.contaId}/cancel-all-remaining`);
+      if (actionType === 'cancel') {
+        await api.delete(`/contas/${parcelasInfo.contaId}/hard-all-remaining`);
+      } else {
+        await api.delete(`/contas/${parcelasInfo.contaId}/cancel-all-remaining`);
+      }
       await fetchContas();
       setOpenConfirmParcelas(false);
       setParcelasInfo({ count: 0, contaId: null });
       setContaToCancel(null);
+      setContaToHardDelete(null);
     } catch (err) {
-      setError('Erro ao inativar parcelas');
+      setError('Erro ao inativar/excluir parcelas');
     }
   };
 
@@ -611,14 +665,24 @@ const ContasPagar = () => {
       
       <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
         {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handleOpenPagamento(conta)}
-            title="Pagar"
-          >
-            <PaymentIcon />
-          </IconButton>
+          <>
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleOpenPagamento(conta)}
+              title="Pagar"
+            >
+              <PaymentIcon />
+            </IconButton>
+            <IconButton
+              size="small"
+              color="secondary"
+              onClick={() => handleEdit(conta)}
+              title="Editar"
+            >
+              <EditIcon />
+            </IconButton>
+          </>
         )}
         {isActive(conta) && conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
           <>
@@ -626,7 +690,7 @@ const ContasPagar = () => {
               size="small"
               color="warning"
               onClick={() => handleCancelar(conta._id)}
-              title="Excluir"
+              title="Inativar"
             >
               <DeleteIcon />
             </IconButton>
@@ -859,14 +923,24 @@ const ContasPagar = () => {
                   </TableCell>
                   <TableCell>
                       {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleOpenPagamento(conta)}
-                          title="Pagar"
-                        >
-                          <PaymentIcon />
-                        </IconButton>
+                        <>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenPagamento(conta)}
+                            title="Pagar"
+                          >
+                            <PaymentIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="secondary"
+                            onClick={() => handleEdit(conta)}
+                            title="Editar"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </>
                       )}
                       {isActive(conta) && conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
                         <>
@@ -874,7 +948,7 @@ const ContasPagar = () => {
                             size="small"
                             color="warning"
                             onClick={() => handleCancelar(conta._id)}
-                            title="Excluir"
+                            title="Inativar"
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -929,9 +1003,9 @@ const ContasPagar = () => {
       </Box>
 
       {/* Dialog Cadastro */}
-      <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="sm" fullWidth>
+      <Dialog open={openCadastro} onClose={handleCloseCadastro} maxWidth="md" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Cadastrar Conta</DialogTitle>
+          <DialogTitle>{editMode ? 'Editar Conta' : 'Cadastrar Conta a Pagar'}</DialogTitle>
           <DialogContent>
             <TextField
               fullWidth
@@ -985,24 +1059,26 @@ const ContasPagar = () => {
                 <AddIcon />
               </IconButton>
             </Box>
-            <TextField
-              fullWidth
-              label="Número de Parcelas"
-              type="number"
-              margin="normal"
-              value={formData.totalParcelas}
-              onChange={(e) => {
-                const newTotalParcelas = e.target.value;
-                setFormData({
-                  ...formData,
-                  totalParcelas: newTotalParcelas,
-                  // Reseta para modo automático quando volta para 1 parcela
-                  parcelMode: parseInt(newTotalParcelas) === 1 ? 'dividir' : formData.parcelMode
-                });
-              }}
-              inputProps={{ min: 1 }}
-            />
-            {parseInt(formData.totalParcelas) > 1 && (
+            {!editMode && (
+              <TextField
+                fullWidth
+                label="Número de Parcelas"
+                type="number"
+                margin="normal"
+                InputProps={{ inputProps: { min: 1, max: 72 } }}
+                value={formData.totalParcelas}
+                onChange={(e) => {
+                  const newTotalParcelas = e.target.value;
+                  setFormData({
+                    ...formData,
+                    totalParcelas: newTotalParcelas,
+                    // Reseta para modo automático quando volta para 1 parcela
+                    parcelMode: parseInt(newTotalParcelas) === 1 ? 'dividir' : formData.parcelMode
+                  });
+                }}
+              />
+            )}
+            {!editMode && parseInt(formData.totalParcelas) > 1 && (
               <FormControl fullWidth margin="normal">
                 <InputLabel>Modo de Parcelamento</InputLabel>
                 <Select
@@ -1274,32 +1350,32 @@ const ContasPagar = () => {
 
       {/* Dialog Confirmar Cancelamento */}
       <Dialog open={openConfirmCancel} onClose={() => setOpenConfirmCancel(false)}>
-        <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <DialogTitle>Confirmar Inativação</DialogTitle>
         <DialogContent>
-          <Typography>Tem certeza que deseja excluir esta conta?</Typography>
+          <Typography>Tem certeza que deseja inativar esta conta?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenConfirmCancel(false)}>Não</Button>
-          <Button onClick={confirmCancel} variant="contained" color="error">
-            Sim, Excluir
+          <Button onClick={confirmCancel} variant="contained" color="warning">
+            Sim, Inativar
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog Confirmar Cancelamento de Parcelas */}
       <Dialog open={openConfirmParcelas} onClose={() => setOpenConfirmParcelas(false)}>
-        <DialogTitle>Excluir Parcelas Restantes</DialogTitle>
+        <DialogTitle>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} Parcelas Restantes</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, textAlign: 'left' }}>
             Existem <strong>{parcelasInfo.count}</strong> parcela(s) restante(s) deste grupo.
-            Deseja excluir apenas esta parcela ou todas as restantes?
+            Deseja {actionType === 'cancel' ? 'inativar' : 'excluir'} apenas esta parcela ou todas as restantes?
           </Typography>
           <Typography>
-            Como você deseja proceder com o **cancelamento**?
+            Como você deseja proceder com a ação?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            • <strong>Excluir apenas esta</strong>: Exclui apenas a parcela atual<br/>
-            • <strong>Excluir todas</strong>: Exclui esta e todas as parcelas restantes
+            • <strong>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} apenas esta</strong>: {actionType === 'cancel' ? 'Inativa' : 'Exclui'} apenas a parcela atual<br/>
+            • <strong>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} todas</strong>: {actionType === 'cancel' ? 'Inativa' : 'Exclui'} esta e todas as parcelas restantes
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1308,14 +1384,14 @@ const ContasPagar = () => {
             variant="outlined"
             color="primary"
           >
-            Excluir apenas esta
+            Apenas Esta
           </Button>
           <Button 
             onClick={cancelarTodasParcelas}
-            variant="contained"
-            color="warning"
+            variant="contained" 
+            color={actionType === 'cancel' ? 'warning' : 'error'}
           >
-            Excluir todas
+            Todas as Restantes
           </Button>
         </DialogActions>
       </Dialog>

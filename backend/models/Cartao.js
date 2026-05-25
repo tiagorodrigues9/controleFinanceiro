@@ -25,6 +25,11 @@ const cartaoSchema = new mongoose.Schema({
     min: 1,
     max: 31
   },
+  diaVencimento: {
+    type: Number,
+    min: 1,
+    max: 31
+  },
   dataVencimento: {
     type: Date,
     required: false

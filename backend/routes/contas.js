@@ -1,4 +1,4 @@
-  const express = require('express');
+const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
@@ -7,11 +7,13 @@ const Extrato = require('../models/Extrato');
 const ContaBancaria = require('../models/ContaBancaria');
 const Cartao = require('../models/Cartao');
 const Fornecedor = require('../models/Fornecedor');
+const Gasto = require('../models/Gasto');
 const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const NotificationService = require('../services/NotificationService');
 const { logger } = require('../utils/logger');
 const validateObjectId = require('../middleware/validateObjectId');
+const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/faturaUtils');
 
 const router = express.Router();
 
@@ -167,7 +169,7 @@ router.post('/', upload.single('anexo'), [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, dataVencimento, valor, fornecedor, observacao, totalParcelas, parcelaId, parcelMode, parcelas, tipoControle } = req.body;
+    const { nome, dataVencimento, valor, fornecedor, observacao, totalParcelas, parcelaId, parcelMode, parcelas, tipoControle, tipoDespesa } = req.body;
 
     logger.info('Cadastrando conta', { nome, dataVencimento, valor, fornecedor, userId: req.user._id });
 
@@ -184,6 +186,7 @@ router.post('/', upload.single('anexo'), [
       fornecedor,
       observacao,
       tipoControle,
+      tipoDespesa,
       usuario: req.user._id,
       status: 'Pendente'
     };
@@ -193,7 +196,7 @@ router.post('/', upload.single('anexo'), [
     }
 
     if (parcelMode === 'manual') {
-      const parcelasList = JSON.parse(parcelas);
+      const parcelasList = typeof parcelas === 'string' ? JSON.parse(parcelas) : parcelas;
       const parcelaIdFinal = Date.now().toString();
       for (let i = 0; i < parcelasList.length; i++) {
         const parcela = parcelasList[i];
@@ -206,6 +209,7 @@ router.post('/', upload.single('anexo'), [
           fornecedor,
           observacao,
           tipoControle,
+          tipoDespesa,
           usuario: req.user._id,
           status: 'Pendente',
           parcelaAtual: i + 1,
@@ -285,13 +289,15 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
       return res.status(400).json({ message: 'Contas pagas não podem ser editadas' });
     }
 
-    const { nome, dataVencimento, valor, fornecedor, observacao } = req.body;
+    const { nome, dataVencimento, valor, fornecedor, observacao, tipoControle, tipoDespesa } = req.body;
 
     if (nome) conta.nome = nome;
     if (dataVencimento) conta.dataVencimento = new Date(dataVencimento);
     if (valor) conta.valor = parseFloat(valor);
     if (fornecedor) conta.fornecedor = fornecedor;
     if (observacao !== undefined) conta.observacao = observacao;
+    if (tipoControle !== undefined) conta.tipoControle = tipoControle;
+    if (tipoDespesa !== undefined) conta.tipoDespesa = tipoDespesa;
     if (req.file) conta.anexo = req.file.path;
 
     await conta.save();
@@ -357,7 +363,7 @@ router.delete('/:id', async (req, res) => {
     let hasRemainingInstallments = false;
     let remainingCount = 0;
     
-    if (conta.parcelaId) {
+    if (conta.parcelaId && req.query.force !== 'true') {
       const remainingInstallments = await Conta.find({
         parcelaId: conta.parcelaId,
         usuario: req.user._id,
@@ -601,9 +607,25 @@ router.post('/:id/pagar', [
       }
       await conta.save({ session });
 
+      const valorPago = conta.valor + (conta.jurosPago || 0);
+
+      if (conta.tipoDespesa && conta.tipoDespesa.grupo) {
+        const Gasto = require('../models/Gasto');
+        await Gasto.create([{
+          tipoDespesa: conta.tipoDespesa,
+          valor: valorPago,
+          data: new Date(),
+          local: conta.fornecedor?.nome || 'Pagamento de conta',
+          observacao: `Pagamento da conta: ${conta.nome}`,
+          formaPagamento,
+          contaBancaria: contaBancaria,
+          cartao: cartaoObj ? cartaoObj._id : null,
+          usuario: req.user._id
+        }], { session });
+      }
+
       // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
       if (formaPagamento !== 'Cartão de Crédito') {
-        const valorPago = conta.valor + (conta.jurosPago || 0);
         await Extrato.create([{
           contaBancaria: contaBancaria, // 
           cartao: cartaoObj ? cartaoObj._id : null,
@@ -623,36 +645,21 @@ router.post('/:id/pagar', [
           const FaturaCartao = require('../models/FaturaCartao');
           
           // Determinar o mês de referência da fatura
+          const diaFech = cartaoObj.diaFatura || 25;
+          const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
           const dataPagamento = new Date();
-          const mesReferencia = dataPagamento.toISOString().slice(0, 7); // "YYYY-MM"
+          const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(dataPagamento, diaFech, diaVenc);
 
-          // Buscar ou criar fatura do mês
-          let fatura = await FaturaCartao.findOne({
-            cartao: cartaoObj._id,
-            mesReferencia: mesReferencia,
-            usuario: req.user._id
-          });
-
-          if (!fatura) {
-            // Criar nova fatura
-            const dataVencimento = new Date(dataPagamento);
-            dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
-            dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
-
-            const dataFechamento = new Date(dataVencimento);
-            dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
-
-            fatura = new FaturaCartao({
-              cartao: cartaoObj._id,
-              usuario: req.user._id,
-              mesReferencia: mesReferencia,
-              dataVencimento: dataVencimento,
-              dataFechamento: dataFechamento
-            });
-          }
+          // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+          let fatura = await buscarOuCriarFaturaAberta(
+            cartaoObj._id, 
+            req.user._id, 
+            dataVencimento, 
+            dataFechamento, 
+            mesReferencia
+          );
 
           // Adicionar despesa à fatura
-          const valorPago = conta.valor + (conta.jurosPago || 0);
           await fatura.adicionarDespesa(
             conta._id,
             valorPago,

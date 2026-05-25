@@ -75,6 +75,15 @@ const contaSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  tipoDespesa: {
+    grupo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Grupo'
+    },
+    subgrupo: {
+      type: String
+    }
+  },
   ativo: {
     type: Boolean,
     default: true

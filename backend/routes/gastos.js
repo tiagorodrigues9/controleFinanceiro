@@ -7,6 +7,8 @@ const auth = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 const { asyncHandler } = require('../utils/errors');
 const socket = require('../utils/socket');
+const { logger } = require('../utils/logger');
+const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/faturaUtils');
 
 const router = express.Router();
 
@@ -194,68 +196,35 @@ router.post('/', [
       if (cartaoObj) {
         const FaturaCartao = require('../models/FaturaCartao');
         
-        // Determinar o mês de referência da fatura com base na data de fechamento
-        const diaVenc = cartaoObj.diaFatura || 10;
-        
-        // Simples aproximação: data de fechamento é 5 dias antes
-        let diaFech = diaVenc - 5;
-        if (diaFech <= 0) diaFech = 25; // fallback básico se o vencimento for dia 5, o fechamento vai para o final do mês anterior, mas para manter simples, usaremos a lógica abaixo mais completa
+        // Determinar o mês de referência da fatura com base na data do gasto
+        const diaFech = cartaoObj.diaFatura || 25;
+        const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
+        const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(dataParsed, diaFech, diaVenc);
 
-        let mesFatura = dataGasto.getMonth();
-        let anoFatura = dataGasto.getFullYear();
-
-        // Calcular a data exata de fechamento para o mês do gasto
-        const tempDataFechamento = new Date(anoFatura, mesFatura, diaVenc);
-        tempDataFechamento.setDate(tempDataFechamento.getDate() - 5);
-
-        // Se o gasto ocorreu DEPOIS da data de fechamento, cai na fatura do próximo mês
-        if (dataGasto > tempDataFechamento) {
-          mesFatura++;
-          if (mesFatura > 11) {
-            mesFatura = 0;
-            anoFatura++;
-          }
-        }
-
-        const dataVencimento = new Date(anoFatura, mesFatura, diaVenc);
-        const dataFechamento = new Date(dataVencimento);
-        dataFechamento.setDate(dataFechamento.getDate() - 5);
-        
-        const mesStr = String(mesFatura + 1).padStart(2, '0');
-        const mesReferencia = `${anoFatura}-${mesStr}`;
-
-        // Buscar ou criar fatura do mês
-        let fatura = await FaturaCartao.findOne({
-          cartao: cartaoObj._id,
-          mesReferencia: mesReferencia,
-          usuario: req.user._id
-        });
-
-        if (!fatura) {
-          fatura = new FaturaCartao({
-            cartao: cartaoObj._id,
-            usuario: req.user._id,
-            mesReferencia: mesReferencia,
-            dataVencimento: dataVencimento,
-            dataFechamento: dataFechamento
-          });
-        }
+        // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+        let fatura = await buscarOuCriarFaturaAberta(
+          cartaoObj._id, 
+          req.user._id, 
+          dataVencimento, 
+          dataFechamento, 
+          mesReferencia
+        );
 
         // Adicionar despesa à fatura
         await fatura.adicionarDespesa(
           gasto._id,
           Math.round(parseFloat(valor) * 100) / 100,
-          dataGasto,
+          dataParsed,
           `Gasto: ${local || 'Sem local'}`
         );
       }
     }
 
-    res.status(201).json(gastoSalvo);
+    res.status(201).json(gasto);
 
     // Emitir evento websocket
     try {
-      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', gastoSalvo);
+      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', gasto);
     } catch (e) {
       logger.warn('Erro ao emitir evento websocket novo_gasto', e);
     }
@@ -315,33 +284,18 @@ router.post('/:id/duplicar', async (req, res) => {
         
         if (cartaoObj) {
           // Determinar o mês de referência da fatura
-          const dataGasto = new Date();
-          const mesReferencia = dataGasto.toISOString().slice(0, 7); // "YYYY-MM"
+          const diaFech = cartaoObj.diaFatura || 25;
+          const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
+          const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(new Date(), diaFech, diaVenc);
 
-          // Buscar ou criar fatura do mês
-          let fatura = await FaturaCartao.findOne({
-            cartao: cartaoObj._id,
-            mesReferencia: mesReferencia,
-            usuario: req.user._id
-          });
-
-          if (!fatura) {
-            // Criar nova fatura
-            const dataVencimento = new Date(dataGasto);
-            dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Próximo mês
-            dataVencimento.setDate(cartaoObj.diaVencimento || 10); // Dia de vencimento do cartão
-
-            const dataFechamento = new Date(dataVencimento);
-            dataFechamento.setDate(dataFechamento.getDate() - 5); // 5 dias antes do vencimento
-
-            fatura = new FaturaCartao({
-              cartao: cartaoObj._id,
-              usuario: req.user._id,
-              mesReferencia: mesReferencia,
-              dataVencimento: dataVencimento,
-              dataFechamento: dataFechamento
-            });
-          }
+          // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+          let fatura = await buscarOuCriarFaturaAberta(
+            cartaoObj._id, 
+            req.user._id, 
+            dataVencimento, 
+            dataFechamento, 
+            mesReferencia
+          );
 
           // Adicionar despesa à fatura
           await fatura.adicionarDespesa(

@@ -54,6 +54,7 @@ const Cartoes = () => {
     banco: '',
     limite: '',
     diaFatura: '',
+    diaVencimento: '',
     dataVencimento: '',
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -99,6 +100,7 @@ const Cartoes = () => {
         limite: cartao.limite || '',
         diaFatura: cartao.diaFatura || '',
         diaVencimento: cartao.diaVencimento || '',
+        dataVencimento: cartao.dataVencimento ? cartao.dataVencimento.substring(0, 7) : '',
       });
     } else {
       setEditMode(false);
@@ -109,6 +111,7 @@ const Cartoes = () => {
         banco: '',
         limite: '',
         diaFatura: '',
+        diaVencimento: '',
         dataVencimento: '',
       });
     }
@@ -126,6 +129,7 @@ const Cartoes = () => {
       banco: '',
       limite: '',
       diaFatura: '',
+      diaVencimento: '',
       dataVencimento: '',
     });
   };
@@ -142,8 +146,9 @@ const Cartoes = () => {
         ...(formData.tipo === 'Crédito' && {
           ...(formData.limite && { limite: formData.limite }),
           ...(formData.diaFatura && { diaFatura: formData.diaFatura }),
-          ...(formData.dataVencimento && { dataVencimento: formData.dataVencimento })
-        })
+          ...(formData.diaVencimento && { diaVencimento: formData.diaVencimento }),
+        }),
+        ...(formData.dataVencimento && { dataVencimento: formData.dataVencimento })
       };
       
       console.log('Dados formatados para envio:', dadosParaEnviar);
@@ -222,8 +227,13 @@ const Cartoes = () => {
             <Typography variant="body2" color="text.secondary">
               {cartao.tipo === 'Crédito' ? 'Dia da Fatura: ' : ''}{cartao.diaFatura || 'Não definido'}
             </Typography>
+            {cartao.tipo === 'Crédito' && (
+              <Typography variant="body2" color="text.secondary">
+                Dia de Vencimento: {cartao.diaVencimento || 'Não definido'}
+              </Typography>
+            )}
             <Typography variant="body2" color="text.secondary">
-              Vencimento: {cartao.dataVencimento ? new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Não definido'}
+              Validade: {cartao.dataVencimento ? new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : 'Não definido'}
             </Typography>
           </Box>
         )}
@@ -323,7 +333,7 @@ const Cartoes = () => {
                   </TableCell>
                   <TableCell>
                     {(cartao.tipo === 'Crédito' || cartao.tipo === 'Débito') 
-                      ? `Dia Fatura: ${cartao.diaFatura || 'Não definido'} | Vencimento: ${cartao.dataVencimento ? (() => {
+                      ? `Fechamento: ${cartao.diaFatura || '-'} | Vencimento: ${cartao.diaVencimento || '-'} | Validade: ${cartao.dataVencimento ? (() => {
                           const [year, month] = cartao.dataVencimento.split('-');
                           const date = new Date(year, month - 1, 1);
                           return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
@@ -442,15 +452,29 @@ const Cartoes = () => {
                         />
                       </Grid>
                     )}
-                    <Grid item xs={12} sm={formData.tipo === 'Crédito' ? 6 : 12}>
+                    {formData.tipo === 'Crédito' && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Dia de Vencimento"
+                          type="number"
+                          value={formData.diaVencimento}
+                          onChange={(e) => setFormData({ ...formData, diaVencimento: e.target.value })}
+                          variant="outlined"
+                          helperText="Opcional - Dia de vencimento da fatura (1-31)"
+                          inputProps={{ min: 1, max: 31 }}
+                        />
+                      </Grid>
+                    )}
+                    <Grid item xs={12} sm={formData.tipo === 'Crédito' ? 12 : 12}>
                       <TextField
                         fullWidth
-                        label="Data de Vencimento"
+                        label="Validade do Cartão"
                         type="month"
                         value={formData.dataVencimento}
                         onChange={(e) => setFormData({ ...formData, dataVencimento: e.target.value })}
                         variant="outlined"
-                        helperText={formData.tipo === 'Crédito' ? "Opcional - Mês/Ano de vencimento da fatura" : "Opcional - Mês/Ano de vencimento"}
+                        helperText="Opcional - Mês/Ano de validade impresso no cartão"
                         InputLabelProps={{ shrink: true }}
                       />
                     </Grid>

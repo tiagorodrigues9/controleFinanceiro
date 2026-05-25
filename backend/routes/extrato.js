@@ -208,6 +208,11 @@ router.post('/', [
       usuario: req.user._id
     });
 
+    await extrato.populate('contaBancaria', 'nome banco');
+    if (extrato.cartao) {
+      await extrato.populate('cartao', 'nome banco tipo');
+    }
+
     res.status(201).json(extrato);
   } catch (error) {
     logger.error(error);
@@ -261,6 +266,8 @@ router.post('/saldo-inicial', [
       usuario: req.user._id
     });
 
+    await extrato.populate('contaBancaria', 'nome banco');
+    
     res.status(201).json(extrato);
   } catch (error) {
     logger.error(error);
