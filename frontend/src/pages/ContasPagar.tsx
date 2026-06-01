@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -33,6 +33,7 @@ import {
   CardActions,
   useTheme,
   useMediaQuery,
+  TablePagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -40,8 +41,12 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditIcon from '@mui/icons-material/Edit';
 import api from '../utils/api';
+import { useAbortController } from '../hooks/useAbortController';
+import { isRequestCancelled, getRequestErrorMessage } from '../utils/requestUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const ROWS_PER_PAGE = 50;
 
 const ContasPagar = () => {
   const theme = useTheme();
@@ -99,6 +104,15 @@ const ContasPagar = () => {
   const [parcelasList, setParcelasList] = useState([]);
   const [parcelaData, setParcelaData] = useState({ valor: '', data: '' });
   const [actionType, setActionType] = useState('cancel');
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const { getSignal: getContasSignal } = useAbortController();
+  const { getSignal: getAuxSignal } = useAbortController();
+
+  const contasValidas = useMemo(
+    () => contas.filter((conta) => conta && conta.valor != null),
+    [contas]
+  );
 
   // Normaliza o campo `ativo` que pode vir como boolean, string, number ou undefined
   const isActive = (conta) => {
@@ -121,28 +135,36 @@ const ContasPagar = () => {
     return Boolean(v);
   };
 
-  const fetchContas = async () => {
+  const fetchContas = useCallback(async (pageIndex = page, externalSignal) => {
+    const signal = externalSignal ?? getContasSignal();
     try {
       setLoading(true);
-      // Busca contas do mês/ano selecionado por padrão
-      const params = { mes, ano };
-      // ativo filter
+      const params = {
+        mes,
+        ano,
+        page: pageIndex + 1,
+        limit: ROWS_PER_PAGE,
+      };
       if (filtros.ativo && filtros.ativo !== 'todas') params.ativo = filtros.ativo;
-      // status filter
       if (filtros.status && filtros.status !== 'todos') params.status = filtros.status;
-      // date range
       if (filtros.dataInicio) params.dataInicio = filtros.dataInicio;
       if (filtros.dataFim) params.dataFim = filtros.dataFim;
 
-      const response = await api.get('/contas', { params });
-      const listas = (response.data || []).filter(conta => conta && conta.valor != null);
+      const response = await api.get('/contas', { params, signal });
+      const payload = response.data;
+      const listas = (payload.items || []).filter((conta) => conta && conta.valor != null);
       setContas(listas);
+      setTotalCount(payload.total ?? 0);
     } catch (err) {
-      setError('Erro ao carregar contas');
+      if (!isRequestCancelled(err)) {
+        setError(getRequestErrorMessage(err, 'Erro ao carregar contas'));
+      }
     } finally {
-      setLoading(false);
+      if (!signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [mes, ano, filtros, page, getContasSignal]);
 
 
   // Limpa a lista de parcelas quando o modo de parcelamento muda para algo diferente de 'manual'
@@ -215,24 +237,38 @@ const ContasPagar = () => {
   };
 
   useEffect(() => {
+    const signal = getAuxSignal();
+
     const carregarDados = async () => {
       try {
-        console.log('🔄 Iniciando carregamento sequencial de dados...');
-        await fetchContas();
-        await fetchFornecedores();
-        await fetchContasBancarias();
-        await fetchGrupos();
-        await fetchFormasPagamento();
-        await fetchCartoes();
-        console.log('✅ Todos os dados carregados com sucesso!');
+        await Promise.all([
+          fetchContas(0, signal),
+          api.get('/fornecedores', { signal }).then((res) => {
+            setFornecedores(res.data.filter((f) => f.ativo));
+          }),
+          api.get('/contas-bancarias', { signal }).then((res) => {
+            setContasBancarias(res.data);
+          }),
+          api.get('/grupos', { signal }).then((res) => {
+            setGrupos(res.data);
+          }),
+          api.get('/formas-pagamento', { signal }).then((res) => {
+            setFormasPagamento(res.data);
+          }),
+          api.get('/cartoes', { signal }).then((res) => {
+            setCartoes(res.data.filter((cartao) => cartao.ativo));
+          }),
+        ]);
       } catch (error) {
-        console.error('❌ Erro ao carregar dados iniciais:', error);
+        if (!isRequestCancelled(error)) {
+          console.error('Erro ao carregar dados iniciais:', error);
+        }
       }
     };
-    
+
     carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [getAuxSignal]);
 
   useEffect(() => {
     const handler = () => fetchFormasPagamento();
@@ -864,7 +900,7 @@ const ContasPagar = () => {
             />
           </Grid>
           <Grid item xs={12} md={2}>
-            <Button variant="contained" color="primary" size="small" onClick={fetchContas}>Aplicar</Button>
+            <Button variant="contained" color="primary" size="small" onClick={() => { setPage(0); fetchContas(0); }}>Aplicar</Button>
             <Button variant="contained" color="primary" size="small" sx={{ ml: 1 }} onClick={() => { setFiltros({ ativo: 'todas', status: 'todos', dataInicio: '', dataFim: '' }); }}>Limpar</Button>
           </Grid>
         </Grid>
@@ -879,7 +915,7 @@ const ContasPagar = () => {
       {/* Layout responsivo: Cards para mobile, Tabela para desktop */}
       {isMobile ? (
         <Box>
-          {contas.filter(conta => conta && conta.valor != null).map((conta) => (
+          {contasValidas.map((conta) => (
             <ContaCard key={conta._id} conta={conta} />
           ))}
         </Box>
@@ -897,7 +933,7 @@ const ContasPagar = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-                {contas.filter(conta => conta && conta.valor != null).map((conta) => (
+                {contasValidas.map((conta) => (
                 <TableRow key={conta._id}>
                   <TableCell>
                     {conta.nome}
@@ -979,6 +1015,21 @@ const ContasPagar = () => {
           </Table>
         </TableContainer>
       )}
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(_, newPage) => {
+          setPage(newPage);
+          fetchContas(newPage);
+        }}
+        rowsPerPage={ROWS_PER_PAGE}
+        rowsPerPageOptions={[ROWS_PER_PAGE]}
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`
+        }
+      />
 
       {/* Resumo de totais responsivo */}
       <Box mt={2} display="flex" gap={2} flexWrap={isMobile ? 'wrap' : 'nowrap'}>

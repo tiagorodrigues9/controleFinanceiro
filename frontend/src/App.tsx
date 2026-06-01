@@ -24,8 +24,6 @@ import FaturasCartao from './pages/FaturasCartao';
 import Notificacoes from './pages/Notificacoes';
 import Orcamentos from './pages/Orcamentos';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import UpdateNotification from './components/UpdateNotification';
-
 const theme = createTheme({
   palette: {
     primary: {
@@ -98,7 +96,6 @@ function App() {
         </Router>
       </AuthProvider>
       <PWAInstallPrompt />
-      <UpdateNotification />
     </ThemeProvider>
   );
 }

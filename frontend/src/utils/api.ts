@@ -1,7 +1,9 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { REQUEST_TIMEOUT_MS, isRequestCancelled } from './requestUtils';
 
 const api = axios.create({
   baseURL: `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api`,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 let isRefreshing = false;
@@ -21,7 +23,6 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -33,18 +34,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor para tratar erros de autenticação com refresh automático
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-
-    // Se não é 401 ou já tentou retry, rejeitar
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (isRequestCancelled(error)) {
       return Promise.reject(error);
     }
 
-    // Não tentar refresh na própria rota de refresh ou login
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (!originalRequest || error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    if (originalRequest.signal?.aborted) {
+      return Promise.reject(error);
+    }
+
     if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
@@ -55,11 +61,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Se já está fazendo refresh, enfileirar a requisição
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({
           resolve: (token: string) => {
+            if (originalRequest.signal?.aborted) {
+              reject(error);
+              return;
+            }
             originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(api(originalRequest));
           },
@@ -74,6 +83,7 @@ api.interceptors.response.use(
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
       isRefreshing = false;
+      processQueue(error, null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
@@ -85,7 +95,8 @@ api.interceptors.response.use(
     try {
       const { data } = await axios.post(
         `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/auth/refresh`,
-        { refreshToken }
+        { refreshToken },
+        { timeout: REQUEST_TIMEOUT_MS }
       );
 
       localStorage.setItem('token', data.token);
@@ -93,6 +104,10 @@ api.interceptors.response.use(
 
       originalRequest.headers.Authorization = `Bearer ${data.token}`;
       processQueue(null, data.token);
+
+      if (originalRequest.signal?.aborted) {
+        return Promise.reject(error);
+      }
 
       return api(originalRequest);
     } catch (refreshError) {

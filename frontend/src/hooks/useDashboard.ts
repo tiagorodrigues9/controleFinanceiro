@@ -1,44 +1,37 @@
 // @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import api from '../utils/api';
+import { useAbortController } from './useAbortController';
+import { isRequestCancelled, getRequestErrorMessage } from '../utils/requestUtils';
 
 const useDashboard = (mes, ano) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { getSignal } = useAbortController();
 
   const fetchDashboardData = useCallback(async () => {
-    console.log('🔍 HOOK - Chamando fetchDashboardData com mes:', mes, 'ano:', ano);
+    const signal = getSignal();
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await api.get('/dashboard', {
         params: { mes, ano },
+        signal,
       });
-      
-      console.log('🔍 HOOK - Resposta da API recebida:', response.data);
-      console.log('🔍 HOOK - mesesComparacao na resposta:', response.data?.mesesComparacao);
-      
+
       setData(response.data);
-      console.log('🔍 DASHBOARD FRONTEND - Dados recebidos:', response.data);
     } catch (err) {
-      console.error('Erro ao carregar dados do dashboard:', err);
-      
-      // Tratamento específico de erros
-      if (err.response?.status === 401) {
-        setError('Sessão expirada. Faça login novamente.');
-      } else if (err.response?.status === 500) {
-        setError('Erro interno do servidor. Tente novamente mais tarde.');
-      } else if (err.code === 'NETWORK_ERROR') {
-        setError('Erro de conexão. Verifique sua internet.');
-      } else {
-        setError('Erro ao carregar dados do dashboard');
+      if (!isRequestCancelled(err)) {
+        setError(getRequestErrorMessage(err, 'Erro ao carregar dados do dashboard'));
       }
     } finally {
-      setLoading(false);
+      if (!signal.aborted) {
+        setLoading(false);
+      }
     }
-  }, [mes, ano]);
+  }, [mes, ano, getSignal]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -63,7 +56,6 @@ const useDashboard = (mes, ano) => {
     refetch,
     safeNum,
     clearError: () => setError(''),
-    // Garantir que o campo mesesComparacao seja retornado corretamente
     mesesComparacao: data?.mesesComparacao || [],
   };
 };

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -30,16 +30,22 @@ import {
   CardActions,
   useTheme,
   useMediaQuery,
+  TablePagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ClearIcon from '@mui/icons-material/Clear';
 import api from '../utils/api';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useAbortController } from '../hooks/useAbortController';
+import { isRequestCancelled, getRequestErrorMessage } from '../utils/requestUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import GridOnIcon from '@mui/icons-material/GridOn';
+
+const ROWS_PER_PAGE = 50;
 
 const Extrato = () => {
   const theme = useTheme();
@@ -77,90 +83,94 @@ const Extrato = () => {
   const [openConfirmEstorno, setOpenConfirmEstorno] = useState(false);
   const [estornoId, setEstornoId] = useState(null);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const debouncedFiltros = useDebouncedValue(filtros, 450);
+  const { getSignal: getExtratoSignal } = useAbortController();
+  const { getSignal: getAuxSignal } = useAbortController();
+  const filtrosReady = useRef(false);
 
   useEffect(() => {
-    // Inicializar filtros com os últimos 5 dias
     const hoje = new Date();
     const cincoDiasAtras = new Date(hoje);
     cincoDiasAtras.setDate(hoje.getDate() - 5);
-    
-    const filtrosIniciais = {
+
+    setFiltros({
       contaBancaria: '',
       tipoDespesa: '',
       cartao: '',
       dataInicio: format(cincoDiasAtras, 'yyyy-MM-dd'),
       dataFim: format(hoje, 'yyyy-MM-dd'),
-    };
-    
-    setFiltros(filtrosIniciais);
-    
-    // Buscar dados iniciais
-    fetchContasBancarias();
-    fetchGrupos();
-    fetchCartoes();
-    
-    // Buscar extratos com os filtros iniciais
-    fetchExtratosComFiltros(filtrosIniciais);
+    });
+    filtrosReady.current = true;
   }, []);
 
-  const fetchExtratosComFiltros = async (filtrosParaUsar) => {
+  useEffect(() => {
+    const signal = getAuxSignal();
+
+    const loadAux = async () => {
+      try {
+        const [contasRes, gruposRes, cartoesRes] = await Promise.all([
+          api.get('/contas-bancarias', { signal }),
+          api.get('/grupos', { signal }),
+          api.get('/cartoes', { signal }),
+        ]);
+        setContasBancarias(contasRes.data);
+        setGrupos(gruposRes.data);
+        setCartoes(cartoesRes.data.filter((cartao) => cartao.ativo));
+      } catch (err) {
+        if (!isRequestCancelled(err)) {
+          console.error('Erro ao carregar dados auxiliares do extrato:', err);
+        }
+      }
+    };
+
+    loadAux();
+  }, [getAuxSignal]);
+
+  const fetchExtratosComFiltros = useCallback(async (filtrosParaUsar, pageIndex = 0) => {
+    if (!filtrosParaUsar.dataInicio || !filtrosParaUsar.dataFim) return;
+
+    const signal = getExtratoSignal();
     try {
-      const params = {};
+      setLoading(true);
+      setError('');
+
+      const params = {
+        page: pageIndex + 1,
+        limit: ROWS_PER_PAGE,
+      };
       if (filtrosParaUsar.contaBancaria) params.contaBancaria = filtrosParaUsar.contaBancaria;
       if (filtrosParaUsar.tipoDespesa) params.tipoDespesa = filtrosParaUsar.tipoDespesa;
       if (filtrosParaUsar.cartao) params.cartao = filtrosParaUsar.cartao;
       if (filtrosParaUsar.dataInicio) params.dataInicio = filtrosParaUsar.dataInicio;
       if (filtrosParaUsar.dataFim) params.dataFim = filtrosParaUsar.dataFim;
 
-      const response = await api.get('/extrato', { params });
+      const response = await api.get('/extrato', { params, signal });
       setExtratos(response.data.extratos || []);
+      setTotalCount(response.data.total ?? 0);
       setTotalSaldo(response.data.totalSaldo || 0);
       setTotalEntradas(response.data.totalEntradas || 0);
       setTotalSaidas(response.data.totalSaidas || 0);
     } catch (err) {
-      setError('Erro ao carregar extrato');
+      if (!isRequestCancelled(err)) {
+        setError(getRequestErrorMessage(err, 'Erro ao carregar extrato'));
+      }
     } finally {
-      setLoading(false);
+      if (!signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [getExtratoSignal]);
 
   useEffect(() => {
-    if (loading) return; // Evitar chamada dupla no carregamento
-    fetchExtratosComFiltros(filtros);
-  }, [filtros]);
-
-  
-  const fetchContasBancarias = async () => {
-    try {
-      const response = await api.get('/contas-bancarias');
-      setContasBancarias(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar contas bancárias:', err);
-    }
-  };
-
-  const fetchGrupos = async () => {
-    try {
-      const response = await api.get('/grupos');
-      setGrupos(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar grupos:', err);
-    }
-  };
-
-  const fetchCartoes = async () => {
-    try {
-      const response = await api.get('/cartoes');
-      setCartoes(response.data.filter(cartao => cartao.ativo));
-    } catch (err) {
-      console.error('Erro ao carregar cartões:', err);
-    }
-  };
+    if (!filtrosReady.current || !debouncedFiltros.dataInicio) return;
+    fetchExtratosComFiltros(debouncedFiltros, page);
+  }, [debouncedFiltros, page, fetchExtratosComFiltros]);
 
   useEffect(() => {
-    if (loading) return; // Evitar chamada dupla no carregamento
-    fetchExtratosComFiltros(filtros);
-  }, [filtros]);
+    setPage(0);
+  }, [debouncedFiltros]);
 
   const handleOpenLancamento = () => {
     setFormData({
@@ -622,6 +632,18 @@ const Extrato = () => {
           </Table>
         </TableContainer>
       )}
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        rowsPerPage={ROWS_PER_PAGE}
+        rowsPerPageOptions={[ROWS_PER_PAGE]}
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`
+        }
+      />
 
       {/* Totais do Período */}
       <Paper sx={{ p: 3, mt: 3 }}>

@@ -47,8 +47,38 @@ router.get('/', async (req, res) => {
 
     logger.debug('Query para extratos:', query);
 
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+
+    const totalsAgg = await Extrato.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalEntradas: {
+            $sum: {
+              $cond: [
+                { $in: ['$tipo', ['Entrada', 'Saldo Inicial']] },
+                '$valor',
+                0
+              ]
+            }
+          },
+          totalSaidas: {
+            $sum: {
+              $cond: [{ $eq: ['$tipo', 'Saída'] }, '$valor', 0]
+            }
+          }
+        }
+      }
+    ]);
+    const totalEntradas = totalsAgg[0]?.totalEntradas || 0;
+    const totalSaidas = totalsAgg[0]?.totalSaidas || 0;
+
     // Otimização: mover filtro de tipoDespesa para MongoDB usando aggregation
     let extratos;
+    let total = 0;
     
     if (tipoDespesa) {
       // Usar aggregation para filtro de tipoDespesa no banco
@@ -95,36 +125,38 @@ router.get('/', async (req, res) => {
           }
         },
         { $unwind: { path: '$cartao', preserveNullAndEmptyArrays: true } },
-        { $sort: { data: -1 } }
+        { $sort: { data: -1 } },
+        {
+          $facet: {
+            items: [{ $skip: skip }, { $limit: limit }],
+            totalCount: [{ $count: 'count' }]
+          }
+        }
       ]);
-      
-      // Remover campo temporário
-      extratos = extratos.map(extrato => {
+
+      const facetResult = extratos[0] || { items: [], totalCount: [] };
+      extratos = (facetResult.items || []).map(extrato => {
         const { gastoRef, ...rest } = extrato;
         return rest;
       });
+      total = facetResult.totalCount[0]?.count || 0;
     } else {
-      // Query normal sem filtro de tipoDespesa
-      extratos = await Extrato.find(query)
-        .populate('contaBancaria', 'nome banco')
-        .populate('cartao', 'nome banco tipo')
-        .sort({ data: -1 });
+      const [list, count] = await Promise.all([
+        Extrato.find(query)
+          .populate('contaBancaria', 'nome banco')
+          .populate('cartao', 'nome banco tipo')
+          .sort({ data: -1 })
+          .skip(skip)
+          .limit(limit),
+        Extrato.countDocuments(query)
+      ]);
+      extratos = list;
+      total = count;
     }
 
-    logger.debug('Extratos encontrados:', extratos.length);
+    logger.debug('Extratos encontrados:', extratos.length, 'total:', total);
 
     let totalSaldo = 0;
-    let totalEntradas = 0;
-    let totalSaidas = 0;
-    
-    // Calcular totais baseados nos extratos filtrados (incluindo filtro de tipoDespesa)
-    totalEntradas = extratos
-      .filter(extrato => extrato.tipo === 'Entrada' || extrato.tipo === 'Saldo Inicial')
-      .reduce((sum, extrato) => sum + extrato.valor, 0);
-    
-    totalSaidas = extratos
-      .filter(extrato => extrato.tipo === 'Saída')
-      .reduce((sum, extrato) => sum + extrato.valor, 0);
     
     // Calcular saldo da conta (se houver filtro de conta bancária)
     if (contaBancaria) {
@@ -154,7 +186,21 @@ router.get('/', async (req, res) => {
       totalSaldo = saldoAgg[0]?.total || 0;
     }
 
-    res.json({ extratos, totalSaldo, totalEntradas, totalSaidas });
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    res.setHeader('X-Total-Count', total);
+    res.setHeader('X-Total-Pages', totalPages);
+
+    res.json({
+      extratos,
+      total,
+      page,
+      limit,
+      totalPages,
+      totalSaldo,
+      totalEntradas,
+      totalSaidas,
+    });
   } catch (error) {
     logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar extrato' });

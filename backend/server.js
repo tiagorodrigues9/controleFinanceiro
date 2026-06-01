@@ -47,7 +47,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['X-Total-Count'],
+  exposedHeaders: ['X-Total-Count', 'X-Total-Pages'],
   maxAge: 86400 // 24 horas
 };
 
@@ -203,10 +203,14 @@ const mongooseOptions = {
   w: 'majority'
 };
 
-mongoose.connect(mongoUri, mongooseOptions)
+const { connectDB } = require('./utils/db');
+
+connectDB(mongoUri, mongooseOptions)
   .then(() => {
     logger.info('MongoDB conectado com sucesso via Mongoose');
-    initCronJobs(); // Inicia os cron jobs de contas recorrentes
+    if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+      initCronJobs();
+    }
   })
   .catch(err => {
     logger.error('Erro ao conectar MongoDB:', err);

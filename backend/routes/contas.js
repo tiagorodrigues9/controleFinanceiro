@@ -98,33 +98,34 @@ router.get('/', async (req, res) => {
     // O status de contas vencidas agora é atualizado pelo NotificationScheduler diariamente
     // e no momento da criação/edição através do pre-save hook no modelo Conta.
 
-    const limit = parseInt(req.query.limit);
-    const page = parseInt(req.query.page);
-    
-    let dbQuery = Conta.find(query)
-      .populate('fornecedor')
-      .populate('contaBancaria')
-      .sort({ dataVencimento: 1 });
-      
-    if (limit && page) {
-      const skip = (page - 1) * limit;
-      dbQuery = dbQuery.skip(skip).limit(limit);
-    }
-    
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
+
     const [contas, total] = await Promise.all([
-      dbQuery,
+      Conta.find(query)
+        .populate('fornecedor')
+        .populate('contaBancaria')
+        .sort({ dataVencimento: 1 })
+        .skip(skip)
+        .limit(limit),
       Conta.countDocuments(query)
     ]);
 
-    logger.info('Contas encontradas', { count: contas.length, total });
-    
-    // Header pagination para compatibilidade
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    logger.info('Contas encontradas', { count: contas.length, total, page, limit });
+
     res.setHeader('X-Total-Count', total);
-    if (limit) {
-      res.setHeader('X-Total-Pages', Math.ceil(total / limit));
-    }
-    
-    res.json(contas);
+    res.setHeader('X-Total-Pages', totalPages);
+
+    res.json({
+      items: contas,
+      total,
+      page,
+      limit,
+      totalPages,
+    });
   } catch (error) {
     logger.error('Erro ao buscar contas', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Erro ao buscar contas' });

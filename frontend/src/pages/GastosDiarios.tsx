@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Button,
@@ -29,12 +29,18 @@ import {
   CardActions,
   useTheme,
   useMediaQuery,
+  TablePagination,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../utils/api';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useAbortController } from '../hooks/useAbortController';
+import { isRequestCancelled, getRequestErrorMessage } from '../utils/requestUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+const ROWS_PER_PAGE = 50;
 
 const GastosDiarios = () => {
   const theme = useTheme();
@@ -68,99 +74,109 @@ const GastosDiarios = () => {
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState(null);
 
-  const [initialized, setInitialized] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const debouncedFiltros = useDebouncedValue(filtros, 450);
+  const { getSignal: getGastosSignal } = useAbortController();
+  const { getSignal: getAuxSignal } = useAbortController();
+  const filtrosReady = useRef(false);
 
   useEffect(() => {
-    // Inicializar filtros com os últimos 5 dias
     const hoje = new Date();
     const cincoDiasAtras = new Date(hoje);
     cincoDiasAtras.setDate(hoje.getDate() - 5);
-    
-    const filtrosIniciais = {
+
+    setFiltros({
       tipoDespesa: '',
       subgrupo: '',
       formaPagamento: '',
       dataInicio: format(cincoDiasAtras, 'yyyy-MM-dd'),
       dataFim: format(hoje, 'yyyy-MM-dd'),
-    };
-    
-    setFiltros(filtrosIniciais);
-    
-    // Buscar dados iniciais
-    fetchGrupos();
-    fetchContasBancarias();
-    fetchFormasPagamento();
-    fetchCartoes();
-    
-    // Buscar gastos com os filtros iniciais
-    fetchGastosComFiltros(filtrosIniciais);
-    setInitialized(true);
+    });
+    filtrosReady.current = true;
   }, []);
+
+  useEffect(() => {
+    const signal = getAuxSignal();
+
+    const loadAux = async () => {
+      try {
+        const [gruposRes, contasRes, formasRes, cartoesRes] = await Promise.all([
+          api.get('/grupos', { signal }),
+          api.get('/contas-bancarias', { signal }),
+          api.get('/formas-pagamento', { signal }),
+          api.get('/cartoes', { signal }),
+        ]);
+        setGrupos(gruposRes.data);
+        setContasBancarias(contasRes.data);
+        setFormasPagamento(formasRes.data);
+        setCartoes(cartoesRes.data.filter((cartao) => cartao.ativo));
+      } catch (err) {
+        if (!isRequestCancelled(err)) {
+          console.error('Erro ao carregar dados auxiliares:', err);
+        }
+      }
+    };
+
+    loadAux();
+  }, [getAuxSignal]);
+
+  const fetchFormasPagamento = useCallback(async () => {
+    const signal = getAuxSignal();
+    try {
+      const response = await api.get('/formas-pagamento', { signal });
+      setFormasPagamento(response.data);
+    } catch (err) {
+      if (!isRequestCancelled(err)) {
+        console.error('Erro ao carregar formas de pagamento:', err);
+      }
+    }
+  }, [getAuxSignal]);
 
   useEffect(() => {
     const handler = () => fetchFormasPagamento();
     window.addEventListener('formasUpdated', handler);
     return () => window.removeEventListener('formasUpdated', handler);
-  }, []);
+  }, [fetchFormasPagamento]);
 
-  const fetchGastosComFiltros = async (filtrosParaUsar) => {
+  const fetchGastosComFiltros = useCallback(async (filtrosParaUsar, pageIndex = 0) => {
+    const signal = getGastosSignal();
     try {
-      const params = {};
+      setLoading(true);
+      setError('');
+
+      const params = {
+        page: pageIndex + 1,
+        limit: ROWS_PER_PAGE,
+      };
       if (filtrosParaUsar.tipoDespesa) params.tipoDespesa = filtrosParaUsar.tipoDespesa;
       if (filtrosParaUsar.subgrupo) params.subgrupo = filtrosParaUsar.subgrupo;
       if (filtrosParaUsar.formaPagamento) params.formaPagamento = filtrosParaUsar.formaPagamento;
       if (filtrosParaUsar.dataInicio) params.dataInicio = filtrosParaUsar.dataInicio;
       if (filtrosParaUsar.dataFim) params.dataFim = filtrosParaUsar.dataFim;
 
-      const response = await api.get('/gastos', { params });
-      setGastos(response.data);
+      const response = await api.get('/gastos', { params, signal });
+      setGastos(response.data.items || []);
+      setTotalCount(response.data.total ?? 0);
     } catch (err) {
-      setError('Erro ao carregar gastos');
+      if (!isRequestCancelled(err)) {
+        setError(getRequestErrorMessage(err, 'Erro ao carregar gastos'));
+      }
     } finally {
-      setLoading(false);
+      if (!signal.aborted) {
+        setLoading(false);
+      }
     }
-  };
+  }, [getGastosSignal]);
 
   useEffect(() => {
-    if (loading) return; // Evitar chamada dupla no carregamento
-    fetchGastosComFiltros(filtros);
-  }, [filtros]);
+    if (!filtrosReady.current || !debouncedFiltros.dataInicio) return;
+    fetchGastosComFiltros(debouncedFiltros, page);
+  }, [debouncedFiltros, page, fetchGastosComFiltros]);
 
-  const fetchGrupos = async () => {
-    try {
-      const response = await api.get('/grupos');
-      setGrupos(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar grupos:', err);
-    }
-  };
-
-  const fetchContasBancarias = async () => {
-    try {
-      const response = await api.get('/contas-bancarias');
-      setContasBancarias(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar contas bancárias:', err);
-    }
-  };
-
-  const fetchFormasPagamento = async () => {
-    try {
-      const response = await api.get('/formas-pagamento');
-      setFormasPagamento(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar formas de pagamento:', err);
-    }
-  };
-
-  const fetchCartoes = async () => {
-    try {
-      const response = await api.get('/cartoes');
-      setCartoes(response.data.filter(cartao => cartao.ativo));
-    } catch (err) {
-      console.error('Erro ao carregar cartões:', err);
-    }
-  };
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedFiltros]);
 
   
   const handleOpenCadastro = () => {
@@ -185,7 +201,7 @@ const GastosDiarios = () => {
     e.preventDefault();
     try {
       await api.post('/gastos', formData);
-      fetchGastosComFiltros(filtros);
+      fetchGastosComFiltros(debouncedFiltros, page);
       handleCloseCadastro();
       setError('');
     } catch (err) {
@@ -199,7 +215,7 @@ const GastosDiarios = () => {
       await api.delete(`/gastos/${gastoToDelete}`);
       setOpenDeleteConfirm(false);
       setGastoToDelete(null);
-      fetchGastosComFiltros(filtros);
+      fetchGastosComFiltros(debouncedFiltros, page);
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao excluir gasto');
       setOpenDeleteConfirm(false);
@@ -498,6 +514,18 @@ const GastosDiarios = () => {
           </Table>
         </TableContainer>
       )}
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        rowsPerPage={ROWS_PER_PAGE}
+        rowsPerPageOptions={[ROWS_PER_PAGE]}
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}–${to} de ${count !== -1 ? count : `mais de ${to}`}`
+        }
+      />
 
       {/* Resumo do dia */}
       <Box mt={3} display="flex" gap={2} flexWrap={isMobile ? 'wrap' : 'nowrap'}>

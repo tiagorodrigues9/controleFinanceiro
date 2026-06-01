@@ -61,31 +61,32 @@ router.get('/', async (req, res) => {
       };
     }
 
-    const limit = parseInt(req.query.limit);
-    const page = parseInt(req.query.page);
-    
-    let dbQuery = Gasto.find(query)
-      .populate('tipoDespesa.grupo')
-      .populate('contaBancaria')
-      .sort({ data: -1 });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const skip = (page - 1) * limit;
 
-    if (limit && page) {
-      const skip = (page - 1) * limit;
-      dbQuery = dbQuery.skip(skip).limit(limit);
-    }
-    
     const [gastos, total] = await Promise.all([
-      dbQuery,
+      Gasto.find(query)
+        .populate('tipoDespesa.grupo')
+        .populate('contaBancaria')
+        .sort({ data: -1 })
+        .skip(skip)
+        .limit(limit),
       Gasto.countDocuments(query)
     ]);
-    
-    // Header pagination para compatibilidade
-    res.setHeader('X-Total-Count', total);
-    if (limit) {
-      res.setHeader('X-Total-Pages', Math.ceil(total / limit));
-    }
 
-    res.json(gastos);
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    res.setHeader('X-Total-Count', total);
+    res.setHeader('X-Total-Pages', totalPages);
+
+    res.json({
+      items: gastos,
+      total,
+      page,
+      limit,
+      totalPages,
+    });
   } catch (error) {
     logger.error(error);
     res.status(500).json({ message: 'Erro ao buscar gastos' });
