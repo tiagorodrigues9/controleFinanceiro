@@ -147,6 +147,15 @@ router.post('/refresh', async (req, res) => {
     res.json({ token: newToken, refreshToken: newRefreshToken });
   } catch (error) {
     logger.error(error);
+    if (error.name === 'MongoServerSelectionError' || error.name === 'MongooseError') {
+      return res.status(503).json({
+        message: 'Banco de dados temporariamente indisponível. Tente novamente.',
+        code: 'DB_UNAVAILABLE',
+      });
+    }
+    if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Refresh token expirado ou inválido' });
+    }
     return res.status(401).json({ message: 'Refresh token expirado ou inválido' });
   }
 });

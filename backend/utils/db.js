@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const { buildMongoUri, getMongooseOptions } = require('./mongoConfig');
+const { logger } = require('./logger');
 
 let cached = global.mongoose;
 
@@ -9,26 +11,40 @@ if (!cached) {
 /**
  * Reutiliza conexão Mongoose entre invocações serverless (Vercel).
  */
-async function connectDB(uri, options = {}) {
+async function connectDB() {
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
+  if (mongoose.connection.readyState === 2 && cached.promise) {
+    return cached.promise;
+  }
+
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri, options).then((m) => {
-      cached.conn = m;
-      return m;
-    });
+    const uri = buildMongoUri();
+    const options = getMongooseOptions();
+
+    mongoose.set('strictQuery', false);
+
+    cached.promise = mongoose
+      .connect(uri, options)
+      .then((m) => {
+        cached.conn = m;
+        logger.info('MongoDB conectado', {
+          serverless: Boolean(process.env.VERCEL),
+          readyState: mongoose.connection.readyState,
+        });
+        return m;
+      })
+      .catch((err) => {
+        cached.promise = null;
+        cached.conn = null;
+        logger.error('Falha ao conectar MongoDB', { error: err.message });
+        throw err;
+      });
   }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (err) {
-    cached.promise = null;
-    cached.conn = null;
-    throw err;
-  }
-
+  cached.conn = await cached.promise;
   return cached.conn;
 }
 

@@ -8,9 +8,9 @@ const { logger } = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 const { keepAlive } = require('./utils/keepAlive');
 const { initCronJobs } = require('./jobs/cronJobs');
-
-// Inicializar cron jobs
-initCronJobs();
+const ensureDb = require('./middleware/ensureDb');
+const { connectDB } = require('./utils/db');
+const { isServerless } = require('./utils/mongoConfig');
 
 const app = express();
 
@@ -38,11 +38,20 @@ const corsOptions = {
     }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      logger.warn('CORS blocked', { origin });
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+
+    // Frontends hospedados na Vercel (preview e produção)
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
+      return callback(null, true);
+    }
+
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+
+    logger.warn('CORS blocked', { origin });
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -68,6 +77,9 @@ const limiter = rateLimit({
 });
 
 app.use('/api/', limiter);
+
+// Conectar ao MongoDB antes de qualquer rota da API (crítico na Vercel)
+app.use('/api', ensureDb);
 
 // Limitador mais restrito para auth
 const authLimiter = rateLimit({
@@ -105,16 +117,24 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  let database = 'disconnected';
+  try {
+    await connectDB();
+    database = 'connected';
+  } catch {
+    database = 'disconnected';
+  }
+
   const healthCheck = {
     uptime: process.uptime(),
-    message: 'OK',
+    message: database === 'connected' ? 'OK' : 'DEGRADED',
     timestamp: Date.now(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    environment: process.env.NODE_ENV || 'development'
+    database,
+    environment: process.env.NODE_ENV || 'development',
   };
-  
-  res.status(mongoose.connection.readyState === 1 ? 200 : 503).json(healthCheck);
+
+  res.status(database === 'connected' ? 200 : 503).json(healthCheck);
 });
 
 // Ping endpoint (fallback)
@@ -150,71 +170,17 @@ app.use('/api/orcamentos', require('./routes/orcamentos'));
 const setupSwagger = require('./swagger');
 setupSwagger(app);
 
-// Conexão com MongoDB
-const mongoUser = process.env.MONGO_USER || '';
-const mongoPass = process.env.MONGO_PASS || '';
-const mongoDb = process.env.MONGO_DB || 'controle-financeiro';
-const mongoHost = process.env.MONGO_HOST || '';
-
-// Debug - mostra as variáveis lidas (sem mostrar senha completa)
-logger.info('\n=== Configuração MongoDB ===');
-logger.info('MONGO_USER: %s', mongoUser || '(não configurado)');
-logger.info('MONGO_PASS: %s', mongoPass ? '***configurado***' : '(não configurado)');
-logger.info('MONGO_DB: %s', mongoDb);
-logger.info('MONGO_HOST: %s', mongoHost || '(não configurado)');
-logger.info('============================\n');
-
-// Constrói a URI do MongoDB
-let mongoUri;
-if (mongoUser && mongoPass && mongoHost) {
-  // MongoDB Atlas (nuvem) - usa mongodb+srv
-  // Remove @ do início do host se existir
-  const cleanHost = mongoHost.startsWith('@') ? mongoHost.substring(1) : mongoHost;
-  mongoUri = `mongodb+srv://${mongoUser}:${encodeURIComponent(mongoPass)}@${cleanHost}/${mongoDb}?retryWrites=true&w=majority&serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000&maxPoolSize=10&minPoolSize=2&maxIdleTimeMS=30000`;
-  console.log('✅ Modo: MongoDB Atlas (nuvem)');
-} else if (mongoUser && mongoPass) {
-  // MongoDB Local com autenticação
-  mongoUri = `mongodb://${mongoUser}:${encodeURIComponent(mongoPass)}@127.0.0.1:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
-  console.log('⚠️  Modo: MongoDB Local (com autenticação)');
-  console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, adicione MONGO_HOST no .env!');
-} else {
-  // MongoDB Local sem autenticação
-  mongoUri = `mongodb://127.0.0.1:27017/${mongoDb}?serverSelectionTimeoutMS=30000&connectTimeoutMS=30000&socketTimeoutMS=45000`;
-  console.log('⚠️  Modo: MongoDB Local (sem autenticação)');
-  console.log('⚠️  ATENÇÃO: Se você usa MongoDB Atlas, configure MONGO_USER, MONGO_PASS e MONGO_HOST no .env!');
-}
-
-console.log('URI do MongoDB:', mongoUri.replace(/:[^:@]+@/, ':****@')); // Esconde a senha no log
-console.log('');
-
-// Configuração do Mongoose com reconexão automática
-mongoose.set('strictQuery', false);
-
-const mongooseOptions = {
-  serverSelectionTimeoutMS: 30000,
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-  bufferCommands: true,
-  bufferTimeoutMS: 30000, // Aumentado para evitar timeout em cold starts da Vercel
-  maxPoolSize: 10,
-  minPoolSize: 2,
-  maxIdleTimeMS: 30000,
-  retryWrites: true,
-  w: 'majority'
-};
-
-const { connectDB } = require('./utils/db');
-
-connectDB(mongoUri, mongooseOptions)
-  .then(() => {
-    logger.info('MongoDB conectado com sucesso via Mongoose');
-    if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Pré-aquecer conexão em servidor long-running (não bloqueia serverless)
+if (!isServerless()) {
+  connectDB()
+    .then(() => {
+      logger.info('MongoDB conectado com sucesso via Mongoose');
       initCronJobs();
-    }
-  })
-  .catch(err => {
-    logger.error('Erro ao conectar MongoDB:', err);
-  });
+    })
+    .catch((err) => {
+      logger.error('Erro ao conectar MongoDB:', err);
+    });
+}
 
 // Eventos de conexão para monitoramento
 mongoose.connection.on('connected', () => {
