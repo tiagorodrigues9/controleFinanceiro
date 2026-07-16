@@ -182,23 +182,39 @@ router.post('/forgot-password', [
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'https://controlefinanceiro.onrender.com'}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@controlefinanceiro.com',
       to: user.email,
-      subject: 'Recuperação de Senha',
+      subject: 'Recuperação de Senha - Controle Financeiro',
       html: `
-        <h2>Recuperação de Senha</h2>
-        <p>Você solicitou a recuperação de senha. Clique no link abaixo para redefinir sua senha:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>Este link expira em 10 minutos.</p>
-        <p>Se você não solicitou esta recuperação, ignore este email.</p>
-      `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #1976d2; margin: 0;">Controle Financeiro</h1>
+          </div>
+          <h2 style="color: #333333;">Recuperação de Senha</h2>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Olá,</p>
+          <p style="color: #555555; font-size: 16px; line-height: 1.5;">Você solicitou a recuperação de senha. Clique no botão abaixo para redefinir sua senha:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #1976d2; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">Redefinir Minha Senha</a>
+          </div>
+          <p style="color: #777777; font-size: 14px;">Ou copie e cole o link no seu navegador:</p>
+          <p style="color: #777777; font-size: 14px; word-break: break-all;"><a href="${resetUrl}" style="color: #1976d2;">${resetUrl}</a></p>
+          <p style="color: #d32f2f; font-size: 14px; font-weight: bold; margin-top: 20px;">Este link expira em 10 minutos.</p>
+          <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+          <p style="color: #999999; font-size: 12px; text-align: center;">Se você não solicitou esta recuperação, ignore este email e sua senha permanecerá a mesma.</p>
+        </div>
+      `,
+      text: `Recuperação de Senha\n\nVocê solicitou a recuperação de senha. Acesse o link para redefinir: ${resetUrl}\n\nEste link expira em 10 minutos.`
     };
 
     try {
       const result = await emailService.sendMail(mailOptions);
+      if (result && !result.success) {
+        logger.error('Email de recuperação falhou (retorno success=false):', result.error);
+        return res.status(500).json({ message: 'Erro ao enviar email de recuperação' });
+      }
       logger.debug('Email de recuperação enviado para:', user.email, 'via', result.provider);
       res.json({ message: 'Se o email estiver cadastrado, você receberá um link de recuperação.' });
     } catch (emailError) {
@@ -221,6 +237,27 @@ router.post('/forgot-password', [
   } catch (error) {
     logger.error('Erro geral no forgot-password:', error);
     res.status(500).json({ message: 'Erro ao processar solicitação de recuperação' });
+  }
+});
+
+router.get('/validate-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Token inválido ou expirado' });
+    }
+
+    res.json({ valid: true });
+  } catch (error) {
+    logger.error('Erro ao validar token de reset:', error);
+    res.status(500).json({ message: 'Erro ao validar token' });
   }
 });
 

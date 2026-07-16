@@ -354,7 +354,6 @@ const ContasPagar = () => {
   const handleSubmitFornecedor = async (e) => {
     e.preventDefault();
     try {
-      console.log('🔄 Cadastrando fornecedor:', fornecedorData);
       
       // Desabilitar botão para evitar cliques duplicados
       const submitButton = e.target.querySelector('[type="submit"]');
@@ -365,8 +364,7 @@ const ContasPagar = () => {
 
       const response = await api.post('/fornecedores', fornecedorData);
       
-      console.log('✅ Fornecedor cadastrado com sucesso:', response.data);
-      
+      setSuccess('Fornecedor cadastrado com sucesso!');
       // Atualizar lista de fornecedores localmente (mais rápido)
       setFornecedores(prev => [...prev, response.data]);
       
@@ -491,8 +489,6 @@ const ContasPagar = () => {
         return;
       }
 
-      console.log('🔄 Iniciando pagamento da conta:', contaSelecionada._id);
-      
       // Desabilitar botão para evitar cliques duplicados
       const originalButton = document.querySelector('[type="submit"]');
       if (originalButton) {
@@ -502,8 +498,7 @@ const ContasPagar = () => {
 
       await api.post(`/contas/${contaSelecionada._id}/pagar`, pagamentoData);
       
-      console.log('✅ Pagamento concluído com sucesso');
-      
+      setSuccess('Conta paga com sucesso!');
       // Pequeno delay para garantir que o backend processou
       await new Promise(resolve => setTimeout(resolve, 500));
       

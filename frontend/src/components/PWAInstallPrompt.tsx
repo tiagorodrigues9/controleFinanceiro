@@ -171,7 +171,7 @@ const PWAInstallPrompt: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" component="div">
               Com o app instalado, você poderá:
               <ul style={{ textAlign: 'left', paddingLeft: 20 }}>
                 <li>Acessar rapidamente da tela inicial</li>

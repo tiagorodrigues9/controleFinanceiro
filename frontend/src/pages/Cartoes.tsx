@@ -137,7 +137,6 @@ const Cartoes = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log('Enviando dados do cartão:', formData);
       
       const dadosParaEnviar = {
         nome: formData.nome,
@@ -150,8 +149,6 @@ const Cartoes = () => {
         }),
         ...(formData.dataVencimento && { dataVencimento: formData.dataVencimento })
       };
-      
-      console.log('Dados formatados para envio:', dadosParaEnviar);
       
       if (editMode) {
         await api.put(`/cartoes/${cartaoEdit._id}`, dadosParaEnviar);
