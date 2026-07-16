@@ -25,7 +25,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -59,6 +59,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('refreshToken');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -84,12 +87,14 @@ api.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
     if (!refreshToken) {
       isRefreshing = false;
       processQueue(error, null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -103,8 +108,13 @@ api.interceptors.response.use(
         { timeout: REQUEST_TIMEOUT_MS }
       );
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      if (localStorage.getItem('token')) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('refreshToken', data.refreshToken);
+      } else {
+        sessionStorage.setItem('token', data.token);
+        sessionStorage.setItem('refreshToken', data.refreshToken);
+      }
 
       originalRequest.headers.Authorization = `Bearer ${data.token}`;
       processQueue(null, data.token);
@@ -119,6 +129,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('refreshToken');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

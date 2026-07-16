@@ -1,6 +1,6 @@
 const EmailLog = require('../models/EmailLog');
+const nodemailer = require('nodemailer');
 
-// Serviço de e-mail com API REST do Resend (mais confiável que SMTP)
 class EmailService {
   constructor() {
     this.providers = [];
@@ -8,40 +8,24 @@ class EmailService {
   }
 
   setupProviders() {
-    // Provider 1: Resend API REST (RECOMENDADO)
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       this.providers.push({
-        name: 'Resend API',
-        type: 'api',
-        apiKey: process.env.RESEND_API_KEY,
-        baseUrl: 'https://api.resend.com'
-      });
-    }
-
-    // Provider 2: Resend SMTP (backup)
-    if (process.env.RESEND_API_KEY) {
-      const nodemailer = require('nodemailer');
-      this.providers.push({
-        name: 'Resend SMTP',
+        name: 'Gmail SMTP',
         type: 'smtp',
         transporter: nodemailer.createTransport({
-          host: 'smtp.resend.com',
-          port: 465,
-          secure: true,
+          service: 'gmail',
           auth: {
-            user: 'resend',
-            pass: process.env.RESEND_API_KEY
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
           },
-          connectionTimeout: 45000,
-          greetingTimeout: 30000,
-          socketTimeout: 30000
+          connectionTimeout: 30000,
+          greetingTimeout: 20000,
+          socketTimeout: 20000
         })
       });
     }
 
-    // Provider 3: SendGrid (backup)
     if (process.env.SENDGRID_API_KEY) {
-      const nodemailer = require('nodemailer');
       this.providers.push({
         name: 'SendGrid',
         type: 'smtp',
@@ -67,30 +51,26 @@ class EmailService {
   }
 
   async sendMail(mailOptions) {
-    // Se estiver em modo desenvolvimento, simular diretamente
     if (process.env.EMAIL_DEV_MODE === 'true') {
       return this.fallbackToDevMode(mailOptions);
     }
 
     if (this.providers.length === 0) {
-      throw new Error('Nenhum provedor de e-mail configurado');
+      console.warn('Nenhum provedor de e-mail configurado');
+      return {
+        success: false,
+        error: 'Nenhum provedor de e-mail configurado'
+      };
     }
 
-    // Tentar cada provedor em ordem
     for (const provider of this.providers) {
       try {
         console.log(`📧 Tentando enviar via ${provider.name}...`);
         
-        let result;
-        if (provider.type === 'api') {
-          result = await this.sendViaAPI(provider, mailOptions);
-        } else {
-          result = await this.sendViaSMTP(provider, mailOptions);
-        }
+        const result = await this.sendViaSMTP(provider, mailOptions);
         
         console.log(`✅ E-mail enviado com sucesso via ${provider.name}:`, result.messageId);
         
-        // Salvar log de sucesso
         await this.saveEmailLog(mailOptions, 'sent', provider.name, result.messageId);
         
         return {
@@ -104,13 +84,10 @@ class EmailService {
           message: error.message,
           code: error.code
         });
-        
-        // Tentar próximo provedor
         continue;
       }
     }
 
-    // Se todos falharam, salvar no banco
     console.log('🔄 Todos os provedores falharam, salvando no banco...');
     await this.saveEmailLog(mailOptions, 'failed', 'All Providers', null, 'Todos os provedores falharam');
     
@@ -121,39 +98,12 @@ class EmailService {
     };
   }
 
-  async sendViaAPI(provider, mailOptions) {
-    const axios = require('axios');
-    
-    const emailData = {
-      from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
-      to: [mailOptions.to],
-      subject: mailOptions.subject,
-      html: mailOptions.html || mailOptions.text
-    };
-
-    const response = await axios.post(`${provider.baseUrl}/emails`, emailData, {
-      headers: {
-        'Authorization': `Bearer ${provider.apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 30000
-    });
-
-    return {
-      messageId: response.data.id,
-      provider: provider.name
-    };
-  }
-
   async sendViaSMTP(provider, mailOptions) {
-    // Verificar conexão
     await provider.transporter.verify();
-    console.log(`✅ Conexão ${provider.name} verificada`);
     
-    // Enviar e-mail
     const enhancedOptions = {
       ...mailOptions,
-      from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
+      from: mailOptions.from || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@controlefinanceiro.com',
       priority: 'high',
       headers: {
         'X-Priority': '1',
@@ -176,7 +126,7 @@ class EmailService {
         subject: mailOptions.subject,
         html: mailOptions.html,
         text: mailOptions.text,
-        from: mailOptions.from || process.env.EMAIL_FROM || 'noreply@controlefinanceiro.com',
+        from: mailOptions.from || process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@controlefinanceiro.com',
         status,
         provider,
         messageId,
@@ -206,29 +156,14 @@ class EmailService {
     };
   }
 
-  // Método para testar todas as configurações
   async testAllConfigurations() {
     const results = [];
     
     for (const provider of this.providers) {
       try {
-        if (provider.type === 'api') {
-          // Testar API com uma requisição simples
-          const axios = require('axios');
-          await axios.get(`${provider.baseUrl}/domains`, {
-            headers: {
-              'Authorization': `Bearer ${provider.apiKey}`
-            },
-            timeout: 10000
-          });
-          results.push({ provider: provider.name, status: 'success' });
-          console.log(`✅ ${provider.name}: API conectada`);
-        } else {
-          // Testar SMTP
-          await provider.transporter.verify();
-          results.push({ provider: provider.name, status: 'success' });
-          console.log(`✅ ${provider.name}: SMTP conectado`);
-        }
+        await provider.transporter.verify();
+        results.push({ provider: provider.name, status: 'success' });
+        console.log(`✅ ${provider.name}: SMTP conectado`);
       } catch (error) {
         results.push({ provider: provider.name, status: 'failed', error: error.message });
         console.log(`❌ ${provider.name}: ${error.message}`);

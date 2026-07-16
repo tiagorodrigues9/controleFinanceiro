@@ -1,9 +1,6 @@
-// @ts-nocheck
-import React, { useState } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  Container,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -11,53 +8,60 @@ import {
   Alert,
   Link as MuiLink,
   LinearProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
+import { Visibility, VisibilityOff, PersonAdd } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import { checkPasswordStrength, getPasswordStrengthColor, getPasswordStrengthLabel } from '../utils/passwordUtils';
+import './AuthStyles.css';
 
-const Register = () => {
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const { register } = useAuth();
+const Register: React.FC = () => {
+  const [nome, setNome] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [validationError, setValidationError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  
+  const { user, register, error, setError } = useAuth();
   const navigate = useNavigate();
 
-  const checkPasswordStrength = (pwd) => {
-    let strength = 0;
-    if (pwd.length >= 6) strength += 25;
-    if (pwd.length >= 8) strength += 25;
-    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength += 25;
-    if (/[0-9]/.test(pwd)) strength += 25;
-    if (/[^a-zA-Z0-9]/.test(pwd)) strength += 25;
-    return Math.min(strength, 100);
-  };
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+      return;
+    }
+    setError(null);
+    return () => setError(null);
+  }, [user, navigate, setError]);
 
-  const getPasswordStrengthColor = (strength) => {
-    if (strength < 50) return 'error';
-    if (strength < 75) return 'warning';
-    return 'success';
-  };
+  const passwordStrength = checkPasswordStrength(password);
 
-  const getPasswordStrengthLabel = (strength) => {
-    if (strength < 50) return 'Fraca';
-    if (strength < 75) return 'Média';
-    return 'Forte';
-  };
-
-  const handlePasswordChange = (e) => {
-    const pwd = e.target.value;
-    setPassword(pwd);
-    setPasswordStrength(checkPasswordStrength(pwd));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError('');
+    setValidationError('');
+
+    // Basic validations
+    if (!nome.trim()) {
+      setValidationError('Nome é obrigatório.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setValidationError('Por favor, insira um e-mail válido.');
+      return;
+    }
 
     if (password.length < 6) {
-      setError('A senha deve ter no mínimo 6 caracteres');
+      setValidationError('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setValidationError('As senhas não coincidem.');
       return;
     }
 
@@ -68,93 +72,148 @@ const Register = () => {
     if (result.success) {
       navigate('/');
     } else {
-      setError(result.message);
+      setValidationError(result.message || 'Erro ao registrar.');
     }
   };
 
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Cadastro de Usuário
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="nome"
-              label="Nome Completo"
-              name="nome"
-              autoComplete="name"
-              autoFocus
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="E-mail"
-              name="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Senha"
-              type="password"
-              id="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={handlePasswordChange}
-              helperText={`Senha deve ter no mínimo 6 caracteres. Força: ${getPasswordStrengthLabel(passwordStrength)}`}
-            />
-            {password && (
-              <Box sx={{ mt: 1, mb: 2 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={passwordStrength}
-                  color={getPasswordStrengthColor(passwordStrength)}
-                />
-              </Box>
-            )}
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading || password.length < 6}
-            >
-              {loading ? 'Cadastrando...' : 'Cadastrar'}
-            </Button>
-            <Box textAlign="center">
-              <MuiLink component={Link} to="/login" variant="body2">
-                Já tem uma conta? Faça login
-              </MuiLink>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-logo-container">
+          <div className="auth-logo">
+            <PersonAdd sx={{ fontSize: 32, color: 'white' }} />
+          </div>
+        </div>
+        
+        <Typography component="h1" className="auth-title">
+          Criar Conta
+        </Typography>
+        <Typography className="auth-subtitle">
+          Junte-se a nós e organize suas finanças
+        </Typography>
+
+        {(error || validationError) && (
+          <Alert severity="error" className="auth-alert">
+            {error || validationError}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="nome"
+            label="Nome Completo"
+            name="nome"
+            autoComplete="name"
+            autoFocus
+            value={nome}
+            onChange={(e) => {
+              setNome(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="E-mail"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Senha"
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+            helperText={`Força: ${getPasswordStrengthLabel(passwordStrength)}`}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          
+          {password && (
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={passwordStrength}
+                color={getPasswordStrengthColor(passwordStrength) as any}
+              />
             </Box>
+          )}
+
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="confirmPassword"
+            label="Confirmar Senha"
+            type={showPassword ? 'text' : 'password'}
+            id="confirmPassword"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+            error={confirmPassword.length > 0 && password !== confirmPassword}
+            helperText={confirmPassword.length > 0 && password !== confirmPassword ? "As senhas não coincidem" : ""}
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            className="auth-button"
+            disabled={loading || password.length < 6 || password !== confirmPassword}
+          >
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
+          </Button>
+
+          <Box className="auth-links">
+            <Typography variant="body2" color="#94a3b8">
+              Já tem uma conta?{' '}
+              <MuiLink component={Link} to="/login" className="auth-link">
+                Faça login
+              </MuiLink>
+            </Typography>
           </Box>
-        </Paper>
-      </Box>
-    </Container>
+        </Box>
+      </div>
+    </div>
   );
 };
 

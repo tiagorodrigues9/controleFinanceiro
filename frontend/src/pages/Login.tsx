@@ -1,109 +1,197 @@
-// @ts-nocheck
-import React, { useState, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, FormEvent, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
-  Container,
-  Paper,
   TextField,
   Button,
   Typography,
   Box,
   Alert,
   Link as MuiLink,
+  InputAdornment,
+  IconButton,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
+import { Visibility, VisibilityOff, AccountBalanceWallet } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import './AuthStyles.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [submitting, setSubmitting] = useState<boolean>(false); // Loading local só para o formulário
-  const { login, error, setError } = useAuth(); // Removido loading do contexto
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [rememberMe, setRememberMe] = useState<boolean>(true);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [validationError, setValidationError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+  
+  const { user, login, error, setError } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+      return;
+    }
+    setError(null);
+    return () => setError(null);
+  }, [user, navigate, setError]);
+
+  useEffect(() => {
+    // Check for success message from reset password
+    const params = new URLSearchParams(location.search);
+    if (params.get('resetSuccess') === 'true') {
+      setSuccessMessage('Senha redefinida com sucesso. Faça login com sua nova senha.');
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [location]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    setError(null); // Limpa erro anterior
-    setSubmitting(true); // Ativa loading do botão
+    setError(null);
+    setValidationError('');
+    setSuccessMessage('');
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setValidationError('Por favor, insira um e-mail válido.');
+      return;
+    }
 
-    const result = await login(email, password);
+    setSubmitting(true);
+
+    const result = await login(email, password, rememberMe);
 
     if (result.success) {
       navigate('/');
+    } else {
+      setSubmitting(false);
     }
-    // Se houver erro, o login já trata de definir a mensagem
-    setSubmitting(false); // Desativa loading do botão
   };
 
+  const handleClickShowPassword = () => setShowPassword((show) => !show);
+
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Typography component="h1" variant="h5" align="center" gutterBottom>
-            Login
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="E-mail"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-logo-container">
+          <div className="auth-logo">
+            <AccountBalanceWallet sx={{ fontSize: 32, color: 'white' }} />
+          </div>
+        </div>
+        
+        <Typography component="h1" className="auth-title">
+          Bem-vindo de volta
+        </Typography>
+        <Typography className="auth-subtitle">
+          Faça login para gerenciar suas finanças
+        </Typography>
+
+        {(error || validationError) && (
+          <Alert severity="error" className="auth-alert">
+            {error || validationError}
+          </Alert>
+        )}
+
+        {successMessage && (
+          <Alert severity="success" className="auth-alert-success">
+            {successMessage}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="E-mail"
+            name="email"
+            type="email"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Senha"
+            type={showPassword ? 'text' : 'password'}
+            id="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (validationError) setValidationError('');
+              if (error) setError(null);
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          
+          <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
+            <FormControlLabel
+              control={
+                <Checkbox 
+                  checked={rememberMe} 
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  name="rememberMe"
+                  color="primary"
+                />
+              }
+              label="Lembrar-me"
             />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Senha"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={submitting}
+            <MuiLink
+              component={Link}
+              to="/forgot-password"
+              className="auth-link"
             >
-              {submitting ? 'Entrando...' : 'Entrar'}
-            </Button>
-            <Box textAlign="center">
-              <MuiLink
-                component={Link}
-                to="/forgot-password"
-                variant="body2"
-                sx={{ display: 'block', mb: 1 }}
-              >
-                Esqueci minha senha
-              </MuiLink>
-              <MuiLink component={Link} to="/register" variant="body2">
-                Não tem uma conta? Cadastre-se
-              </MuiLink>
-            </Box>
+              Esqueceu a senha?
+            </MuiLink>
           </Box>
-        </Paper>
-      </Box>
-    </Container>
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            className="auth-button"
+            disabled={submitting}
+          >
+            {submitting ? 'Entrando...' : 'Entrar'}
+          </Button>
+
+          <Box className="auth-links">
+            <Typography variant="body2" color="#94a3b8">
+              Não tem uma conta?{' '}
+              <MuiLink component={Link} to="/register" className="auth-link">
+                Cadastre-se
+              </MuiLink>
+            </Typography>
+          </Box>
+        </Box>
+      </div>
+    </div>
   );
 };
 
