@@ -49,7 +49,7 @@ const menuItems: MenuItem[] = [
   { text: 'Perfil', icon: <AccountCircleIcon />, path: '/perfil' },
   { text: 'Contas a Pagar', icon: <ReceiptIcon />, path: '/contas-pagar' },
   { text: 'Fornecedores', icon: <BusinessIcon />, path: '/fornecedores' },
-  { text: 'Controle de Contas', icon: <AccountBalanceIcon />, path: '/controle-contas' },
+  { text: 'Categorias', icon: <AccountBalanceIcon />, path: '/categorias' },
   { text: 'Gastos Diários', icon: <AttachMoneyIcon />, path: '/gastos-diarios' },
   { text: 'Orçamentos', icon: <PieChartIcon />, path: '/orcamentos' },
   { text: 'Contas Bancárias', icon: <AccountBalanceWalletIcon />, path: '/contas-bancarias' },
