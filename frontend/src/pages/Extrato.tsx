@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -50,6 +51,7 @@ const ROWS_PER_PAGE = 50;
 const Extrato = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
 
   const [extratos, setExtratos] = useState([]);
   const [contasBancarias, setContasBancarias] = useState([]);
@@ -92,17 +94,23 @@ const Extrato = () => {
 
   useEffect(() => {
     const hoje = new Date();
-    const cincoDiasAtras = new Date(hoje);
-    cincoDiasAtras.setDate(hoje.getDate() - 5);
+    const params = new URLSearchParams(location.search);
+    const contaParam = params.get('conta') || '';
+
+    // Se veio com filtro de conta, ampliar o range de datas para 30 dias
+    const diasAtras = contaParam ? 30 : 5;
+    const dataInicio = new Date(hoje);
+    dataInicio.setDate(hoje.getDate() - diasAtras);
 
     setFiltros({
-      contaBancaria: '',
+      contaBancaria: contaParam,
       tipoDespesa: '',
       cartao: '',
-      dataInicio: format(cincoDiasAtras, 'yyyy-MM-dd'),
+      dataInicio: format(dataInicio, 'yyyy-MM-dd'),
       dataFim: format(hoje, 'yyyy-MM-dd'),
     });
     filtrosReady.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

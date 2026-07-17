@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
 const Cartao = require('../models/Cartao');
+const ContaBancaria = require('../models/ContaBancaria');
 const auth = require('../middleware/auth');
 const validateObjectId = require('../middleware/validateObjectId');
 const { asyncHandler } = require('../utils/errors');
@@ -138,6 +139,14 @@ router.post('/', [
     // Validação customizada: cartão é obrigatório para pagamentos com cartão
     if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
       return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
+    }
+
+    // Validação de Conta Bancária (Prevenção de IDOR e conta inativa)
+    if (formaPagamento !== 'Cartão de Crédito') {
+      const contaValida = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: true });
+      if (!contaValida) {
+        return res.status(400).json({ message: 'Conta bancária inválida ou inativa.' });
+      }
     }
 
     // Se for pagamento com cartão, verificar se o cartão existe
@@ -331,6 +340,15 @@ router.put('/:id', async (req, res) => {
     }
 
     const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria } = req.body;
+
+    // Verificar conta bancária se ela estiver sendo atualizada e não for cartão
+    const novaForma = formaPagamento || gasto.formaPagamento;
+    if (contaBancaria && novaForma !== 'Cartão de Crédito') {
+      const contaValida = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: true });
+      if (!contaValida) {
+        return res.status(400).json({ message: 'Conta bancária inválida ou inativa.' });
+      }
+    }
 
     if (tipoDespesa) gasto.tipoDespesa = tipoDespesa;
     if (valor) gasto.valor = parseFloat(valor);
