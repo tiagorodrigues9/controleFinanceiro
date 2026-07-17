@@ -60,7 +60,13 @@ router.post('/register', [
       user: {
         id: user._id,
         nome: user.nome,
-        email: user.email
+        email: user.email,
+        endereco: user.endereco,
+        bairro: user.bairro,
+        cidade: user.cidade,
+        telefone: user.telefone,
+        fotoPerfil: user.fotoPerfil,
+        configuracoes: user.configuracoes
       }
     });
   } catch (error) {
@@ -102,7 +108,13 @@ router.post('/login', [
       user: {
         id: user._id,
         nome: user.nome,
-        email: user.email
+        email: user.email,
+        endereco: user.endereco,
+        bairro: user.bairro,
+        cidade: user.cidade,
+        telefone: user.telefone,
+        fotoPerfil: user.fotoPerfil,
+        configuracoes: user.configuracoes
       }
     });
   } catch (error) {
@@ -112,13 +124,28 @@ router.post('/login', [
 });
 
 router.get('/me', auth, async (req, res) => {
-  res.json({
-    user: {
-      id: req.user._id,
-      nome: req.user.nome,
-      email: req.user.email
+  try {
+    const user = await User.findById(req.user._id).select('-password -refreshToken -resetPasswordToken -resetPasswordExpire');
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
     }
-  });
+    res.json({
+      user: {
+        id: user._id,
+        nome: user.nome,
+        email: user.email,
+        endereco: user.endereco,
+        bairro: user.bairro,
+        cidade: user.cidade,
+        telefone: user.telefone,
+        fotoPerfil: user.fotoPerfil,
+        configuracoes: user.configuracoes
+      }
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar perfil:', error);
+    res.status(500).json({ message: 'Erro ao buscar perfil' });
+  }
 });
 
 router.post('/refresh', async (req, res) => {
@@ -297,10 +324,16 @@ router.post('/reset-password', [
 });
 
 router.put('/profile', auth, [
-  body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio'),
-  body('endereco').optional().trim(),
-  body('bairro').optional().trim(),
+  body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio')
+    .isLength({ max: 100 }).withMessage('Nome deve ter no máximo 100 caracteres'),
+  body('endereco').optional().trim()
+    .isLength({ max: 200 }).withMessage('Endereço deve ter no máximo 200 caracteres'),
+  body('bairro').optional().trim()
+    .isLength({ max: 100 }).withMessage('Bairro deve ter no máximo 100 caracteres'),
   body('cidade').optional().trim()
+    .isLength({ max: 100 }).withMessage('Cidade deve ter no máximo 100 caracteres'),
+  body('telefone').optional().trim()
+    .isLength({ max: 20 }).withMessage('Telefone deve ter no máximo 20 caracteres')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -308,7 +341,7 @@ router.put('/profile', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, endereco, bairro, cidade, configuracoes } = req.body;
+    const { nome, endereco, bairro, cidade, telefone, configuracoes, fotoPerfil } = req.body;
     const userId = req.user._id || req.user.id;
 
     const updateData = {};
@@ -316,16 +349,51 @@ router.put('/profile', auth, [
     if (endereco !== undefined) updateData.endereco = endereco;
     if (bairro !== undefined) updateData.bairro = bairro;
     if (cidade !== undefined) updateData.cidade = cidade;
+    if (telefone !== undefined) updateData.telefone = telefone;
     
-    // Adicionar configurações de notificações se fornecidas
-    if (configuracoes !== undefined) {
-      updateData.configuracoes = configuracoes;
+    // Sanitizar configurações — aceitar apenas campos conhecidos
+    if (configuracoes && configuracoes.notificacoes) {
+      const notif = configuracoes.notificacoes;
+      updateData.configuracoes = {
+        notificacoes: {
+          ativo: typeof notif.ativo === 'boolean' ? notif.ativo : true,
+          contasVencidas: typeof notif.contasVencidas === 'boolean' ? notif.contasVencidas : true,
+          contasProximas: typeof notif.contasProximas === 'boolean' ? notif.contasProximas : true,
+          limiteCartao: typeof notif.limiteCartao === 'boolean' ? notif.limiteCartao : true,
+          diasAntecedencia: [1, 3, 5, 7, 10, 15, 30].includes(Number(notif.diasAntecedencia))
+            ? Number(notif.diasAntecedencia)
+            : 7
+        }
+      };
+    }
+
+    // Foto de perfil em Base64 (limite ~500KB)
+    if (fotoPerfil !== undefined) {
+      if (fotoPerfil === null || fotoPerfil === '') {
+        updateData.fotoPerfil = null;
+      } else if (typeof fotoPerfil === 'string') {
+        // Verificar se é uma data URI válida de imagem
+        const dataUriRegex = /^data:image\/(jpeg|jpg|png|webp|gif);base64,/;
+        if (!dataUriRegex.test(fotoPerfil)) {
+          return res.status(400).json({ message: 'Formato de imagem inválido. Use JPEG, PNG, WebP ou GIF.' });
+        }
+        // Verificar tamanho (~500KB em base64 ≈ ~680KB string)
+        if (fotoPerfil.length > 700000) {
+          return res.status(400).json({ message: 'Imagem muito grande. O tamanho máximo é 500KB.' });
+        }
+        updateData.fotoPerfil = fotoPerfil;
+      }
     }
 
     const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
 
     if (!user) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    // Limpar o cache de autenticação para este usuário
+    if (auth.clearCache) {
+      auth.clearCache(userId);
     }
 
     res.json({
@@ -336,11 +404,13 @@ router.put('/profile', auth, [
         endereco: user.endereco,
         bairro: user.bairro,
         cidade: user.cidade,
+        telefone: user.telefone,
+        fotoPerfil: user.fotoPerfil,
         configuracoes: user.configuracoes
       }
     });
   } catch (error) {
-    logger.error(error);
+    logger.error('Erro ao atualizar perfil:', error);
     res.status(500).json({ message: 'Erro ao atualizar perfil' });
   }
 });

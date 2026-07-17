@@ -5,6 +5,8 @@ interface User {
   endereco?: string;
   bairro?: string;
   cidade?: string;
+  telefone?: string;
+  fotoPerfil?: string | null;
   configuracoes?: {
     notificacoes: {
       ativo: boolean;
