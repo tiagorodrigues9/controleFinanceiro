@@ -14,7 +14,7 @@ import Fornecedores from './pages/Fornecedores';
 import GastosDiarios from './pages/GastosDiarios';
 import ContasBancarias from './pages/ContasBancarias';
 import Transferencias from './pages/Transferencias';
-import ControleContas from './pages/ControleContas';
+import Categorias from './pages/Categorias';
 import Extrato from './pages/Extrato';
 import DashboardCompleto from './pages/DashboardCompleto';
 import Perfil from './pages/Perfil';
@@ -68,7 +68,7 @@ function AppContent() {
                 <Route path="/gastos-diarios" element={<GastosDiarios />} />
                 <Route path="/contas-bancarias" element={<ContasBancarias />} />
                 <Route path="/transferencias" element={<Transferencias />} />
-                <Route path="/controle-contas" element={<ControleContas />} />
+                <Route path="/categorias" element={<Categorias />} />
                 <Route path="/extrato" element={<Extrato />} />
                 <Route path="/perfil" element={<Perfil />} />
                 <Route path="/formas-pagamento" element={<FormasPagamento />} />

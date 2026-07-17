@@ -14,6 +14,16 @@ const grupoSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  cor: {
+    type: String,
+    trim: true,
+    default: '#6366f1'
+  },
+  icone: {
+    type: String,
+    trim: true,
+    default: 'Folder'
+  },
   subgrupos: [subgrupoSchema],
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
