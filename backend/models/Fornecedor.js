@@ -8,9 +8,30 @@ const fornecedorSchema = new mongoose.Schema({
   },
   tipo: {
     type: String,
-    required: false, // Tipo não é mais obrigatório
+    required: false,
     trim: true,
-    default: 'Geral' // Valor padrão
+    default: 'Geral'
+  },
+  documento: {
+    type: String,
+    trim: true
+  },
+  telefone: {
+    type: String,
+    trim: true
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true
+  },
+  endereco: {
+    type: String,
+    trim: true
+  },
+  observacoes: {
+    type: String,
+    trim: true
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
