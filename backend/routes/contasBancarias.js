@@ -8,6 +8,10 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -109,8 +113,11 @@ router.get('/:id', async (req, res) => {
 // @desc    Criar nova conta bancária
 // @access  Private
 router.post('/', [
-  body('nome').notEmpty().withMessage('Nome é obrigatório'),
-  body('banco').notEmpty().withMessage('Banco é obrigatório')
+  body('nome').notEmpty().withMessage('Nome é obrigatório').isLength({ max: 50 }).withMessage('Nome pode ter no máximo 50 caracteres'),
+  body('banco').notEmpty().withMessage('Banco é obrigatório').isLength({ max: 50 }).withMessage('Banco pode ter no máximo 50 caracteres'),
+  body('agencia').optional({ checkFalsy: true }).isLength({ max: 20 }).withMessage('Agência pode ter no máximo 20 caracteres'),
+  body('numeroConta').optional({ checkFalsy: true }).isLength({ max: 30 }).withMessage('Número da conta pode ter no máximo 30 caracteres'),
+  body('saldoInicial').optional({ checkFalsy: true }).isFloat().withMessage('Saldo inicial deve ser numérico')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -118,7 +125,16 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, banco, numeroConta, agencia } = req.body;
+    const { nome, banco, numeroConta, agencia, saldoInicial } = req.body;
+
+    const existingConta = await ContaBancaria.findOne({
+      usuario: req.user._id,
+      nome: { $regex: new RegExp(`^${escapeRegExp(nome)}$`, 'i') }
+    });
+
+    if (existingConta) {
+      return res.status(400).json({ message: 'Você já possui uma conta com este nome.' });
+    }
 
     const contaBancaria = await ContaBancaria.create({
       nome,
@@ -127,6 +143,17 @@ router.post('/', [
       agencia,
       usuario: req.user._id
     });
+
+    if (saldoInicial && parseFloat(saldoInicial) !== 0) {
+      await Extrato.create({
+        contaBancaria: contaBancaria._id,
+        tipo: 'Saldo Inicial',
+        valor: parseFloat(saldoInicial),
+        motivo: 'Saldo Inicial da Conta',
+        referencia: { tipo: 'Saldo Inicial' },
+        usuario: req.user._id
+      });
+    }
 
     res.status(201).json(contaBancaria);
   } catch (error) {
@@ -139,8 +166,10 @@ router.post('/', [
 // @desc    Atualizar conta bancária
 // @access  Private
 router.put('/:id', [
-  body('nome').notEmpty().withMessage('Nome é obrigatório'),
-  body('banco').notEmpty().withMessage('Banco é obrigatório')
+  body('nome').notEmpty().withMessage('Nome é obrigatório').isLength({ max: 50 }).withMessage('Nome pode ter no máximo 50 caracteres'),
+  body('banco').notEmpty().withMessage('Banco é obrigatório').isLength({ max: 50 }).withMessage('Banco pode ter no máximo 50 caracteres'),
+  body('agencia').optional({ checkFalsy: true }).isLength({ max: 20 }).withMessage('Agência pode ter no máximo 20 caracteres'),
+  body('numeroConta').optional({ checkFalsy: true }).isLength({ max: 30 }).withMessage('Número da conta pode ter no máximo 30 caracteres')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -157,11 +186,23 @@ router.put('/:id', [
       return res.status(404).json({ message: 'Conta bancária não encontrada' });
     }
 
-    const { nome, banco, numeroConta, agencia } = req.body;
+    const { nome, banco, numeroConta, agencia, ativo } = req.body;
+
+    if (nome.toLowerCase() !== contaBancaria.nome.toLowerCase()) {
+      const existingConta = await ContaBancaria.findOne({
+        usuario: req.user._id,
+        nome: { $regex: new RegExp(`^${escapeRegExp(nome)}$`, 'i') }
+      });
+      if (existingConta) {
+        return res.status(400).json({ message: 'Você já possui outra conta com este nome.' });
+      }
+    }
+
     contaBancaria.nome = nome;
     contaBancaria.banco = banco;
     if (numeroConta !== undefined) contaBancaria.numeroConta = numeroConta;
     if (agencia !== undefined) contaBancaria.agencia = agencia;
+    if (ativo !== undefined) contaBancaria.ativo = ativo;
 
     await contaBancaria.save();
 
