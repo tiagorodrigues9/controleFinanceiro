@@ -17,6 +17,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Avatar,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -99,7 +100,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 if (isMobile) setMobileOpen(false);
               }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemIcon>
+                {item.text === 'Perfil' && user?.fotoPerfil ? (
+                  <Avatar src={user.fotoPerfil} sx={{ width: 24, height: 24 }} />
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
@@ -141,9 +148,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {user?.nome || 'Usuário'}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'flex-end' }}>
+            <Typography variant="subtitle1" noWrap component="div" sx={{ mr: 2 }}>
+              {user?.nome || 'Usuário'}
+            </Typography>
+            <Avatar 
+              src={user?.fotoPerfil || undefined}
+              sx={{ width: 40, height: 40, bgcolor: 'primary.main', border: '2px solid white' }}
+            >
+              {!user?.fotoPerfil && user?.nome ? user.nome.charAt(0).toUpperCase() : ''}
+            </Avatar>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
