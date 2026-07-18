@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Orcamento = require('../models/Orcamento');
+const Gasto = require('../models/Gasto');
 const auth = require('../middleware/auth');
 const { logger } = require('../utils/logger');
 const validateObjectId = require('../middleware/validateObjectId');
@@ -15,25 +16,107 @@ router.use(auth);
 router.get('/:ano/:mes', async (req, res) => {
   try {
     const { ano, mes } = req.params;
-    
+    const anoNum = parseInt(ano);
+    const mesNum = parseInt(mes);
+
+    if (isNaN(anoNum) || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+      return res.status(400).json({ message: 'Parâmetros de ano ou mês inválidos' });
+    }
+
+    const startDate = new Date(anoNum, mesNum - 1, 1);
+    const endDate = new Date(anoNum, mesNum, 0, 23, 59, 59);
+
+    // 1. Buscar Orçamento Definido
     let orcamento = await Orcamento.findOne({
       usuario: req.user._id,
-      ano: Number(ano),
-      mes: Number(mes)
+      ano: anoNum,
+      mes: mesNum
     }).populate('limitesPorGrupo.grupo', 'nome');
 
+    // 2. Buscar e Agregar Gastos Reais do Mês
+    const gastosMes = await Gasto.aggregate([
+      {
+        $match: {
+          usuario: req.user._id,
+          data: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            grupo: "$tipoDespesa.grupo",
+            subgrupo: "$tipoDespesa.subgrupo"
+          },
+          totalGasto: { $sum: "$valor" }
+        }
+      }
+    ]);
+
+    // 3. Montar Mapa Rápido O(1) de Gastos (Grupos e Subgrupos)
+    const gastosMap = {};
+    const subgastosMap = {};
+    let gastoRealGeral = 0;
+    
+    gastosMes.forEach(g => {
+      const val = g.totalGasto || 0;
+      gastoRealGeral += val;
+      
+      const grupoId = g._id.grupo?.toString();
+      const subnome = g._id.subgrupo;
+      
+      if (grupoId) {
+        gastosMap[grupoId] = (gastosMap[grupoId] || 0) + val;
+        if (subnome) {
+          subgastosMap[`${grupoId}_${subnome}`] = val;
+        }
+      }
+    });
+
     if (!orcamento) {
-      // Retornar um "mock" vazio se não existir para o frontend não quebrar
+      // Retornar um "mock" vazio mas com o Gasto Geral Computado
       return res.json({
         usuario: req.user._id,
-        ano: Number(ano),
-        mes: Number(mes),
+        ano: anoNum,
+        mes: mesNum,
         valorLimiteGeral: 0,
+        gastoRealGeral,
         limitesPorGrupo: []
       });
     }
 
-    res.json(orcamento);
+    // 4. Injetar o Gasto Real em cada Limite Definido
+    const limitesEnriquecidos = orcamento.limitesPorGrupo.map(item => {
+      const grupoId = item.grupo?._id?.toString();
+      const gastoDaCategoria = grupoId ? (gastosMap[grupoId] || 0) : 0;
+      
+      const subgruposEnriquecidos = (item.subgrupos || []).map(sub => ({
+        _id: sub._id,
+        nome: sub.nome,
+        valorLimite: sub.valorLimite,
+        gastoReal: grupoId ? (subgastosMap[`${grupoId}_${sub.nome}`] || 0) : 0
+      }));
+
+      return {
+        _id: item._id,
+        grupo: item.grupo,
+        valorLimite: item.valorLimite,
+        gastoReal: gastoDaCategoria,
+        subgrupos: subgruposEnriquecidos
+      };
+    });
+
+    res.json({
+      _id: orcamento._id,
+      usuario: orcamento.usuario,
+      ano: orcamento.ano,
+      mes: orcamento.mes,
+      valorLimiteGeral: orcamento.valorLimiteGeral,
+      gastoRealGeral,
+      limitesPorGrupo: limitesEnriquecidos,
+      createdAt: orcamento.createdAt,
+      updatedAt: orcamento.updatedAt
+    });
+
   } catch (error) {
     logger.error('Erro ao buscar orçamento:', error);
     res.status(500).json({ message: 'Erro ao buscar orçamento' });
@@ -54,12 +137,18 @@ router.post('/:ano/:mes', [
     }
 
     const { ano, mes } = req.params;
+    const anoNum = parseInt(ano);
+    const mesNum = parseInt(mes);
+    if (isNaN(anoNum) || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+      return res.status(400).json({ message: 'Parâmetros de ano ou mês inválidos' });
+    }
+
     const { valorLimiteGeral, limitesPorGrupo } = req.body;
 
     let orcamento = await Orcamento.findOne({
       usuario: req.user._id,
-      ano: Number(ano),
-      mes: Number(mes)
+      ano: anoNum,
+      mes: mesNum
     });
 
     if (orcamento) {
@@ -69,8 +158,8 @@ router.post('/:ano/:mes', [
     } else {
       orcamento = new Orcamento({
         usuario: req.user._id,
-        ano: Number(ano),
-        mes: Number(mes),
+        ano: anoNum,
+        mes: mesNum,
         valorLimiteGeral,
         limitesPorGrupo
       });
