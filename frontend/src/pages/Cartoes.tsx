@@ -405,7 +405,7 @@ const Cartoes: React.FC = () => {
 
                     {cartao.dataVencimento && (
                       <Typography variant="caption" color="text.secondary">
-                        Validade: {new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                        Validade: {new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
                       </Typography>
                     )}
                   </CardContent>
@@ -479,7 +479,7 @@ const Cartoes: React.FC = () => {
                             </Typography>
                             {cartao.dataVencimento && (
                               <Typography variant="caption" color="text.secondary">
-                                Validade: {new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}
+                                Validade: {new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
                               </Typography>
                             )}
                           </Box>
