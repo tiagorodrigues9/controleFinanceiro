@@ -112,7 +112,8 @@ app.get('/', (req, res) => {
       grupos: '/api/grupos',
       extrato: '/api/extrato',
       dashboard: '/api/dashboard',
-      transferencias: '/api/transferencias'
+      transferencias: '/api/transferencias',
+      formasPagamento: '/api/formas-pagamento'
     }
   });
 });
