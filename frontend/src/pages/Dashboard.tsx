@@ -12,11 +12,12 @@ import {
   useMediaQuery,
   FormControl,
   InputLabel,
-  Select,
   MenuItem,
   IconButton,
+  LinearProgress
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import api from '../utils/api';
 
 const Dashboard = () => {
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [data, setData] = useState(null);
+  const [orcamentoData, setOrcamentoData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -36,10 +38,12 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/dashboard', {
-        params: { mes: selectedMonth, ano: selectedYear },
-      });
-      setData(response.data);
+      const [resDash, resOrc] = await Promise.all([
+        api.get('/dashboard', { params: { mes: selectedMonth, ano: selectedYear } }),
+        api.get(`/orcamentos/${selectedYear}/${selectedMonth}`)
+      ]);
+      setData(resDash.data);
+      setOrcamentoData(resOrc.data);
     } catch (err) {
       setError('Erro ao carregar dados do dashboard');
     } finally {
@@ -168,6 +172,34 @@ const Dashboard = () => {
         </Box>
       ) : (
         <>
+          {/* Widget de Meta/Orçamento (Se Definido) */}
+          {orcamentoData && orcamentoData.valorLimiteGeral > 0 && (
+            <Card sx={{ mb: 3, borderRadius: 3, bgcolor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <TrackChangesIcon fontSize="small" /> Meta Mensal de Gastos
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    R$ {safeNum(orcamentoData.gastoRealGeral).toFixed(2).replace('.', ',')} / R$ {safeNum(orcamentoData.valorLimiteGeral).toFixed(2).replace('.', ',')}
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={Math.min((orcamentoData.gastoRealGeral / orcamentoData.valorLimiteGeral) * 100, 100)} 
+                  sx={{ 
+                    height: 8, 
+                    borderRadius: 4,
+                    bgcolor: '#e2e8f0',
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: (orcamentoData.gastoRealGeral / orcamentoData.valorLimiteGeral) >= 1 ? '#ef4444' : (orcamentoData.gastoRealGeral / orcamentoData.valorLimiteGeral) >= 0.8 ? '#fbbf24' : '#10b981'
+                    }
+                  }}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {isMobile ? (
             <Grid container spacing={1}>
               <Grid item xs={6}>
