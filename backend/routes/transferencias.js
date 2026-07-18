@@ -20,7 +20,8 @@ router.post('/', [
   body('contaOrigem').notEmpty().withMessage('Conta de origem é obrigatória'),
   body('contaDestino').notEmpty().withMessage('Conta de destino é obrigatória'),
   body('valor').isFloat({ min: 0.01 }).withMessage('Valor deve ser maior que zero'),
-  body('motivo').optional().trim()
+  body('motivo').optional().trim(),
+  body('data').optional().isISO8601().withMessage('Data inválida').toDate()
 ], asyncHandler(async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -28,8 +29,21 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { contaOrigem, contaDestino, valor, motivo } = req.body;
+    const { contaOrigem, contaDestino, valor, motivo, data } = req.body;
     const userId = req.user._id;
+
+    // Tratar data retroativa (limite de 1 ano)
+    const dataTransferencia = data ? new Date(data) : new Date();
+    const dataMinima = new Date();
+    dataMinima.setFullYear(dataMinima.getFullYear() - 1);
+
+    if (dataTransferencia < dataMinima) {
+      return res.status(400).json({ message: 'Não é possível registrar transferências com mais de 1 ano de retroatividade.' });
+    }
+
+    if (dataTransferencia > new Date()) {
+      return res.status(400).json({ message: 'A data não pode estar no futuro.' });
+    }
 
     // Verificar se as contas existem e pertencem ao usuário
     const [origem, destino] = await Promise.all([
@@ -50,7 +64,7 @@ router.post('/', [
     }
 
     // Usar transação para garantir consistência
-    const session = await require('mongoose').startSession();
+    const session = await mongoose.startSession();
     session.startTransaction();
 
     // Gerar ID único para a transferência
@@ -62,7 +76,7 @@ router.post('/', [
         contaBancaria: contaOrigem,
         tipo: 'Saída',
         valor: parseFloat(valor),
-        data: new Date(),
+        data: dataTransferencia,
         motivo: motivo || `Transferência para ${destino.nome}`,
         referencia: {
           tipo: 'Transferencia',
@@ -76,7 +90,7 @@ router.post('/', [
         contaBancaria: contaDestino,
         tipo: 'Entrada',
         valor: parseFloat(valor),
-        data: new Date(),
+        data: dataTransferencia,
         motivo: motivo || `Transferência de ${origem.nome}`,
         referencia: {
           tipo: 'Transferencia',
@@ -85,6 +99,10 @@ router.post('/', [
         usuario: userId
       }], { session });
 
+      // Atualizar Saldos reais das Contas
+      await ContaBancaria.findByIdAndUpdate(contaOrigem, { $inc: { saldo: -parseFloat(valor) } }, { session });
+      await ContaBancaria.findByIdAndUpdate(contaDestino, { $inc: { saldo: parseFloat(valor) } }, { session });
+
       await session.commitTransaction();
 
       logger.info('Transferência realizada com sucesso', {
@@ -92,10 +110,11 @@ router.post('/', [
         contaOrigem: origem.nome,
         contaDestino: destino.nome,
         valor: parseFloat(valor),
-        motivo
+        motivo,
+        data: dataTransferencia
       });
 
-      res.json({
+      res.status(201).json({
         message: 'Transferência realizada com sucesso',
         transferencia: {
           origem: {
@@ -110,7 +129,7 @@ router.post('/', [
           },
           valor: parseFloat(valor),
           motivo: motivo || `Transferência para ${destino.nome}`,
-          data: new Date()
+          data: dataTransferencia
         }
       });
 
@@ -138,47 +157,58 @@ router.post('/', [
 router.get('/', asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
-    const { page = 1, limit = 20 } = req.query;
+    // Sanitização de página e limite
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
 
-    // Buscar transferências (extratos com referência tipo 'Transferencia' e tipo 'Saída')
+    // Buscar transferências de saída primeiro para paginar e ordenar
     const transferenciasSaida = await Extrato.find({
       usuario: userId,
       'referencia.tipo': 'Transferencia',
       tipo: 'Saída'
     })
     .populate('contaBancaria', 'nome banco')
-    .sort({ data: -1 })
-    .limit(limit * 1)
+    .sort({ data: -1, createdAt: -1 })
+    .limit(limit)
     .skip((page - 1) * limit);
 
-    // Para cada transferência de saída, buscar a entrada correspondente
-    const transferencias = await Promise.all(
-      transferenciasSaida.map(async (saida) => {
-        const entrada = await Extrato.findOne({
-          usuario: userId,
-          'referencia.tipo': 'Transferencia',
-          'referencia.id': saida.referencia.id,
-          tipo: 'Entrada'
-        }).populate('contaBancaria', 'nome banco');
+    // Extrair os IDs de referência compartilhados
+    const referenciasIds = transferenciasSaida.map(t => t.referencia.id);
 
-        return {
-          ...saida.toObject(),
-          contaDestino: entrada?.contaBancaria || null
-        };
-      })
-    );
+    // Buscar TODAS as entradas correspondentes NUMA ÚNICA QUERY (evitando N+1)
+    const transferenciasEntrada = await Extrato.find({
+      usuario: userId,
+      'referencia.tipo': 'Transferencia',
+      'referencia.id': { $in: referenciasIds },
+      tipo: 'Entrada'
+    }).populate('contaBancaria', 'nome banco');
+
+    // Mapear entradas por id de referencia para acesso rápido
+    const entradasMap = {};
+    transferenciasEntrada.forEach(entrada => {
+      entradasMap[entrada.referencia.id.toString()] = entrada.contaBancaria;
+    });
+
+    // Construir o payload combinando saída e destino
+    const transferencias = transferenciasSaida.map(saida => {
+      const refIdStr = saida.referencia.id.toString();
+      return {
+        ...saida.toObject(),
+        contaDestino: entradasMap[refIdStr] || null
+      };
+    });
 
     const total = await Extrato.countDocuments({
       usuario: userId,
       'referencia.tipo': 'Transferencia',
-      tipo: 'Saída'  // ✅ Apenas saídas
+      tipo: 'Saída'
     });
 
     res.json({
       transferencias,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         total,
         pages: Math.ceil(total / limit)
       }
@@ -199,89 +229,51 @@ router.get('/', asyncHandler(async (req, res) => {
 router.delete('/:id', asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
-    const transferenciaId = req.params.id;
+    const transferenciaId = req.params.id; // Isso é o _id do extrato clicado no Frontend
 
-    // Buscar transferência para verificar se existe e pertence ao usuário
-    const transferencia = await Extrato.findOne({
+    // 1. Buscar o extrato para descobrir qual é o `referencia.id` compartilhado da transferência
+    const extratoAlvo = await Extrato.findOne({
       _id: transferenciaId,
       usuario: userId,
       'referencia.tipo': 'Transferencia'
-    }).populate('contaBancaria', 'nome banco');
-
-    if (!transferencia) {
-      return res.status(404).json({ message: 'Transferência não encontrada' });
-    }
-
-    // Buscar transferência reversa (entrada correspondente)
-    let transferenciaReversa = await Extrato.findOne({
-      usuario: userId,
-      'referencia.id': transferenciaId,
-      'referencia.tipo': 'Transferencia',
-      tipo: 'Entrada'
     });
 
-    // Se não encontrar a entrada correspondente, buscar por critérios mais precisos
-    if (!transferenciaReversa) {
-      // Extrair nome da conta de destino do motivo
-      const nomeContaDestino = transferencia.motivo.includes('Transferência para') 
-        ? transferencia.motivo.replace('Transferência para ', '').trim()
-        : transferencia.motivo.includes('Transferência de') 
-          ? transferencia.motivo.replace('Transferência de ', '').trim()
-          : null;
-      
-      if (nomeContaDestino) {
-        // Buscar conta bancária pelo nome
-        const contaDestino = await ContaBancaria.findOne({
-          usuario: userId,
-          nome: nomeContaDestino,
-          ativo: { $ne: false }
-        });
-        
-        if (contaDestino) {
-          // Buscar entrada pela conta de destino, valor e data
-          transferenciaReversa = await Extrato.findOne({
-            usuario: userId,
-            tipo: 'Entrada',
-            contaBancaria: contaDestino._id,
-            valor: transferencia.valor,
-            data: {
-              $gte: new Date(transferencia.data.getTime() - 60000), // 1 minuto antes
-              $lt: new Date(transferencia.data.getTime() + 60000)  // 1 minuto depois
-            }
-          });
-        }
-      }
-      
-      // Se ainda não encontrar, buscar apenas por valor e data (fallback)
-      if (!transferenciaReversa) {
-        transferenciaReversa = await Extrato.findOne({
-          usuario: userId,
-          tipo: 'Entrada',
-          valor: transferencia.valor,
-          data: {
-            $gte: new Date(transferencia.data.getTime() - 60000),
-            $lt: new Date(transferencia.data.getTime() + 60000)
-          }
-        });
-      }
+    if (!extratoAlvo) {
+      return res.status(404).json({ message: 'Transferência não encontrada.' });
     }
 
-    // Usar transação para garantir consistência
+    const referenciaCompartilhadaId = extratoAlvo.referencia.id;
+
+    if (!referenciaCompartilhadaId) {
+       return res.status(400).json({ message: 'Falha na integridade da transferência. Referência ausente.' });
+    }
+
+    // Usar transação para garantir exclusão das duas pontas simultaneamente
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      // IDs para excluir
-      const idsParaExcluir = [transferenciaId];
-      
-      // Adicionar a entrada correspondente se encontrada
-      if (transferenciaReversa) {
-        idsParaExcluir.push(transferenciaReversa._id);
+      // Encontrar todos os extratos atrelados para reverter os saldos
+      const extratosEnvolvidos = await Extrato.find({
+        'referencia.id': referenciaCompartilhadaId,
+        'referencia.tipo': 'Transferencia',
+        usuario: userId 
+      }).session(session);
+
+      // Reverter saldos reais (Devolver dinheiro da saída e subtrair dinheiro da entrada)
+      for (const extrato of extratosEnvolvidos) {
+        if (extrato.tipo === 'Saída') {
+          await ContaBancaria.findByIdAndUpdate(extrato.contaBancaria, { $inc: { saldo: extrato.valor } }, { session });
+        } else if (extrato.tipo === 'Entrada') {
+          await ContaBancaria.findByIdAndUpdate(extrato.contaBancaria, { $inc: { saldo: -extrato.valor } }, { session });
+        }
       }
 
-      // Excluir ambas as transferências (saída e entrada)
-      await Extrato.deleteMany({ 
-        _id: { $in: idsParaExcluir },
+      // Excluir TODOS os extratos que possuam essa mesma referencia compartilhada
+      // (Isso exclui perfeitamente a Entrada e a Saída, limpando qualquer necessidade de fallbacks e regex textuais)
+      const resultado = await Extrato.deleteMany({ 
+        'referencia.id': referenciaCompartilhadaId,
+        'referencia.tipo': 'Transferencia',
         usuario: userId 
       }, { session });
 
@@ -289,18 +281,14 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
       logger.info('Transferência excluída com sucesso', {
         userId,
-        transferenciaId,
-        contaOrigem: transferencia.contaBancaria?.nome,
-        contaDestino: transferencia.motivo.includes('Transferência para') ? 
-          transferencia.motivo.replace('Transferência para ', '') : 
-          transferencia.contaBancaria?.nome,
-        valor: transferencia.valor,
-        excluidos: idsParaExcluir.length
+        extratoIniciador: transferenciaId,
+        referenciaCompartilhada: referenciaCompartilhadaId,
+        excluidos: resultado.deletedCount
       });
 
       res.json({ 
         message: 'Transferência excluída com sucesso',
-        excluidos: idsParaExcluir.length
+        excluidos: resultado.deletedCount
       });
 
     } catch (error) {
