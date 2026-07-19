@@ -134,14 +134,14 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria, cartao } = req.body;
+    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria, cartao, parcelas } = req.body;
     
     // Validação customizada: cartão é obrigatório para pagamentos com cartão
     if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
       return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
     }
 
-    // Validação de Conta Bancária (Prevenção de IDOR e conta inativa)
+    // Validação de Conta Bancária
     if (formaPagamento !== 'Cartão de Crédito') {
       const contaValida = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: true });
       if (!contaValida) {
@@ -149,7 +149,7 @@ router.post('/', [
       }
     }
 
-    // Se for pagamento com cartão, verificar se o cartão existe
+    // Se for pagamento com cartão, verificar se o cartão existe e está ativo
     let cartaoObj = null;
     if (cartao) {
       cartaoObj = await Cartao.findOne({ _id: cartao, usuario: req.user._id, ativo: true });
@@ -158,42 +158,99 @@ router.post('/', [
       }
     }
 
-    // Criar data em UTC para evitar problemas de timezone
-    const [year, month, day] = data.split('-').map(Number);
-    const dataParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-
-    // Processar valor com precisão de centavos (abordagem ultra-robusta para valores gigantescos)
+    // Preparação do motor de parcelamento
+    const totalParcelas = Math.max(1, parseInt(parcelas) || 1);
     let valorProcessado = parseFloat(valor);
+    
     if (isNaN(valorProcessado) || valorProcessado < 0) {
       return res.status(400).json({ message: 'Valor inválido' });
     }
+    
     valorProcessado = Math.round(valorProcessado * 100) / 100;
     
-    const gasto = await Gasto.create({
-      tipoDespesa,
-      valor: valorProcessado,
-      data: dataParsed,
-      local,
-      observacao,
-      formaPagamento,
-      contaBancaria,
-      cartao: cartaoObj ? cartaoObj._id : null,
-      usuario: req.user._id
-    });
+    // Lógica para divisão exata de parcelas, jogando possíveis dízimas residuais para a 1ª parcela
+    let valorParcelaBase = valorProcessado;
+    let valorResto = 0;
     
-    logger.debug('🔍 Debug - Gasto salvo:');
-    logger.debug('  ID:', gasto._id);
-    logger.debug('  Valor no objeto:', gasto.valor);
-    logger.debug('  Tipo do valor:', typeof gasto.valor);
+    if (formaPagamento === 'Cartão de Crédito' && totalParcelas > 1) {
+      valorParcelaBase = Math.floor((valorProcessado / totalParcelas) * 100) / 100;
+      valorResto = Math.round((valorProcessado - (valorParcelaBase * totalParcelas)) * 100) / 100;
+    }
 
-    // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
-    if (formaPagamento !== 'Cartão de Crédito') {
+    // Date em UTC puro
+    const [year, month, day] = data.split('-').map(Number);
+    const dataBaseParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+    let gastosCriados = [];
+
+    // RAMIFICAÇÃO: Cartão de Crédito (Parcelado ou À Vista) vs Dinheiro/Débito
+    if (formaPagamento === 'Cartão de Crédito') {
+      const FaturaCartao = require('../models/FaturaCartao');
+
+      for (let i = 1; i <= totalParcelas; i++) {
+        let valorDessaParcela = valorParcelaBase;
+        if (i === 1) valorDessaParcela += valorResto;
+        
+        let obsParcela = observacao || '';
+        if (totalParcelas > 1) {
+          obsParcela = obsParcela ? `${obsParcela} (${i}/${totalParcelas})` : `Parcela ${i}/${totalParcelas}`;
+        }
+
+        // Calcular a data que este gasto afetará, apenas avançando os meses
+        let dataDaFatura = new Date(dataBaseParsed);
+        dataDaFatura.setMonth(dataDaFatura.getMonth() + (i - 1));
+
+        const gasto = await Gasto.create({
+          tipoDespesa,
+          valor: Math.round(valorDessaParcela * 100) / 100,
+          data: dataDaFatura,
+          local,
+          observacao: obsParcela,
+          formaPagamento,
+          contaBancaria,
+          cartao: cartaoObj._id,
+          usuario: req.user._id
+        });
+        
+        gastosCriados.push(gasto);
+
+        // CORREÇÃO CRÍTICA: buscarOuCriarFaturaAberta recebe (cartaoModel, usuarioId, baseDataReferencia)
+        let fatura = await buscarOuCriarFaturaAberta(
+          cartaoObj,
+          req.user._id, 
+          dataDaFatura
+        );
+
+        await fatura.adicionarDespesa(
+          gasto._id,
+          gasto.valor,
+          dataDaFatura,
+          `Gasto: ${local || 'Sem local'} ${totalParcelas > 1 ? `(${i}/${totalParcelas})` : ''}`
+        );
+      }
+    } else {
+      // RAMIFICAÇÃO: Operações convencionais (Gasto Único de Débito, Pix, etc)
+      const gasto = await Gasto.create({
+        tipoDespesa,
+        valor: valorProcessado,
+        data: dataBaseParsed,
+        local,
+        observacao,
+        formaPagamento,
+        contaBancaria,
+        cartao: cartaoObj ? cartaoObj._id : null,
+        usuario: req.user._id
+      });
+      
+      gastosCriados.push(gasto);
+
+      // Desconta imediatamente do extrato bancário
       await Extrato.create({
         contaBancaria,
         cartao: cartaoObj ? cartaoObj._id : null,
         tipo: 'Saída',
-        valor: Math.round(parseFloat(valor) * 100) / 100, // Precisão de centavos
-        data: new Date(data),
+        valor: valorProcessado,
+        data: dataBaseParsed,
         motivo: `Gasto: ${local || 'Sem local'}`,
         referencia: {
           tipo: 'Gasto',
@@ -201,46 +258,18 @@ router.post('/', [
         },
         usuario: req.user._id
       });
-    } else {
-      // Para cartão de crédito, adicionar à fatura do cartão
-      if (cartaoObj) {
-        const FaturaCartao = require('../models/FaturaCartao');
-        
-        // Determinar o mês de referência da fatura com base na data do gasto
-        const diaFech = cartaoObj.diaFatura || 25;
-        const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
-        const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(dataParsed, diaFech, diaVenc);
-
-        // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
-        let fatura = await buscarOuCriarFaturaAberta(
-          cartaoObj._id, 
-          req.user._id, 
-          dataVencimento, 
-          dataFechamento, 
-          mesReferencia
-        );
-
-        // Adicionar despesa à fatura
-        await fatura.adicionarDespesa(
-          gasto._id,
-          Math.round(parseFloat(valor) * 100) / 100,
-          dataParsed,
-          `Gasto: ${local || 'Sem local'}`
-        );
-      }
     }
 
-    res.status(201).json(gasto);
+    res.status(201).json(gastosCriados[0]); // Retorna o primeiro p/ feedback visual básico do frontend
 
-    // Emitir evento websocket
     try {
-      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', gasto);
+      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', gastosCriados[0]);
     } catch (e) {
       logger.warn('Erro ao emitir evento websocket novo_gasto', e);
     }
   } catch (error) {
-    logger.error(error);
-    res.status(500).json({ message: 'Erro ao criar gasto' });
+    logger.error('Erro na criação de Gasto:', error);
+    res.status(500).json({ message: 'Erro ao criar gasto(s)' });
   }
 });
 
@@ -258,14 +287,18 @@ router.post('/:id/duplicar', async (req, res) => {
       return res.status(404).json({ message: 'Gasto não encontrado' });
     }
 
+    const hoje = new Date();
+    const dataParsed = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 12, 0, 0));
+
     const novoGasto = await Gasto.create({
       tipoDespesa: gastoOriginal.tipoDespesa,
       valor: gastoOriginal.valor,
-      data: new Date(),
+      data: dataParsed,
       local: gastoOriginal.local,
-      observacao: gastoOriginal.observacao,
+      observacao: gastoOriginal.observacao ? `${gastoOriginal.observacao} (Cópia)` : '(Cópia)',
       formaPagamento: gastoOriginal.formaPagamento,
       contaBancaria: gastoOriginal.contaBancaria,
+      cartao: gastoOriginal.cartao,
       usuario: req.user._id
     });
 
@@ -273,9 +306,10 @@ router.post('/:id/duplicar', async (req, res) => {
     if (novoGasto.formaPagamento !== 'Cartão de Crédito') {
       await Extrato.create({
         contaBancaria: novoGasto.contaBancaria,
+        cartao: novoGasto.cartao,
         tipo: 'Saída',
         valor: novoGasto.valor,
-        data: new Date(),
+        data: dataParsed,
         motivo: `Gasto: ${novoGasto.local || 'Sem local'}`,
         referencia: {
           tipo: 'Gasto',
@@ -289,38 +323,35 @@ router.post('/:id/duplicar', async (req, res) => {
         const FaturaCartao = require('../models/FaturaCartao');
         const Cartao = require('../models/Cartao');
         
-        // Buscar o cartão para obter informações
         const cartaoObj = await Cartao.findOne({ _id: novoGasto.cartao, usuario: req.user._id, ativo: true });
         
         if (cartaoObj) {
-          // Determinar o mês de referência da fatura
-          const diaFech = cartaoObj.diaFatura || 25;
-          const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
-          const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(new Date(), diaFech, diaVenc);
-
-          // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+          // CORREÇÃO CRÍTICA: Mesma assinatura do POST normal
           let fatura = await buscarOuCriarFaturaAberta(
-            cartaoObj._id, 
+            cartaoObj, 
             req.user._id, 
-            dataVencimento, 
-            dataFechamento, 
-            mesReferencia
+            dataParsed
           );
 
-          // Adicionar despesa à fatura
           await fatura.adicionarDespesa(
             novoGasto._id,
             novoGasto.valor,
-            dataGasto,
+            dataParsed,
             `Gasto: ${novoGasto.local || 'Sem local'}`
           );
         }
       }
     }
 
+    try {
+      socket.getIO().to(req.user._id.toString()).emit('novo_gasto', novoGasto);
+    } catch (e) {
+      logger.warn('Erro ao emitir evento websocket novo_gasto', e);
+    }
+
     res.status(201).json(novoGasto);
   } catch (error) {
-    logger.error(error);
+    logger.error('Erro na duplicação:', error);
     res.status(500).json({ message: 'Erro ao duplicar gasto' });
   }
 });
@@ -339,29 +370,39 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Gasto não encontrado' });
     }
 
-    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria } = req.body;
+    const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria, cartao } = req.body;
 
-    // Verificar conta bancária se ela estiver sendo atualizada e não for cartão
-    const novaForma = formaPagamento || gasto.formaPagamento;
-    if (contaBancaria && novaForma !== 'Cartão de Crédito') {
-      const contaValida = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: true });
-      if (!contaValida) {
-        return res.status(400).json({ message: 'Conta bancária inválida ou inativa.' });
-      }
+    // Bloqueio de mudança de forma de pagamento na edição
+    if (formaPagamento && formaPagamento !== gasto.formaPagamento) {
+      return res.status(400).json({ message: 'Não é permitido alterar a forma de pagamento de um registro. Exclua e crie um novo.' });
     }
 
+    const valorAntigo = gasto.valor;
+    const isCartao = gasto.formaPagamento === 'Cartão de Crédito';
+
     if (tipoDespesa) gasto.tipoDespesa = tipoDespesa;
-    if (valor) gasto.valor = parseFloat(valor);
-    if (data) gasto.data = new Date(data);
+    
+    let novoValorProcessado = gasto.valor;
+    if (valor !== undefined) {
+      novoValorProcessado = Math.round(parseFloat(valor) * 100) / 100;
+      if (isNaN(novoValorProcessado) || novoValorProcessado < 0) return res.status(400).json({ message: 'Valor inválido' });
+      gasto.valor = novoValorProcessado;
+    }
+
+    if (data) {
+      const [year, month, day] = data.split('-').map(Number);
+      gasto.data = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    }
+    
     if (local !== undefined) gasto.local = local;
     if (observacao !== undefined) gasto.observacao = observacao;
-    if (formaPagamento) gasto.formaPagamento = formaPagamento;
-    if (contaBancaria) gasto.contaBancaria = contaBancaria;
 
     await gasto.save();
 
-    // Atualizar extrato correspondente
-    if (gasto.formaPagamento !== 'Cartão de Crédito') {
+    const diferencaValor = novoValorProcessado - valorAntigo;
+
+    if (!isCartao) {
+      // Atualizar extrato correspondente (Débito/Dinheiro/Pix)
       await Extrato.findOneAndUpdate(
         {
           'referencia.tipo': 'Gasto',
@@ -372,16 +413,44 @@ router.put('/:id', async (req, res) => {
           $set: {
             valor: gasto.valor,
             data: gasto.data,
-            contaBancaria: gasto.contaBancaria,
             motivo: `Gasto: ${gasto.local || 'Sem local'}`
           }
         }
       );
+    } else {
+      // Motor Indestrutível de Faturas: Tira da onde estava e injeta na certa
+      const FaturaCartao = require('../models/FaturaCartao');
+      const Cartao = require('../models/Cartao');
+
+      // 1. Achar e retirar da Fatura Anterior (seja qual mês for)
+      const faturaAntiga = await FaturaCartao.findOne({
+        usuario: req.user._id,
+        'despesas.conta': gasto._id
+      });
+
+      if (faturaAntiga) {
+        faturaAntiga.valorTotal = Math.round((faturaAntiga.valorTotal - valorAntigo) * 100) / 100;
+        if (faturaAntiga.valorTotal < 0) faturaAntiga.valorTotal = 0;
+        faturaAntiga.despesas = faturaAntiga.despesas.filter(d => d.conta && d.conta.toString() !== gasto._id.toString());
+        await faturaAntiga.save();
+      }
+
+      // 2. Colocar na Fatura Nova Baseada na Data Modificada
+      const cartaoObj = await Cartao.findOne({ _id: gasto.cartao, usuario: req.user._id });
+      if (cartaoObj) {
+        const faturaNova = await buscarOuCriarFaturaAberta(cartaoObj, req.user._id, gasto.data);
+        await faturaNova.adicionarDespesa(
+          gasto._id,
+          novoValorProcessado,
+          gasto.data,
+          `Gasto: ${gasto.local || 'Sem local'}`
+        );
+      }
     }
 
     res.json(gasto);
   } catch (error) {
-    logger.error(error);
+    logger.error('Erro na edição de Gasto:', error);
     res.status(500).json({ message: 'Erro ao atualizar gasto' });
   }
 });
@@ -400,21 +469,41 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Gasto não encontrado' });
     }
 
-    // Estornar no extrato
-    await Extrato.updateMany(
-      {
-        'referencia.tipo': 'Gasto',
-        'referencia.id': gasto._id,
-        usuario: req.user._id
-      },
-      { estornado: true }
-    );
+    const valorEstornado = gasto.valor;
+
+    if (gasto.formaPagamento !== 'Cartão de Crédito') {
+      // Estornar no extrato
+      await Extrato.updateMany(
+        {
+          'referencia.tipo': 'Gasto',
+          'referencia.id': gasto._id,
+          usuario: req.user._id
+        },
+        { estornado: true }
+      );
+    } else {
+      // Remover da Fatura de Cartão
+      const FaturaCartao = require('../models/FaturaCartao');
+      const faturaAlvo = await FaturaCartao.findOne({
+        usuario: req.user._id,
+        'despesas.conta': gasto._id
+      });
+      
+      if (faturaAlvo) {
+        // Reduzir o total e remover do array
+        faturaAlvo.valorTotal = Math.round((faturaAlvo.valorTotal - valorEstornado) * 100) / 100;
+        if (faturaAlvo.valorTotal < 0) faturaAlvo.valorTotal = 0;
+        
+        faturaAlvo.despesas = faturaAlvo.despesas.filter(d => d.conta && d.conta.toString() !== gasto._id.toString());
+        await faturaAlvo.save();
+      }
+    }
 
     await gasto.deleteOne();
 
     res.json({ message: 'Gasto excluído com sucesso' });
   } catch (error) {
-    logger.error(error);
+    logger.error('Erro ao excluir gasto:', error);
     res.status(500).json({ message: 'Erro ao excluir gasto' });
   }
 });
