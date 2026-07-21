@@ -5,6 +5,16 @@ const subgrupoSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  cor: {
+    type: String,
+    trim: true,
+    default: '#6366f1' // Valor padrão caso não enviado (herdando visual padrão)
+  },
+  icone: {
+    type: String,
+    trim: true,
+    default: 'Folder'
   }
 });
 
