@@ -34,24 +34,69 @@ import {
   useTheme,
   useMediaQuery,
   TablePagination,
+  ThemeProvider,
+  createTheme
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import EditIcon from '@mui/icons-material/Edit';
+import UndoIcon from '@mui/icons-material/Undo';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import api from '../utils/api';
 import { useAbortController } from '../hooks/useAbortController';
 import { isRequestCancelled, getRequestErrorMessage } from '../utils/requestUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Tema Premium Indigo/Emerald
+const contasTheme = createTheme({
+  palette: {
+    primary: { main: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+    secondary: { main: '#10b981', dark: '#059669', light: '#34d399' },
+    background: { paper: '#ffffff' },
+    text: { primary: '#1e293b', secondary: '#64748b' },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 700, color: '#0f172a' },
+    h6: { fontWeight: 600, color: '#1e293b' },
+  },
+  shape: { borderRadius: 12 },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
+          border: '1px solid #f1f5f9',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 600,
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: '0 4px 6px -1px rgba(99,102,241,0.2)',
+            transform: 'translateY(-1px)',
+          },
+          transition: 'all 0.2s ease-in-out',
+        },
+      },
+    },
+  },
+});
+
 const ROWS_PER_PAGE = 50;
 
 const ContasPagar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   // Forçando recompilação após correções
   const [contas, setContas] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
@@ -214,7 +259,7 @@ const ContasPagar = () => {
   // Carregar subgrupos quando um grupo é selecionado
   const handleTipoControleChange = (value) => {
     setFormData({ ...formData, tipoControle: value, subgrupo: '' }); // Limpar subgrupo ao mudar grupo
-    
+
     if (value) {
       const grupoSelecionado = grupos.find(g => g.nome === value);
       if (grupoSelecionado && grupoSelecionado.subgrupos) {
@@ -329,7 +374,7 @@ const ContasPagar = () => {
     });
     setEditMode(true);
     setContaEditId(conta._id);
-    
+
     if (conta.tipoControle) {
       const grupoSelecionado = grupos.find(g => g.nome === conta.tipoControle);
       if (grupoSelecionado && grupoSelecionado.subgrupos) {
@@ -338,7 +383,7 @@ const ContasPagar = () => {
         setSubgrupos([]);
       }
     }
-    
+
     setOpenCadastro(true);
   };
 
@@ -354,7 +399,7 @@ const ContasPagar = () => {
   const handleSubmitFornecedor = async (e) => {
     e.preventDefault();
     try {
-      
+
       // Desabilitar botão para evitar cliques duplicados
       const submitButton = e.target.querySelector('[type="submit"]');
       if (submitButton) {
@@ -363,36 +408,36 @@ const ContasPagar = () => {
       }
 
       const response = await api.post('/fornecedores', fornecedorData);
-      
+
       setSuccess('Fornecedor cadastrado com sucesso!');
       // Atualizar lista de fornecedores localmente (mais rápido)
       setFornecedores(prev => [...prev, response.data]);
-      
+
       // Atualizar formulário com o novo fornecedor
       setFormData({ ...formData, fornecedor: response.data._id });
-      
+
       // Fechar diálogo imediatamente
       handleCloseFornecedor();
-      
+
       // Buscar fornecedores em background (para garantir consistência)
       fetchFornecedores().catch(console.error);
-      
+
       // Reabilitar botão
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Salvar';
       }
-      
+
     } catch (err) {
       console.error('❌ Erro ao cadastrar fornecedor:', err);
-      
+
       // Reabilitar botão em caso de erro
       const submitButton = e.target.querySelector('[type="submit"]');
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.textContent = 'Salvar';
       }
-      
+
       setError(err.response?.data?.message || 'Erro ao cadastrar fornecedor');
     }
   };
@@ -497,15 +542,15 @@ const ContasPagar = () => {
       }
 
       await api.post(`/contas/${contaSelecionada._id}/pagar`, pagamentoData);
-      
+
       setSuccess('Conta paga com sucesso!');
       // Pequeno delay para garantir que o backend processou
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       fetchContas();
       handleClosePagamento();
       setError('');
-      
+
       // Reabilitar botão
       if (originalButton) {
         originalButton.disabled = false;
@@ -513,20 +558,33 @@ const ContasPagar = () => {
       }
     } catch (err) {
       console.error('❌ Erro ao pagar conta:', err);
-      
+
       // Reabilitar botão em caso de erro
       const originalButton = document.querySelector('[type="submit"]');
       if (originalButton) {
         originalButton.disabled = false;
         originalButton.textContent = 'Pagar';
       }
-      
+
       if (err.response?.status === 400 && err.response?.data?.message?.includes('já foi paga')) {
         setError('Esta conta já foi paga. Atualizando a lista...');
         fetchContas();
         handleClosePagamento();
       } else {
         setError(err.response?.data?.message || 'Erro ao pagar conta');
+      }
+    }
+  };
+
+  const handleEstornar = async (id) => {
+    if (window.confirm('Tem certeza que deseja estornar o pagamento desta conta? Ela voltará a ficar pendente, e o dinheiro retornará.')) {
+      try {
+        await api.post(`/contas/${id}/estornar`);
+        setSuccess('Pagamento estornado com sucesso!');
+        fetchContas();
+      } catch (err) {
+        console.error('Erro ao estornar:', err);
+        setError(err.response?.data?.message || 'Erro ao estornar pagamento');
       }
     }
   };
@@ -542,7 +600,7 @@ const ContasPagar = () => {
       try {
         // Verificar no backend se há parcelas restantes
         const checkResponse = await api.get(`/contas/${contaToCancel}/check-installments`);
-        
+
         if (checkResponse.data.hasRemainingInstallments) {
           setParcelasInfo({
             count: checkResponse.data.remainingCount,
@@ -552,7 +610,7 @@ const ContasPagar = () => {
           setOpenConfirmCancel(false);
           return; // Não inativa ainda, espera escolha do usuário
         }
-        
+
         // Se não há parcelas restantes, inativa diretamente
         const response = await api.delete(`/contas/${contaToCancel}/hard`);
         await fetchContas();
@@ -576,7 +634,7 @@ const ContasPagar = () => {
     try {
       // Primeiro, verificar se há parcelas restantes
       const checkResponse = await api.get(`/contas/${contaToHardDelete}/check-installments`);
-      
+
       if (checkResponse.data.hasRemainingInstallments) {
         setParcelasInfo({
           count: checkResponse.data.remainingCount,
@@ -679,7 +737,7 @@ const ContasPagar = () => {
             size="small"
           />
         </Box>
-        
+
         <Box mb={1}>
           <Typography variant="body2" color="text.secondary">
             Fornecedor: {conta.fornecedor?.nome || 'N/A'}
@@ -688,12 +746,12 @@ const ContasPagar = () => {
             Vencimento: {format(new Date(conta.dataVencimento), 'dd/MM/yyyy', { locale: ptBR })}
           </Typography>
         </Box>
-        
+
         <Typography variant="h6" color="primary" fontWeight="bold">
           R$ {conta.valor.toFixed(2).replace('.', ',')}
         </Typography>
       </CardContent>
-      
+
       <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
         {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
           <>
@@ -753,12 +811,12 @@ const ContasPagar = () => {
     try {
       const params = { formato };
       if (filtros.status && filtros.status !== 'todos') params.status = filtros.status;
-      
+
       const response = await api.get('/exportar/contas', {
         params,
         responseType: 'blob'
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
       a.href = url;
@@ -780,52 +838,55 @@ const ContasPagar = () => {
   }
 
   return (
-    <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4">Contas a Pagar</Typography>
-        <Box display="flex" gap={1}>
-          <Button
-            variant="outlined"
-            onClick={() => handleExportar('pdf')}
-            size="small"
-            color="error"
-          >
-            PDF
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => handleExportar('excel')}
-            size="small"
-            color="success"
-          >
-            Excel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleOpenCadastro}
-            size="small"
-          >
-            Cadastrar Conta
-          </Button>
+    <ThemeProvider theme={contasTheme}>
+      <Box sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 1, sm: 2 } }}>
+        <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} mb={3} gap={2}>
+          <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReceiptIcon color="primary" fontSize="large" /> Contas a Pagar
+          </Typography>
+          <Box display="flex" gap={1}>
+            <Button
+              variant="outlined"
+              onClick={() => handleExportar('pdf')}
+              size="small"
+              color="error"
+            >
+              PDF
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => handleExportar('excel')}
+              size="small"
+              color="success"
+            >
+              Excel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCadastro}
+              size="small"
+            >
+              Cadastrar Conta
+            </Button>
+          </Box>
         </Box>
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2} alignItems="center">
+        {/* Filtros */}
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 3, bgcolor: '#f8fafc' }}>
+          <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={2}>
             <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Mês</InputLabel>
               <Select value={mes} label="Mês" size="small" onChange={(e) => { setMes(parseInt(e.target.value)); }}>
                 {[...Array(12)].map((_, i) => (
-                  <MenuItem key={i+1} value={i+1}>{i+1}</MenuItem>
+                  <MenuItem key={i + 1} value={i + 1}>{i + 1}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -834,7 +895,7 @@ const ContasPagar = () => {
             <FormControl fullWidth variant="outlined" size="small">
               <InputLabel>Ano</InputLabel>
               <Select value={ano} label="Ano" size="small" onChange={(e) => { setAno(parseInt(e.target.value)); }}>
-                {Array.from({length:6}).map((_, idx) => {
+                {Array.from({ length: 6 }).map((_, idx) => {
                   const y = today.getFullYear() - 2 + idx;
                   return <MenuItem key={y} value={y}>{y}</MenuItem>;
                 })}
@@ -915,20 +976,21 @@ const ContasPagar = () => {
           ))}
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nome</TableCell>
-                <TableCell>Fornecedor</TableCell>
-                <TableCell>Vencimento</TableCell>
-                <TableCell>Valor</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Ações</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-                {contasValidas.map((conta) => (
+        <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Nome</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Fornecedor</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Vencimento</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Valor</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 'bold' }}>Ações</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+              {contasValidas.map((conta) => (
                 <TableRow key={conta._id}>
                   <TableCell>
                     {conta.nome}
@@ -952,48 +1014,37 @@ const ContasPagar = () => {
                       size="small"
                     />
                   </TableCell>
-                  <TableCell>
-                      {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
-                        <>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => handleOpenPagamento(conta)}
-                            title="Pagar"
-                          >
-                            <PaymentIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="secondary"
-                            onClick={() => handleEdit(conta)}
-                            title="Editar"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </>
-                      )}
-                      {isActive(conta) && conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
-                        <>
-                          <IconButton
-                            size="small"
-                            color="warning"
-                            onClick={() => handleCancelar(conta._id)}
-                            title="Inativar"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleHardDelete(conta._id)}
-                            title="Excluir"
-                          >
-                            <DeleteForeverIcon />
-                          </IconButton>
-                        </>
-                      )}
-                      {!isActive(conta) && (
+                  <TableCell align="center">
+                    {(conta.status === 'Pendente' || conta.status === 'Vencida') && isActive(conta) && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleOpenPagamento(conta)}
+                          title="Pagar"
+                        >
+                          <PaymentIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          onClick={() => handleEdit(conta)}
+                          title="Editar"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </>
+                    )}
+                    {isActive(conta) && conta.status !== 'Pago' && conta.status !== 'Cancelada' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => handleCancelar(conta._id)}
+                          title="Inativar"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
                         <IconButton
                           size="small"
                           color="error"
@@ -1002,13 +1053,38 @@ const ContasPagar = () => {
                         >
                           <DeleteForeverIcon />
                         </IconButton>
-                      )}
+                      </>
+                    )}
+                    {isActive(conta) && conta.status === 'Pago' && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        color="info"
+                        startIcon={<UndoIcon />}
+                        onClick={() => handleEstornar(conta._id)}
+                        sx={{ ml: 1, borderRadius: 6, fontWeight: 'bold' }}
+                        title="Estornar Pagamento Seguro"
+                      >
+                        Estornar
+                      </Button>
+                    )}
+                    {!isActive(conta) && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleHardDelete(conta._id)}
+                        title="Excluir"
+                      >
+                        <DeleteForeverIcon />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+      </Paper>
       )}
 
       <TablePagination
@@ -1062,16 +1138,16 @@ const ContasPagar = () => {
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
             />
             {formData.parcelMode !== 'manual' && (
-            <TextField
-              fullWidth
-              label="Data de Vencimento"
-              type="date"
-              margin="normal"
-              required
-              InputLabelProps={{ shrink: true }}
-              value={formData.dataVencimento}
-              onChange={(e) => setFormData({ ...formData, dataVencimento: e.target.value })}
-            />
+              <TextField
+                fullWidth
+                label="Data de Vencimento"
+                type="date"
+                margin="normal"
+                required
+                InputLabelProps={{ shrink: true }}
+                value={formData.dataVencimento}
+                onChange={(e) => setFormData({ ...formData, dataVencimento: e.target.value })}
+              />
             )}
             <TextField
               fullWidth
@@ -1246,120 +1322,120 @@ const ContasPagar = () => {
           <>
             <DialogTitle>Pagar Conta</DialogTitle>
             <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Valor"
-                  value={`R$ ${contaSelecionada.valor.toFixed(2).replace('.', ',')}`}
-                  disabled
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Fornecedor"
-                  value={contaSelecionada.fornecedor?.nome}
-                  disabled
-                  variant="outlined"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth required variant="outlined">
-                  <InputLabel>Forma de Pagamento</InputLabel>
-                  <Select
-                    value={pagamentoData.formaPagamento}
-                    onChange={(e) =>
-                      setPagamentoData({ ...pagamentoData, formaPagamento: e.target.value, cartao: '' })
-                    }
-                    label="Forma de Pagamento"
-                  >
-                    {formasPagamento.map((f) => (
-                      <MenuItem key={f._id} value={f.nome}>{f.nome}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              {/* Campo de Cartão - aparece apenas para formas de pagamento com cartão */}
-              {(pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && (
-                <Grid item xs={12}>
-                  <FormControl fullWidth required variant="outlined">
-                    <InputLabel>Cartão</InputLabel>
-                    <Select
-                      value={pagamentoData.cartao}
-                      onChange={(e) => setPagamentoData({ ...pagamentoData, cartao: e.target.value })}
-                      label="Cartão"
-                    >
-                      {cartoes
-                        .filter(cartao => 
-                          pagamentoData.formaPagamento === 'Cartão de Crédito' ? 
-                            cartao.tipo === 'Crédito' : 
-                            cartao.tipo === 'Débito'
-                        )
-                        .map((cartao) => (
-                          <MenuItem key={cartao._id} value={cartao._id}>
-                            {cartao.nome} - {cartao.banco} ({cartao.tipo})
+              <Box sx={{ pt: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Valor"
+                      value={`R$ ${contaSelecionada.valor.toFixed(2).replace('.', ',')}`}
+                      disabled
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Fornecedor"
+                      value={contaSelecionada.fornecedor?.nome}
+                      disabled
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <FormControl fullWidth required variant="outlined">
+                      <InputLabel>Forma de Pagamento</InputLabel>
+                      <Select
+                        value={pagamentoData.formaPagamento}
+                        onChange={(e) =>
+                          setPagamentoData({ ...pagamentoData, formaPagamento: e.target.value, cartao: '' })
+                        }
+                        label="Forma de Pagamento"
+                      >
+                        {formasPagamento.map((f) => (
+                          <MenuItem key={f._id} value={f.nome}>{f.nome}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+
+                  {/* Campo de Cartão - aparece apenas para formas de pagamento com cartão */}
+                  {(pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && (
+                    <Grid item xs={12}>
+                      <FormControl fullWidth required variant="outlined">
+                        <InputLabel>Cartão</InputLabel>
+                        <Select
+                          value={pagamentoData.cartao}
+                          onChange={(e) => setPagamentoData({ ...pagamentoData, cartao: e.target.value })}
+                          label="Cartão"
+                        >
+                          {cartoes
+                            .filter(cartao =>
+                              pagamentoData.formaPagamento === 'Cartão de Crédito' ?
+                                cartao.tipo === 'Crédito' :
+                                cartao.tipo === 'Débito'
+                            )
+                            .map((cartao) => (
+                              <MenuItem key={cartao._id} value={cartao._id}>
+                                {cartao.nome} - {cartao.banco} ({cartao.tipo})
+                              </MenuItem>
+                            ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
+
+                  <Grid item xs={12}>
+                    <FormControl fullWidth required variant="outlined">
+                      <InputLabel>Conta Bancária</InputLabel>
+                      <Select
+                        value={pagamentoData.contaBancaria}
+                        onChange={(e) =>
+                          setPagamentoData({ ...pagamentoData, contaBancaria: e.target.value })
+                        }
+                        label="Conta Bancária"
+                      >
+                        {contasBancarias.map((conta) => (
+                          <MenuItem key={conta._id} value={conta._id}>
+                            {conta.nome} - {conta.banco}
                           </MenuItem>
                         ))}
-                    </Select>
-                  </FormControl>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  {contaSelecionada && contaSelecionada.status === 'Vencida' && (
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Juros (R$)"
+                        type="number"
+                        value={pagamentoData.juros}
+                        onChange={(e) =>
+                          setPagamentoData({ ...pagamentoData, juros: e.target.value })
+                        }
+                        variant="outlined"
+                        inputProps={{ min: 0, step: 0.01 }}
+                      />
+                    </Grid>
+                  )}
                 </Grid>
-              )}
-              
-              <Grid item xs={12}>
-                <FormControl fullWidth required variant="outlined">
-                  <InputLabel>Conta Bancária</InputLabel>
-                  <Select
-                    value={pagamentoData.contaBancaria}
-                    onChange={(e) =>
-                      setPagamentoData({ ...pagamentoData, contaBancaria: e.target.value })
-                    }
-                    label="Conta Bancária"
-                  >
-                    {contasBancarias.map((conta) => (
-                      <MenuItem key={conta._id} value={conta._id}>
-                        {conta.nome} - {conta.banco}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              {contaSelecionada && contaSelecionada.status === 'Vencida' && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Juros (R$)"
-                    type="number"
-                    value={pagamentoData.juros}
-                    onChange={(e) =>
-                      setPagamentoData({ ...pagamentoData, juros: e.target.value })
-                    }
-                    variant="outlined"
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-              )}
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePagamento}>Cancelar</Button>
-          <Button
-            variant="contained"
-            onClick={handlePagar}
-            disabled={
-              !pagamentoData.formaPagamento || 
-              !pagamentoData.contaBancaria ||
-              ((pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && !pagamentoData.cartao)
-            }
-          >
-            Confirmar Pagamento
-          </Button>
-        </DialogActions>
-        </>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClosePagamento}>Cancelar</Button>
+              <Button
+                variant="contained"
+                onClick={handlePagar}
+                disabled={
+                  !pagamentoData.formaPagamento ||
+                  !pagamentoData.contaBancaria ||
+                  ((pagamentoData.formaPagamento === 'Cartão de Crédito' || pagamentoData.formaPagamento === 'Cartão de Débito') && !pagamentoData.cartao)
+                }
+              >
+                Confirmar Pagamento
+              </Button>
+            </DialogActions>
+          </>
         )}
       </Dialog>
 
@@ -1420,21 +1496,21 @@ const ContasPagar = () => {
             Como você deseja proceder com a ação?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            • <strong>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} apenas esta</strong>: {actionType === 'cancel' ? 'Inativa' : 'Exclui'} apenas a parcela atual<br/>
+            • <strong>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} apenas esta</strong>: {actionType === 'cancel' ? 'Inativa' : 'Exclui'} apenas a parcela atual<br />
             • <strong>{actionType === 'cancel' ? 'Inativar' : 'Excluir'} todas</strong>: {actionType === 'cancel' ? 'Inativa' : 'Exclui'} esta e todas as parcelas restantes
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
+          <Button
             onClick={cancelarApenasEsta}
             variant="outlined"
             color="primary"
           >
             Apenas Esta
           </Button>
-          <Button 
+          <Button
             onClick={cancelarTodasParcelas}
-            variant="contained" 
+            variant="contained"
             color={actionType === 'cancel' ? 'warning' : 'error'}
           >
             Todas as Restantes
@@ -1455,7 +1531,8 @@ const ContasPagar = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Box>
+    </ThemeProvider>
   );
 };
 
