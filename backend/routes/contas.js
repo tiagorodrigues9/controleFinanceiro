@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limite de 5MB
   fileFilter: (req, file, cb) => {
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
   try {
     logger.debug('🔍 Rotas Contas - GET /api/contas chamado');
     logger.debug('🔍 Rotas Contas - req.user._id:', req.user._id);
-    
+
     const { mes, ano, ativo, status, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, valor: { $ne: null } };
 
@@ -88,7 +88,7 @@ router.get('/', async (req, res) => {
     }
     if (dataFim) {
       const fim = new Date(dataFim);
-      fim.setHours(23,59,59,999);
+      fim.setHours(23, 59, 59, 999);
       query.dataVencimento = query.dataVencimento || {};
       query.dataVencimento.$lte = fim;
     }
@@ -349,7 +349,7 @@ router.delete('/:id', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'ID de conta inválido' });
     }
-    
+
     const conta = await Conta.findOne({
       _id: req.params.id,
       usuario: req.user._id
@@ -363,7 +363,7 @@ router.delete('/:id', async (req, res) => {
     // Check if there are remaining active installments
     let hasRemainingInstallments = false;
     let remainingCount = 0;
-    
+
     if (conta.parcelaId && req.query.force !== 'true') {
       const remainingInstallments = await Conta.find({
         parcelaId: conta.parcelaId,
@@ -407,7 +407,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
     if (!conta) {
       return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
     }
-    
+
     // Inativar todas as parcelas do mesmo parcelaId
     const result = await Conta.updateMany(
       {
@@ -420,7 +420,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
       }
     );
 
-    res.json({ 
+    res.json({
       message: 'Todas as parcelas foram inativadas com sucesso',
       updatedCount: result.modifiedCount
     });
@@ -451,12 +451,12 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
       usuario: req.user._id
     });
 
-    logger.info('Parcelas excluídas permanentemente', { 
-      parcelaId: conta.parcelaId, 
-      count: result.deletedCount 
+    logger.info('Parcelas excluídas permanentemente', {
+      parcelaId: conta.parcelaId,
+      count: result.deletedCount
     });
 
-    res.json({ 
+    res.json({
       message: `${result.deletedCount} parcela(s) excluída(s) permanentemente com sucesso`,
       count: result.deletedCount
     });
@@ -478,7 +478,7 @@ router.delete('/:id/hard', async (req, res) => {
     conta.ativo = false;
     conta.status = 'Cancelada';
     await conta.save();
-    
+
     res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
     logger.error(error);
@@ -491,15 +491,15 @@ router.delete('/:id/hard', async (req, res) => {
 // @access  Private
 router.delete('/:id/permanent', async (req, res) => {
   try {
-    const conta = await Conta.findOne({ 
-      _id: req.params.id, 
+    const conta = await Conta.findOne({
+      _id: req.params.id,
       usuario: req.user._id,
       ativo: false // Apenas pode excluir se já estiver inativa
     });
-    
+
     if (!conta) {
-      return res.status(404).json({ 
-        message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.' 
+      return res.status(404).json({
+        message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.'
       });
     }
 
@@ -511,7 +511,7 @@ router.delete('/:id/permanent', async (req, res) => {
         ativo: { $ne: false },
         _id: { $ne: conta._id }
       });
-      
+
       if (remainingInstallments.length > 0) {
         return res.status(400).json({
           message: `Existem ${remainingInstallments.length} parcela(s) restantes. Cancele todas as parcelas primeiro.`,
@@ -522,17 +522,17 @@ router.delete('/:id/permanent', async (req, res) => {
 
     // Excluir permanentemente
     await Conta.deleteOne({ _id: req.params.id, usuario: req.user._id });
-    
-    logger.info('Conta excluída permanentemente', { 
-      contaId: conta._id, 
+
+    logger.info('Conta excluída permanentemente', {
+      contaId: conta._id,
       nome: conta.nome,
-      userId: req.user._id 
+      userId: req.user._id
     });
-    
+
     res.json({ message: 'Conta excluída permanentemente com sucesso' });
   } catch (error) {
-    logger.error('Erro ao excluir conta permanentemente', { 
-      error: error.message, 
+    logger.error('Erro ao excluir conta permanentemente', {
+      error: error.message,
       stack: error.stack,
       contaId: req.params.id,
       userId: req.user._id
@@ -555,7 +555,7 @@ router.post('/:id/pagar', [
     }
 
     const { formaPagamento, contaBancaria, cartao, juros } = req.body;
-    
+
     // Validação customizada: cartão é obrigatório para pagamentos com cartão
     if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
       return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
@@ -617,7 +617,7 @@ router.post('/:id/pagar', [
           valor: valorPago,
           data: new Date(),
           local: conta.fornecedor?.nome || 'Pagamento de conta',
-          observacao: `Pagamento da conta: ${conta.nome}`,
+          observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`,
           formaPagamento,
           contaBancaria: contaBancaria,
           cartao: cartaoObj ? cartaoObj._id : null,
@@ -644,20 +644,15 @@ router.post('/:id/pagar', [
         // Para cartão de crédito, adicionar à fatura do cartão
         if (cartaoObj) {
           const FaturaCartao = require('../models/FaturaCartao');
-          
-          // Determinar o mês de referência da fatura
-          const diaFech = cartaoObj.diaFatura || 25;
-          const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
-          const dataPagamento = new Date();
-          const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(dataPagamento, diaFech, diaVenc);
 
-          // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+          // Determinar a data do pagamento para enviar ao novo robô de faturas
+          const dataPagamento = new Date();
+
+          // Buscar ou criar fatura do mês com a nova assinatura segura
           let fatura = await buscarOuCriarFaturaAberta(
-            cartaoObj._id, 
-            req.user._id, 
-            dataVencimento, 
-            dataFechamento, 
-            mesReferencia
+            cartaoObj,
+            req.user._id,
+            dataPagamento
           );
 
           // Adicionar despesa à fatura
@@ -665,7 +660,8 @@ router.post('/:id/pagar', [
             conta._id,
             valorPago,
             dataPagamento,
-            `${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}`
+            `${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}`,
+            session
           );
         }
       }
@@ -693,5 +689,96 @@ router.post('/:id/pagar', [
   }
 });
 
+// @route   POST /api/contas/:id/estornar
+// @desc    Estornar pagamento de conta e limpar Extrato/Gastos/Faturas
+// @access  Private
+router.post('/:id/estornar', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const conta = await Conta.findOne({
+      _id: req.params.id,
+      usuario: req.user._id,
+      ativo: { $ne: false }
+    }).populate('fornecedor');
+
+    if (!conta) {
+      return res.status(404).json({ message: 'Conta não encontrada' });
+    }
+
+    if (conta.status !== 'Pago') {
+      return res.status(400).json({ message: 'Apenas contas pagas podem ser estornadas' });
+    }
+
+    const valorPago = conta.valor + (conta.jurosPago || 0);
+
+    // 1. Remover Gasto Espelho (se foi criado)
+    const Gasto = require('../models/Gasto');
+    await Gasto.deleteMany({
+      usuario: req.user._id,
+      observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`
+    }, { session });
+
+    // Para gastos antigos (antes da atualização da observação com o ID)
+    await Gasto.deleteMany({
+      usuario: req.user._id,
+      observacao: `Pagamento da conta: ${conta.nome}`,
+      valor: valorPago
+    }, { session });
+
+    // 2. Extrato - Estornar/Remover Saída
+    if (conta.formaPagamento !== 'Cartão de Crédito') {
+      await Extrato.deleteMany({
+        usuario: req.user._id,
+        'referencia.tipo': 'Conta',
+        'referencia.id': conta._id
+      }, { session });
+    } else {
+      // 3. Remover a despesa da Fatura do Cartão de Crédito
+      const FaturaCartao = require('../models/FaturaCartao');
+      const faturaAntiga = await FaturaCartao.findOne({
+        usuario: req.user._id,
+        'despesas.conta': conta._id
+      }).session(session);
+
+      if (faturaAntiga) {
+        // Deduzir o valor
+        faturaAntiga.valorTotal = Math.round((faturaAntiga.valorTotal - valorPago) * 100) / 100;
+        if (faturaAntiga.valorTotal < 0) faturaAntiga.valorTotal = 0;
+        // Filtrar a despesa
+        faturaAntiga.despesas = faturaAntiga.despesas.filter(d => d.conta && d.conta.toString() !== conta._id.toString());
+        await faturaAntiga.save({ session });
+      }
+    }
+
+    // 4. Restaurar a Conta
+    conta.status = 'Pendente';
+    conta.dataPagamento = null;
+    conta.formaPagamento = null;
+    conta.contaBancaria = null;
+    conta.cartao = null;
+    conta.jurosPago = 0;
+
+    // Validar se não está Vencida
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    if (conta.dataVencimento < hoje) {
+      conta.status = 'Vencida';
+    }
+
+    await conta.save({ session });
+
+    await session.commitTransaction();
+    res.json({ message: 'Pagamento estornado com sucesso', conta });
+  } catch (error) {
+    await session.abortTransaction();
+    logger.error('❌ Erro ao estornar conta:', error.message);
+    res.status(500).json({ message: 'Erro ao estornar pagamento da conta' });
+  } finally {
+    await session.endSession();
+  }
+});
+
 module.exports = router;
+
 
