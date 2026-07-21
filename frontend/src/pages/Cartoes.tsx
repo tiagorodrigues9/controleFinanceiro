@@ -435,7 +435,7 @@ const Cartoes: React.FC = () => {
                     <TableCell>Cartão</TableCell>
                     <TableCell>Tipo</TableCell>
                     <TableCell>Limite</TableCell>
-                    <TableCell>Fatura</TableCell>
+                    <TableCell>Fatura / Validade</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell align="right">Ações</TableCell>
                   </TableRow>
@@ -483,7 +483,15 @@ const Cartoes: React.FC = () => {
                               </Typography>
                             )}
                           </Box>
-                        ) : '-'}
+                        ) : (
+                          <Box>
+                            {cartao.dataVencimento ? (
+                              <Typography variant="caption" color="text.secondary">
+                                Validade: {new Date(cartao.dataVencimento).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
+                              </Typography>
+                            ) : '-'}
+                          </Box>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Chip
