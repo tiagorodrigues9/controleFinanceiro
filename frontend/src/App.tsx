@@ -26,13 +26,38 @@ import Orcamentos from './pages/Orcamentos';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
+    primary: { main: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+    secondary: { main: '#10b981', dark: '#059669', light: '#34d399' },
+    background: { paper: '#ffffff', default: '#f8fafc' },
+    text: { primary: '#1e293b', secondary: '#64748b' },
   },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 700, color: '#0f172a' },
+    h6: { fontWeight: 600, color: '#1e293b' },
+  },
+  shape: { borderRadius: 12 },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          padding: '8px 16px',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        }
+      }
+    }
+  }
 });
 
 function AppContent() {
