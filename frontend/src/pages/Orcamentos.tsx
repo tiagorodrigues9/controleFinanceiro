@@ -398,7 +398,7 @@ const Orcamentos: React.FC = () => {
                 Defina limites para cada categoria ou por subgrupos. Categorias que possuem subgrupos calcularão o limite automaticamente através da soma deles.
               </Typography>
               
-              <Grid container spacing={3}>
+              <Grid container spacing={3} alignItems="flex-start">
                 {orcamento.limitesPorGrupo.map((limite, index) => {
                   const hasSubgroups = limite.subgrupos.length > 0;
                   const isExpanded = expandedCards[limite.grupo as string] || false;
@@ -407,7 +407,7 @@ const Orcamentos: React.FC = () => {
                     <Grid item xs={12} sm={6} md={4} key={limite.grupo as string}>
                       <Card variant="outlined" sx={{ border: '1px solid #e2e8f0', borderRadius: 3, '&:hover': { borderColor: 'primary.light', bgcolor: '#f8fafc' } }}>
                         <CardContent>
-                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} minHeight={32}>
                             <Typography variant="subtitle2" color="text.primary" fontWeight="bold">
                               {limite.nome}
                             </Typography>
@@ -424,7 +424,7 @@ const Orcamentos: React.FC = () => {
                           </Box>
                           
                           {hasSubgroups ? (
-                            <Box mb={1} sx={{ bgcolor: 'rgba(99, 102, 241, 0.05)', p: 1.5, borderRadius: 2 }}>
+                            <Box mb={1} sx={{ bgcolor: 'rgba(99, 102, 241, 0.05)', p: 1.5, borderRadius: 2, minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               <Typography variant="caption" color="text.secondary" display="block">Limite Total Agregado</Typography>
                               <Typography variant="h6" color="primary.main" fontWeight="bold">
                                 {formatCurrency(limite.valorLimite)}
@@ -432,7 +432,7 @@ const Orcamentos: React.FC = () => {
                               {renderProgressBar(limite.gastoReal, limite.valorLimite)}
                             </Box>
                           ) : (
-                            <>
+                            <Box sx={{ mb: 1, minHeight: 104, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               <TextField
                                 fullWidth
                                 size="small"
@@ -444,7 +444,7 @@ const Orcamentos: React.FC = () => {
                                 InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }}
                               />
                               {renderProgressBar(limite.gastoReal, limite.valorLimite)}
-                            </>
+                            </Box>
                           )}
 
                           {hasSubgroups && (
