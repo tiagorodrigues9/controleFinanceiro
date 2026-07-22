@@ -6,13 +6,58 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
+  ThemeProvider,
+  createTheme,
 } from '@mui/material';
+
 import ErrorBoundary from '../components/ErrorBoundary';
 import DashboardHeader from '../components/Dashboard/DashboardHeader';
 import MetricsCards from '../components/Dashboard/MetricsCards';
 import ChartsSection from '../components/Dashboard/ChartsSection';
 import ReportsSection from '../components/Dashboard/ReportsSection';
 import useDashboard from '../hooks/useDashboard';
+
+// Tema Premium Indigo/Emerald
+const dashboardTheme = createTheme({
+  palette: {
+    primary: { main: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+    secondary: { main: '#10b981', dark: '#059669', light: '#34d399' },
+    background: { paper: '#ffffff', default: '#f8fafc' },
+    text: { primary: '#1e293b', secondary: '#64748b' },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 700, color: '#0f172a' },
+    h6: { fontWeight: 600, color: '#1e293b' },
+  },
+  shape: { borderRadius: 12 },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          padding: '8px 16px',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'
+          }
+        }
+      }
+    }
+  },
+});
+
 
 const DashboardCompleto = () => {
   const theme = useTheme();
@@ -41,7 +86,8 @@ const DashboardCompleto = () => {
   }
 
   return (
-    <ErrorBoundary
+    <ThemeProvider theme={dashboardTheme}>
+      <ErrorBoundary
       fallbackMessage="Ocorreu um erro ao carregar o dashboard. Tente novamente mais tarde."
       onError={(error, errorInfo) => {
         console.error('Dashboard Error:', error, errorInfo);
@@ -83,6 +129,7 @@ const DashboardCompleto = () => {
         <ReportsSection data={data} />
       </Box>
     </ErrorBoundary>
+    </ThemeProvider>
   );
 };
 
