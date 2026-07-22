@@ -21,16 +21,15 @@ const ComparacaoMeses = ({ data }) => {
   const chartData = data && Array.isArray(data) 
     ? data.map(mes => ({
         mes: mes.mes,
-        contas: mes.contas || 0,
-        gastos: mes.gastos || 0,
-        total: mes.total || 0
+        entradas: mes.entradas || 0,
+        gastos: mes.gastos || 0
       }))
     : [];
   
   return (
     <Paper sx={{ p: { xs: 1, sm: 2 }, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
       <Typography variant="h6" gutterBottom>
-        Comparação de Meses: Contas vs Gastos
+        Comparação de Meses: Receitas vs Despesas
       </Typography>
       <ResponsiveContainer width="100%" height={250} style={{ minWidth: 0 }}>
         <BarChart data={chartData}>
@@ -42,9 +41,8 @@ const ComparacaoMeses = ({ data }) => {
             labelFormatter={(label) => `Mês: ${label}`}
           />
           <Legend />
-          <Bar dataKey="contas" fill="#8884d8" name="Contas Pagas" />
-          <Bar dataKey="gastos" fill="#00C49F" name="Gastos" />
-          <Bar dataKey="total" fill="#FF8042" name="Total" />
+          <Bar dataKey="entradas" fill="#10b981" name="Receitas" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="gastos" fill="#ef4444" name="Despesas" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Paper>
