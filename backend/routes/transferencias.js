@@ -19,7 +19,7 @@ router.use(auth);
 router.post('/', [
   body('contaOrigem').notEmpty().withMessage('Conta de origem é obrigatória'),
   body('contaDestino').notEmpty().withMessage('Conta de destino é obrigatória'),
-  body('valor').isFloat({ min: 0.01 }).withMessage('Valor deve ser maior que zero'),
+  body('valor').isNumeric().withMessage('Valor deve ser numérico').custom(v => parseFloat(v) > 0).withMessage('Valor deve ser maior que zero'),
   body('motivo').optional().trim(),
   body('data').optional().isISO8601().withMessage('Data inválida').toDate()
 ], asyncHandler(async (req, res) => {
@@ -41,7 +41,9 @@ router.post('/', [
       return res.status(400).json({ message: 'Não é possível registrar transferências com mais de 1 ano de retroatividade.' });
     }
 
-    if (dataTransferencia > new Date()) {
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+    if (dataTransferencia > amanha) {
       return res.status(400).json({ message: 'A data não pode estar no futuro.' });
     }
 
@@ -72,7 +74,7 @@ router.post('/', [
 
     try {
       // Criar registro de saída na conta de origem
-      await Extrato.create([{
+      const extratoSaida = new Extrato({
         contaBancaria: contaOrigem,
         tipo: 'Saída',
         valor: parseFloat(valor),
@@ -83,10 +85,11 @@ router.post('/', [
           id: transferenciaId
         },
         usuario: userId
-      }], { session });
+      });
+      await extratoSaida.save({ session });
 
       // Criar registro de entrada na conta de destino
-      await Extrato.create([{
+      const extratoEntrada = new Extrato({
         contaBancaria: contaDestino,
         tipo: 'Entrada',
         valor: parseFloat(valor),
@@ -97,7 +100,8 @@ router.post('/', [
           id: transferenciaId
         },
         usuario: userId
-      }], { session });
+      });
+      await extratoEntrada.save({ session });
 
       // Atualizar Saldos reais das Contas
       await ContaBancaria.findByIdAndUpdate(contaOrigem, { $inc: { saldo: -parseFloat(valor) } }, { session });

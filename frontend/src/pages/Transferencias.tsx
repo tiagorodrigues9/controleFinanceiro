@@ -273,7 +273,8 @@ const Transferencias: React.FC = () => {
       fetchTransferencias();
       
     } catch (err: any) {
-      setMessage({ text: err.response?.data?.message || 'Erro ao realizar transferência', type: 'error' });
+      const errorMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'Erro ao realizar transferência';
+      setMessage({ text: errorMsg, type: 'error' });
     } finally {
       setLoadingTransfer(false);
     }
