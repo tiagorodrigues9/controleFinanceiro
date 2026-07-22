@@ -70,6 +70,7 @@ router.get('/', async (req, res) => {
       Gasto.find(query)
         .populate('tipoDespesa.grupo')
         .populate('contaBancaria')
+        .populate('cartao')
         .sort({ data: -1 })
         .skip(skip)
         .limit(limit),
@@ -104,7 +105,8 @@ router.get('/:id', async (req, res) => {
       usuario: req.user._id
     })
       .populate('tipoDespesa.grupo')
-      .populate('contaBancaria');
+      .populate('contaBancaria')
+      .populate('cartao');
 
     if (!gasto) {
       return res.status(404).json({ message: 'Gasto não encontrado' });
@@ -123,10 +125,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', [
   body('tipoDespesa.grupo').notEmpty().withMessage('Grupo é obrigatório'),
   body('tipoDespesa.subgrupo').notEmpty().withMessage('Subgrupo é obrigatório'),
-  body('valor').isFloat({ min: 0 }).withMessage('Valor deve ser maior ou igual a zero'),
+  body('valor').isNumeric().withMessage('Valor deve ser numérico').custom(v => parseFloat(v) >= 0).withMessage('Valor deve ser maior ou igual a zero'),
   body('data').notEmpty().withMessage('Data é obrigatória'),
   body('formaPagamento').notEmpty().withMessage('Forma de pagamento é obrigatória'),
-  body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória')
+  body('contaBancaria').optional({ checkFalsy: true })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -141,8 +143,11 @@ router.post('/', [
       return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
     }
 
-    // Validação de Conta Bancária
+    // Validação de Conta Bancária (Prevenção de IDOR e conta inativa)
     if (formaPagamento !== 'Cartão de Crédito') {
+      if (!contaBancaria) {
+        return res.status(400).json({ message: 'Conta bancária é obrigatória para esta forma de pagamento' });
+      }
       const contaValida = await ContaBancaria.findOne({ _id: contaBancaria, usuario: req.user._id, ativo: true });
       if (!contaValida) {
         return res.status(400).json({ message: 'Conta bancária inválida ou inativa.' });
@@ -207,7 +212,7 @@ router.post('/', [
           local,
           observacao: obsParcela,
           formaPagamento,
-          contaBancaria,
+          contaBancaria: contaBancaria || undefined,
           cartao: cartaoObj._id,
           usuario: req.user._id
         });
@@ -237,8 +242,8 @@ router.post('/', [
         local,
         observacao,
         formaPagamento,
-        contaBancaria,
-        cartao: cartaoObj ? cartaoObj._id : null,
+        contaBancaria: contaBancaria || undefined,
+        cartao: cartaoObj ? cartaoObj._id : undefined,
         usuario: req.user._id
       });
       
@@ -372,13 +377,11 @@ router.put('/:id', async (req, res) => {
 
     const { tipoDespesa, valor, data, local, observacao, formaPagamento, contaBancaria, cartao } = req.body;
 
-    // Bloqueio de mudança de forma de pagamento na edição
-    if (formaPagamento && formaPagamento !== gasto.formaPagamento) {
-      return res.status(400).json({ message: 'Não é permitido alterar a forma de pagamento de um registro. Exclua e crie um novo.' });
-    }
+    // Bloqueio de mudança de forma de pagamento REMOVIDO a pedido do usuário
+    // if (formaPagamento && formaPagamento !== gasto.formaPagamento) { ... }
 
     const valorAntigo = gasto.valor;
-    const isCartao = gasto.formaPagamento === 'Cartão de Crédito';
+    const wasCartaoCredito = gasto.formaPagamento === 'Cartão de Crédito';
 
     if (tipoDespesa) gasto.tipoDespesa = tipoDespesa;
     
@@ -396,47 +399,60 @@ router.put('/:id', async (req, res) => {
     
     if (local !== undefined) gasto.local = local;
     if (observacao !== undefined) gasto.observacao = observacao;
+    if (formaPagamento !== undefined) gasto.formaPagamento = formaPagamento;
+    if (contaBancaria !== undefined) gasto.contaBancaria = contaBancaria || undefined;
+    if (cartao !== undefined) gasto.cartao = cartao || undefined;
+
+    const isNowCartaoCredito = gasto.formaPagamento === 'Cartão de Crédito';
+
+    // 1. Limpeza de dados mutuamente exclusivos para manter o BD limpo
+    if (isNowCartaoCredito) {
+      gasto.contaBancaria = undefined;
+    } else if (gasto.formaPagamento !== 'Cartão de Débito') {
+      gasto.cartao = undefined;
+    }
+
+    // 2. Validação se mudou para cartão
+    let cartaoObj = null;
+    if (isNowCartaoCredito || (gasto.formaPagamento === 'Cartão de Débito' && gasto.cartao)) {
+      const Cartao = require('../models/Cartao');
+      cartaoObj = await Cartao.findOne({ _id: gasto.cartao, usuario: req.user._id, ativo: true });
+      if (!cartaoObj) return res.status(400).json({ message: 'Cartão inválido ou inativo' });
+    }
 
     await gasto.save();
 
-    const diferencaValor = novoValorProcessado - valorAntigo;
+    // ==========================================
+    // RECONCILIAÇÃO FINANCEIRA DE FORMA DE PAGTO
+    // ==========================================
 
-    if (!isCartao) {
-      // Atualizar extrato correspondente (Débito/Dinheiro/Pix)
-      await Extrato.findOneAndUpdate(
-        {
-          'referencia.tipo': 'Gasto',
-          'referencia.id': gasto._id,
-          usuario: req.user._id
-        },
-        {
-          $set: {
-            valor: gasto.valor,
-            data: gasto.data,
-            motivo: `Gasto: ${gasto.local || 'Sem local'}`
-          }
-        }
-      );
-    } else {
-      // Motor Indestrutível de Faturas: Tira da onde estava e injeta na certa
+    // PASSO A: Desfazer a forma de pagamento antiga
+    if (wasCartaoCredito) {
+      // Remover da Fatura Antiga
       const FaturaCartao = require('../models/FaturaCartao');
-      const Cartao = require('../models/Cartao');
-
-      // 1. Achar e retirar da Fatura Anterior (seja qual mês for)
       const faturaAntiga = await FaturaCartao.findOne({
         usuario: req.user._id,
         'despesas.conta': gasto._id
       });
-
       if (faturaAntiga) {
         faturaAntiga.valorTotal = Math.round((faturaAntiga.valorTotal - valorAntigo) * 100) / 100;
         if (faturaAntiga.valorTotal < 0) faturaAntiga.valorTotal = 0;
         faturaAntiga.despesas = faturaAntiga.despesas.filter(d => d.conta && d.conta.toString() !== gasto._id.toString());
         await faturaAntiga.save();
       }
+    } else {
+      // Se era não-crédito e agora É crédito, não precisamos mais do extrato de Saída (vamos estornar/ocultar)
+      if (isNowCartaoCredito) {
+        await Extrato.updateMany(
+          { 'referencia.tipo': 'Gasto', 'referencia.id': gasto._id, usuario: req.user._id },
+          { estornado: true }
+        );
+      }
+    }
 
-      // 2. Colocar na Fatura Nova Baseada na Data Modificada
-      const cartaoObj = await Cartao.findOne({ _id: gasto.cartao, usuario: req.user._id });
+    // PASSO B: Aplicar a nova forma de pagamento
+    if (isNowCartaoCredito) {
+      // Inserir na Fatura Nova
       if (cartaoObj) {
         const faturaNova = await buscarOuCriarFaturaAberta(cartaoObj, req.user._id, gasto.data);
         await faturaNova.adicionarDespesa(
@@ -444,6 +460,34 @@ router.put('/:id', async (req, res) => {
           novoValorProcessado,
           gasto.data,
           `Gasto: ${gasto.local || 'Sem local'}`
+        );
+      }
+    } else {
+      if (wasCartaoCredito) {
+        // Se era crédito, não havia extrato! Precisamos criar um agora.
+        await Extrato.create({
+          contaBancaria: gasto.contaBancaria,
+          cartao: (gasto.formaPagamento === 'Cartão de Débito' && gasto.cartao) ? gasto.cartao : null,
+          tipo: 'Saída',
+          valor: novoValorProcessado,
+          data: gasto.data,
+          motivo: `Gasto: ${gasto.local || 'Sem local'}`,
+          referencia: { tipo: 'Gasto', id: gasto._id },
+          usuario: req.user._id
+        });
+      } else {
+        // Era não-crédito, e continuou não-crédito: Apenas atualizar o extrato existente!
+        await Extrato.findOneAndUpdate(
+          { 'referencia.tipo': 'Gasto', 'referencia.id': gasto._id, usuario: req.user._id },
+          {
+            $set: {
+              valor: gasto.valor,
+              data: gasto.data,
+              contaBancaria: gasto.contaBancaria,
+              cartao: (gasto.formaPagamento === 'Cartão de Débito' && gasto.cartao) ? gasto.cartao : null,
+              motivo: `Gasto: ${gasto.local || 'Sem local'}`
+            }
+          }
         );
       }
     }
