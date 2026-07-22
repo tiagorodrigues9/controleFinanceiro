@@ -48,7 +48,9 @@ const gastoSchema = new mongoose.Schema({
   contaBancaria: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ContaBancaria',
-    required: true
+    required: function() {
+      return this.formaPagamento !== 'Cartão de Crédito';
+    }
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,

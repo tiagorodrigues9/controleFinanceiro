@@ -310,7 +310,8 @@ const GastosDiarios: React.FC = () => {
         fetchGastosComFiltros(filtrosAplicados, page);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar gasto');
+      const errorMsg = err.response?.data?.message || err.response?.data?.errors?.[0]?.msg || 'Erro ao salvar gasto';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -443,15 +444,15 @@ const GastosDiarios: React.FC = () => {
                 variant="outlined" size="small" InputLabelProps={{ shrink: true }} sx={{ bgcolor: 'white' }}
               />
             </Grid>
-            <Grid item xs={6} md={1}>
-              <Button fullWidth variant="contained" startIcon={<SearchIcon />} onClick={aplicarFiltros} size="small">
-                Aplicar
-              </Button>
-            </Grid>
-            <Grid item xs={6} md={1}>
-              <Button fullWidth variant="text" startIcon={<ClearIcon />} onClick={limparFiltros} size="small" color="inherit">
-                Limpar
-              </Button>
+            <Grid item xs={12} md="auto">
+              <Box display="flex" gap={1} alignItems="center">
+                <Button variant="contained" startIcon={<SearchIcon />} onClick={aplicarFiltros} size="small" sx={{ height: '40px' }}>
+                  Aplicar
+                </Button>
+                <Button variant="outlined" onClick={limparFiltros} size="small" color="inherit" sx={{ minWidth: '40px', width: '40px', height: '40px', p: 0 }} title="Limpar Filtros">
+                  <ClearIcon fontSize="small" />
+                </Button>
+              </Box>
             </Grid>
           </Grid>
         </Paper>
@@ -465,7 +466,10 @@ const GastosDiarios: React.FC = () => {
                 <CardContent>
                   <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
                     <Typography variant="subtitle1" fontWeight="bold" sx={{ flexGrow: 1 }}>{gasto.local || gasto.tipoDespesa.grupo.nome}</Typography>
-                    <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText', fontWeight: 'bold' }} />
+                    <Box display="flex" flexDirection="column" alignItems="flex-end">
+                      <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText', fontWeight: 'bold' }} />
+                      {gasto.cartao && <Typography variant="caption" color="text.secondary">{gasto.cartao.nome}</Typography>}
+                    </Box>
                   </Box>
                   <Typography variant="body2" color="text.secondary">Data: {formatDateUTC(gasto.data)}</Typography>
                   <Typography variant="body2" color="text.secondary">Sub: {gasto.tipoDespesa.subgrupo}</Typography>
@@ -512,8 +516,10 @@ const GastosDiarios: React.FC = () => {
                       </TableCell>
                       <TableCell>{gasto.local}</TableCell>
                       <TableCell>
-                        <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText' }} />
-                        {gasto.cartao && <Typography variant="caption" display="block" color="text.secondary">{gasto.cartao.nome}</Typography>}
+                        <Box display="flex" flexDirection="column" alignItems="flex-start" gap={0.5}>
+                          <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText' }} />
+                          {gasto.cartao && <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{gasto.cartao.nome}</Typography>}
+                        </Box>
                       </TableCell>
                       <TableCell>{gasto.observacao || '-'}</TableCell>
                       <TableCell align="right">
@@ -586,7 +592,7 @@ const GastosDiarios: React.FC = () => {
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth required variant="outlined">
                     <InputLabel>Forma de Pagamento</InputLabel>
-                    <Select value={formData.formaPagamento} disabled={!!formData._id} onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value, cartao: '', contaBancaria: '', parcelas: '1' })} label="Forma de Pagamento">
+                    <Select value={formData.formaPagamento} onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value, cartao: '', contaBancaria: '', parcelas: '1' })} label="Forma de Pagamento">
                       {formasPagamento.map((fp) => (
                         <MenuItem key={fp._id} value={fp.nome}>{fp.nome}</MenuItem>
                       ))}
@@ -594,22 +600,24 @@ const GastosDiarios: React.FC = () => {
                   </FormControl>
                 </Grid>
                 
-                {formData.formaPagamento === 'Cartão de Crédito' || formData.formaPagamento === 'Cartão de Débito' ? (
+                {(formData.formaPagamento === 'Cartão de Crédito' || formData.formaPagamento === 'Cartão de Débito') && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
                       <InputLabel>Cartão</InputLabel>
-                      <Select value={formData.cartao} disabled={!!formData._id} onChange={(e) => setFormData({ ...formData, cartao: e.target.value })} label="Cartão">
+                      <Select value={formData.cartao} onChange={(e) => setFormData({ ...formData, cartao: e.target.value })} label="Cartão">
                         {cartoes.filter(c => c.tipo === (formData.formaPagamento === 'Cartão de Crédito' ? 'Crédito' : 'Débito') || c.tipo === 'Múltiplo').map((cartao) => (
                           <MenuItem key={cartao._id} value={cartao._id}>{cartao.nome} - {cartao.banco}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
                   </Grid>
-                ) : (
+                )}
+                
+                {formData.formaPagamento !== 'Cartão de Crédito' && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
                       <InputLabel>Conta Bancária (Origem)</InputLabel>
-                      <Select value={formData.contaBancaria} disabled={!!formData._id} onChange={(e) => setFormData({ ...formData, contaBancaria: e.target.value })} label="Conta Bancária (Origem)">
+                      <Select value={formData.contaBancaria} onChange={(e) => setFormData({ ...formData, contaBancaria: e.target.value })} label="Conta Bancária (Origem)">
                         {contasBancarias.map((conta) => (
                           <MenuItem key={conta._id} value={conta._id}>{conta.nome} - {conta.banco}</MenuItem>
                         ))}
@@ -640,7 +648,7 @@ const GastosDiarios: React.FC = () => {
                   <TextField fullWidth label="Data da Compra" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} required InputLabelProps={{ shrink: true }} />
                 </Grid>
                 <Grid item xs={12}>
-                  <TextField fullWidth label="Local / Estabelecimento" value={formData.local} onChange={(e) => setFormData({ ...formData, local: e.target.value })} required />
+                  <TextField fullWidth label="Local / Estabelecimento" value={formData.local} onChange={(e) => setFormData({ ...formData, local: e.target.value })} />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField fullWidth label="Observação (Opcional)" value={formData.observacao} onChange={(e) => setFormData({ ...formData, observacao: e.target.value })} />
