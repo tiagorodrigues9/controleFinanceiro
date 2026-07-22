@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Notificacao = require('../models/Notificacao');
 const auth = require('../middleware/auth');
 const { logger } = require('../utils/logger');
@@ -47,6 +48,10 @@ router.get('/nao-lidas', async (req, res) => {
 // @desc    Marcar notificação como lida
 // @access  Private
 router.put('/:id/marcar-lida', async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: 'ID de notificação inválido' });
+  }
+
   try {
     const notificacao = await Notificacao.findOne({
       _id: req.params.id,
@@ -108,6 +113,10 @@ router.delete('/limpar-todas', async (req, res) => {
 // @desc    Excluir notificação
 // @access  Private
 router.delete('/:id', async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ message: 'ID de notificação inválido' });
+  }
+
   try {
     const notificacao = await Notificacao.findOne({
       _id: req.params.id,
@@ -201,15 +210,32 @@ router.get('/contar', async (req, res) => {
 // @access  Private
 router.post('/subscribe', async (req, res) => {
   try {
-    const { endpoint, keys } = req.body;
+    const subscription = req.body;
     const usuarioId = req.user._id;
 
     logger.debug('📱 Registrando inscrição push para usuário:', usuarioId);
     
-    // Salvar inscrição no banco de dados (poderia ser no modelo User)
-    // Por enquanto, vamos apenas logar
-    logger.debug('Endpoint:', endpoint);
-    logger.debug('Keys:', keys);
+    // Salvar inscrição no banco de dados no modelo User
+    const user = await require('../models/User').findById(usuarioId);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+    
+    // Verificar se a inscrição já existe para evitar duplicidade
+    const subscriptionExists = user.pushSubscriptions?.some(
+      sub => sub.endpoint === subscription.endpoint
+    );
+    
+    if (!subscriptionExists) {
+      if (!user.pushSubscriptions) {
+        user.pushSubscriptions = [];
+      }
+      user.pushSubscriptions.push(subscription);
+      await user.save();
+      logger.debug('Inscrição salva com sucesso no banco de dados.');
+    } else {
+      logger.debug('Inscrição já existe no banco de dados.');
+    }
 
     res.json({ 
       message: 'Inscrição push registrada com sucesso',
