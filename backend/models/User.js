@@ -67,6 +67,10 @@ const userSchema = new mongoose.Schema({
         max: 30
       }
     }
+  },
+  pushSubscriptions: {
+    type: [Object],
+    default: []
   }
 }, {
   timestamps: true
