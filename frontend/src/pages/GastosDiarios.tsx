@@ -443,15 +443,9 @@ const GastosDiarios: React.FC = () => {
                 variant="outlined" size="small" InputLabelProps={{ shrink: true }} sx={{ bgcolor: 'white' }}
               />
             </Grid>
-            <Grid item xs={6} md={1}>
-              <Button fullWidth variant="contained" startIcon={<SearchIcon />} onClick={aplicarFiltros} size="small">
-                Aplicar
-              </Button>
-            </Grid>
-            <Grid item xs={6} md={1}>
-              <Button fullWidth variant="text" startIcon={<ClearIcon />} onClick={limparFiltros} size="small" color="inherit">
-                Limpar
-              </Button>
+            <Grid item xs={12} md={2}>
+              <Button variant="contained" color="primary" size="small" onClick={aplicarFiltros}>Aplicar</Button>
+              <Button variant="contained" color="primary" size="small" sx={{ ml: 1 }} onClick={limparFiltros}>Limpar</Button>
             </Grid>
           </Grid>
         </Paper>
