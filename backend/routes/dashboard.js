@@ -101,6 +101,7 @@ router.get('/', [
       {
         $match: {
           usuario: new mongoose.Types.ObjectId(req.user._id),
+          estornado: false,
           data: { $gte: startDate, $lte: endDate }
         }
       },
@@ -290,8 +291,8 @@ router.get('/', [
     .slice(0, 5)
     .map(([nome, valor]) => ({ nome, valor }));
 
-  // Evolução do saldo
-  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).lean();
+  // Evolução do saldo - buscar apenas contas ativas
+  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id, ativo: { $ne: false } }).lean();
   const monthsRange = [];
   for (let i = 5; i >= 0; i--) {
     const ref = new Date(anoAtual, mesAtual - 1 - i, 1);
@@ -307,11 +308,16 @@ router.get('/', [
     data: { $lte: lastMonthEnd }
   }).lean();
 
-  const evolucaoSaldo = contasBancarias.map((conta) => {
+  const evolucaoSaldoRaw = contasBancarias.map((conta) => {
     // Filtrar extratos apenas desta conta bancária e ordenar cronologicamente
     const extratosConta = extratosEvolucao
       .filter(ext => ext.contaBancaria.toString() === conta._id.toString())
       .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    // Se não há extratos para esta conta, não incluir no resultado
+    if (extratosConta.length === 0) {
+      return null;
+    }
 
     let saldoAcumulado = 0;
     let indexExtrato = 0;
@@ -332,6 +338,9 @@ router.get('/', [
 
     return { conta: conta.nome, saldos };
   });
+
+  // Remover contas sem movimentação
+  const evolucaoSaldo = evolucaoSaldoRaw.filter(item => item !== null);
 
   // Percentual por categoria
   const grupos = await Grupo.find({ usuario: req.user._id }).lean();
