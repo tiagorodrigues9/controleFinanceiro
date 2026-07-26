@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -59,7 +59,22 @@ import {
   MoreHoriz as MoreHorizIcon,
   AttachMoney as MoneyIcon,
   CardGiftcard as GiftIcon,
-  Spa as SpaIcon
+  Spa as SpaIcon,
+  Fastfood as FastfoodIcon,
+  DirectionsBus as BusIcon,
+  LocalCafe as CafeIcon,
+  Computer as ComputerIcon,
+  MenuBook as BookIcon,
+  Movie as MovieIcon,
+  MusicNote as MusicIcon,
+  Language as GlobeIcon,
+  Security as SecurityIcon,
+  LocalBar as BarIcon,
+  DirectionsBike as BikeIcon,
+  PhoneIphone as PhoneIcon,
+  LocalGasStation as GasStationIcon,
+  FormatPaint as PaintIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import api from '../utils/api';
 
@@ -91,6 +106,21 @@ const ICON_MAP: Record<string, React.ReactElement> = {
   Money: <MoneyIcon />,
   Gift: <GiftIcon />,
   Spa: <SpaIcon />,
+  Fastfood: <FastfoodIcon />,
+  Bus: <BusIcon />,
+  Cafe: <CafeIcon />,
+  Computer: <ComputerIcon />,
+  Book: <BookIcon />,
+  Movie: <MovieIcon />,
+  Music: <MusicIcon />,
+  Globe: <GlobeIcon />,
+  Security: <SecurityIcon />,
+  Bar: <BarIcon />,
+  Bike: <BikeIcon />,
+  Phone: <PhoneIcon />,
+  GasStation: <GasStationIcon />,
+  Paint: <PaintIcon />,
+  Person: <PersonIcon />,
   More: <MoreHorizIcon />,
 };
 
@@ -121,6 +151,21 @@ const ICON_LABELS: Record<string, string> = {
   Money: 'Dinheiro',
   Gift: 'Presentes',
   Spa: 'Bem-estar',
+  Fastfood: 'Lanches',
+  Bus: 'Ônibus',
+  Cafe: 'Café',
+  Computer: 'Informática',
+  Book: 'Estudos',
+  Movie: 'Cinema',
+  Music: 'Música',
+  Globe: 'Serviços',
+  Security: 'Segurança',
+  Bar: 'Bar',
+  Bike: 'Ciclismo',
+  Phone: 'Celular',
+  GasStation: 'Combustível',
+  Paint: 'Reforma',
+  Person: 'Pessoal',
   More: 'Outros',
 };
 
@@ -232,6 +277,8 @@ const categoriasTheme = createTheme({
 interface Subgrupo {
   _id: string;
   nome: string;
+  cor?: string;
+  icone?: string;
 }
 
 interface Grupo {
@@ -254,10 +301,30 @@ const Categorias = () => {
   const [grupoData, setGrupoData] = useState({ id: '', nome: '', cor: '#6366f1', icone: 'Folder' });
   
   const [openSubgrupoModal, setOpenSubgrupoModal] = useState(false);
-  const [subgrupoData, setSubgrupoData] = useState({ grupoId: '', subId: '', nome: '' });
+  const [subgrupoData, setSubgrupoData] = useState({ grupoId: '', subId: '', nome: '', cor: '#6366f1', icone: 'Folder' });
 
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
+  // Debounce refs para o color picker - evita re-renders excessivos ao arrastar
+  const grupoColorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const subColorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleGrupoColorInput = useCallback((e: any) => {
+    const newColor = e.target.value;
+    if (grupoColorTimerRef.current) clearTimeout(grupoColorTimerRef.current);
+    grupoColorTimerRef.current = setTimeout(() => {
+      setGrupoData(prev => ({ ...prev, cor: newColor }));
+    }, 50);
+  }, []);
+
+  const handleSubColorInput = useCallback((e: any) => {
+    const newColor = e.target.value;
+    if (subColorTimerRef.current) clearTimeout(subColorTimerRef.current);
+    subColorTimerRef.current = setTimeout(() => {
+      setSubgrupoData(prev => ({ ...prev, cor: newColor }));
+    }, 50);
+  }, []);
 
   useEffect(() => {
     fetchGrupos();
@@ -328,11 +395,11 @@ const Categorias = () => {
   };
 
   // === AÇÕES DE SUBGRUPO ===
-  const handleOpenSubgrupo = (grupoId: string, sub?: Subgrupo) => {
+  const handleOpenSubgrupo = (grupoId: string, sub?: Subgrupo, grupoCor?: string) => {
     if (sub) {
-      setSubgrupoData({ grupoId, subId: sub._id, nome: sub.nome });
+      setSubgrupoData({ grupoId, subId: sub._id, nome: sub.nome, cor: sub.cor || grupoCor || '#6366f1', icone: sub.icone || 'Folder' });
     } else {
-      setSubgrupoData({ grupoId, subId: '', nome: '' });
+      setSubgrupoData({ grupoId, subId: '', nome: '', cor: grupoCor || '#6366f1', icone: 'Folder' });
     }
     setMessage({ type: '', text: '' });
     setOpenSubgrupoModal(true);
@@ -343,10 +410,10 @@ const Categorias = () => {
     setMessage({ type: '', text: '' });
     try {
       if (subgrupoData.subId) {
-        await api.put(`/grupos/${subgrupoData.grupoId}/subgrupos/${subgrupoData.subId}/renomear`, { nome: subgrupoData.nome });
-        setMessage({ type: 'success', text: 'Subcategoria renomeada com sucesso!' });
+        await api.put(`/grupos/${subgrupoData.grupoId}/subgrupos/${subgrupoData.subId}/renomear`, { nome: subgrupoData.nome, cor: subgrupoData.cor, icone: subgrupoData.icone });
+        setMessage({ type: 'success', text: 'Subcategoria atualizada com sucesso!' });
       } else {
-        await api.post(`/grupos/${subgrupoData.grupoId}/subgrupos`, { nome: subgrupoData.nome });
+        await api.post(`/grupos/${subgrupoData.grupoId}/subgrupos`, { nome: subgrupoData.nome, cor: subgrupoData.cor, icone: subgrupoData.icone });
         setMessage({ type: 'success', text: 'Subcategoria criada com sucesso!' });
       }
       fetchGrupos();
@@ -496,7 +563,9 @@ const Categorias = () => {
                     <List component="div" disablePadding sx={{ backgroundColor: '#fcfcfd' }}>
                       {grupo.subgrupos.map((sub) => (
                         <ListItem key={sub._id} sx={{ pl: 6, pr: 2, py: 1, borderBottom: '1px solid #f1f5f9' }}>
-                          <SubIcon sx={{ mr: 2, color: grupoCor, fontSize: 20, opacity: 0.5 }} />
+                          <Box sx={{ mr: 2, display: 'flex', alignItems: 'center', opacity: 0.8 }}>
+                            {renderIcon(sub.icone || 'Folder', sub.cor || grupoCor, 20)}
+                          </Box>
                           <ListItemText primary={<Typography variant="body1" color="text.secondary" fontWeight={500}>{sub.nome}</Typography>} />
                           
                           <Box>
@@ -558,7 +627,29 @@ const Categorias = () => {
               <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
                 Cor da Categoria
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Box
+                  component="input"
+                  type="color"
+                  value={grupoData.cor}
+                  onInput={handleGrupoColorInput}
+                  onChange={handleGrupoColorInput}
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    p: 0,
+                    border: 'none',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    '&::-webkit-color-swatch-wrapper': { p: 0 },
+                    '&::-webkit-color-swatch': { border: '2px solid #e2e8f0', borderRadius: '50%' },
+                  }}
+                  title="Cor Personalizada"
+                />
+                <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: '#e2e8f0' }} />
                 {COLOR_PALETTE.map((color) => (
                   <Box
                     key={color}
@@ -656,6 +747,72 @@ const Categorias = () => {
                 onChange={(e) => setSubgrupoData({ ...subgrupoData, nome: e.target.value })}
                 placeholder="Ex: Supermercado, Padaria"
               />
+
+              {/* Seletor de Cores */}
+              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                Cor da Subcategoria
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                <Box
+                  component="input"
+                  type="color"
+                  value={subgrupoData.cor}
+                  onInput={handleSubColorInput}
+                  onChange={handleSubColorInput}
+                  sx={{
+                    width: 38, height: 38, p: 0, border: 'none', borderRadius: '50%', cursor: 'pointer', outline: 'none', overflow: 'hidden', flexShrink: 0,
+                    '&::-webkit-color-swatch-wrapper': { p: 0 }, '&::-webkit-color-swatch': { border: '2px solid #e2e8f0', borderRadius: '50%' },
+                  }}
+                  title="Cor Personalizada"
+                />
+                <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: '#e2e8f0' }} />
+                {COLOR_PALETTE.map((color) => (
+                  <Box
+                    key={color}
+                    onClick={() => setSubgrupoData({ ...subgrupoData, cor: color })}
+                    sx={{
+                      width: 36, height: 36, borderRadius: '50%', backgroundColor: color, cursor: 'pointer',
+                      border: subgrupoData.cor === color ? '3px solid #1e293b' : '3px solid transparent',
+                      boxShadow: subgrupoData.cor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none',
+                      transition: 'all 0.2s ease', '&:hover': { transform: 'scale(1.15)', boxShadow: `0 2px 8px ${color}66` }
+                    }}
+                  />
+                ))}
+              </Box>
+
+              {/* Seletor de Ícones */}
+              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5, color: 'text.secondary', fontWeight: 600 }}>
+                Ícone da Subcategoria
+              </Typography>
+              <Grid container spacing={1} sx={{ maxHeight: 200, overflowY: 'auto', p: 1, border: '1px solid #f1f5f9', borderRadius: 2 }}>
+                {Object.keys(ICON_MAP).map((iconKey) => (
+                  <Grid item key={iconKey}>
+                    <Tooltip title={ICON_LABELS[iconKey] || iconKey} arrow>
+                      <Box
+                        onClick={() => setSubgrupoData({ ...subgrupoData, icone: iconKey })}
+                        sx={{
+                          width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 2, cursor: 'pointer',
+                          backgroundColor: subgrupoData.icone === iconKey ? `${subgrupoData.cor}15` : '#f8fafc',
+                          border: subgrupoData.icone === iconKey ? `2px solid ${subgrupoData.cor}` : '2px solid transparent',
+                          transition: 'all 0.2s ease', '&:hover': { backgroundColor: `${subgrupoData.cor}10`, transform: 'scale(1.1)' }
+                        }}
+                      >
+                        {renderIcon(iconKey, subgrupoData.icone === iconKey ? subgrupoData.cor : '#94a3b8', 22)}
+                      </Box>
+                    </Tooltip>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* Preview */}
+              <Paper sx={{ mt: 3, p: 2, borderRadius: 2, borderLeft: `4px solid ${subgrupoData.cor}`, backgroundColor: '#f8fafc' }}>
+                <Box display="flex" alignItems="center" gap={1.5}>
+                  {renderIcon(subgrupoData.icone, subgrupoData.cor, 24)}
+                  <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                    {subgrupoData.nome || 'Nome da Subcategoria'}
+                  </Typography>
+                </Box>
+              </Paper>
             </DialogContent>
             <DialogActions sx={{ p: 3, borderTop: '1px solid #f1f5f9' }}>
               <Button onClick={() => setOpenSubgrupoModal(false)} color="inherit">Cancelar</Button>

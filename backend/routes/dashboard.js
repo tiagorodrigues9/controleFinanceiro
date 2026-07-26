@@ -101,6 +101,7 @@ router.get('/', [
       {
         $match: {
           usuario: new mongoose.Types.ObjectId(req.user._id),
+          estornado: false,
           data: { $gte: startDate, $lte: endDate }
         }
       },
@@ -228,17 +229,15 @@ router.get('/', [
       logger.debug(`  - Período: ${mesRef.toISOString()} a ${mesRefEnd.toISOString()}`);
       logger.debug(`  - User ID: ${req.user._id}`);
       
-      // Query para contas - mais flexível
-      const contasMes = await Conta.aggregate([
-        { 
-          $match: { 
+      // Query para extratos (Entradas apenas)
+      const entradasMes = await Extrato.aggregate([
+        {
+          $match: {
             usuario: new mongoose.Types.ObjectId(req.user._id),
-            status: 'Pago',
-            $or: [
-              { dataPagamento: { $gte: mesRef, $lte: mesRefEnd } },
-              { dataVencimento: { $gte: mesRef, $lte: mesRefEnd } }
-            ]
-          } 
+            tipo: 'Entrada',
+            estornado: false,
+            data: { $gte: mesRef, $lte: mesRefEnd }
+          }
         },
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
@@ -254,17 +253,18 @@ router.get('/', [
         { $group: { _id: null, total: { $sum: "$valor" } } }
       ]);
       
-      logger.debug(`  - Contas: ${JSON.stringify(contasMes)}`);
+      logger.debug(`  - Entradas: ${JSON.stringify(entradasMes)}`);
       logger.debug(`  - Gastos: ${JSON.stringify(gastosMes)}`);
       
-      const totalContas = contasMes.length > 0 ? contasMes[0].total : 0;
       const totalGastos = gastosMes.length > 0 ? gastosMes[0].total : 0;
+      const totalEntradas = entradasMes.length > 0 ? entradasMes[0].total : 0;
       
       return {
         mes: mesRef.toLocaleString('pt-BR', { month: 'short', year: 'numeric' }),
-        contas: totalContas,
+        contas: 0, // Mantido apenas para compatibilidade de chaves
         gastos: totalGastos,
-        total: totalContas + totalGastos
+        entradas: totalEntradas,
+        total: totalGastos // Sem somar contas para não duplicar com Gastos
       };
     })
   );
@@ -291,8 +291,8 @@ router.get('/', [
     .slice(0, 5)
     .map(([nome, valor]) => ({ nome, valor }));
 
-  // Evolução do saldo
-  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).lean();
+  // Evolução do saldo - buscar apenas contas ativas
+  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id, ativo: { $ne: false } }).lean();
   const monthsRange = [];
   for (let i = 5; i >= 0; i--) {
     const ref = new Date(anoAtual, mesAtual - 1 - i, 1);
@@ -308,11 +308,16 @@ router.get('/', [
     data: { $lte: lastMonthEnd }
   }).lean();
 
-  const evolucaoSaldo = contasBancarias.map((conta) => {
+  const evolucaoSaldoRaw = contasBancarias.map((conta) => {
     // Filtrar extratos apenas desta conta bancária e ordenar cronologicamente
     const extratosConta = extratosEvolucao
       .filter(ext => ext.contaBancaria.toString() === conta._id.toString())
       .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    // Se não há extratos para esta conta, não incluir no resultado
+    if (extratosConta.length === 0) {
+      return null;
+    }
 
     let saldoAcumulado = 0;
     let indexExtrato = 0;
@@ -333,6 +338,9 @@ router.get('/', [
 
     return { conta: conta.nome, saldos };
   });
+
+  // Remover contas sem movimentação
+  const evolucaoSaldo = evolucaoSaldoRaw.filter(item => item !== null);
 
   // Percentual por categoria
   const grupos = await Grupo.find({ usuario: req.user._id }).lean();
@@ -409,7 +417,7 @@ router.get('/', [
     }));
 
   // Relatório de cartões - REMOVIDO FILTRO ATIVO
-  const cartoes = await Cartao.find({ usuario: req.user._id }).lean();
+  const cartoes = await Cartao.find({ usuario: req.user._id, ativo: true }).lean();
   const relatorioCartoes = await Promise.all(
     cartoes.map(async (cartao) => {
       const gastosCartao = await Gasto.find({
@@ -454,16 +462,16 @@ router.get('/', [
         limite: cartao.limite,
         totalGastos: totalGastosCartaoValor,
         totalContas: totalContasCartaoValor,
-        totalGeral: totalGastosCartaoValor + totalContasCartaoValor,
-        quantidadeTransacoes: gastosCartao.length + contasPagasCartao.length,
+        totalGeral: totalGastosCartaoValor, // Ignorar totalContasCartaoValor que já vira gasto
+        quantidadeTransacoes: gastosCartao.length,
         limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
-          ((totalGastosCartaoValor + totalContasCartaoValor) / cartao.limite) * 100 : 0,
-        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - (totalGastosCartaoValor + totalContasCartaoValor) : null,
+          (totalGastosCartaoValor / cartao.limite) * 100 : 0,
+        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null,
         totalGastosMesValor,
         totalEntradasMesValor,
         totalSaidasMesValor,
         saldoMesValor,
-        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - (totalGastosCartaoValor + totalContasCartaoValor) : null
+        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null
       };
     })
   );
@@ -506,9 +514,9 @@ router.get('/', [
       relatorioFormasPagamento.push({
         formaPagamento: forma,
         totalGastos: totalGastos,
-        totalContas: totalContas,
-        totalGeral: totalGeral,
-        percentualGeral: totalGeral > 0 ? (totalGeral / (totalGastos + Object.values(contasPorFormaPagamento).reduce((a, b) => a + b, 0) + Object.values(gastosPorFormaPagamento).reduce((a, b) => a + b, 0))) * 100 : 0
+        totalContas: 0, // Ignorando Contas Pagas (já são gastos)
+        totalGeral: totalGastos,
+        percentualGeral: totalGastos > 0 ? (totalGastos / Object.values(gastosPorFormaPagamento).reduce((a, b) => a + b, 0)) * 100 : 0
       });
     }
   });
@@ -519,10 +527,10 @@ router.get('/', [
   const responseData = {
     // Estrutura antiga (compatibilidade)
     totalContasPagar,
-    totalValorContasPagarMes: totalValorContasPagarMes[0]?.total || 0,
+    totalValorContasPagarMes: totalValorContasPagarMes || 0,
     totalContasPendentesMes,
     totalContasPagas,
-    totalValorContasPagas: totalValorContasPagas[0]?.total || 0,
+    totalValorContasPagas: totalValorContasPagas || 0,
     totalContasVencidas,
     totalValorContasVencidas: totalValorContasVencidas[0]?.total || 0,
     totalContasNextMonth,

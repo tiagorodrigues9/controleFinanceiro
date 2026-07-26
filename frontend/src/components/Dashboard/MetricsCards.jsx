@@ -6,111 +6,72 @@ import {
   CardContent,
   Typography,
 } from '@mui/material';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 
 const MetricsCards = ({ data, safeNum }) => {
   return (
     <Box sx={{ mb: 4 }}>
-      <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', mb: 3 }}>
-        Resumo Financeiro
-      </Typography>
-      
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ width: '100%' }}>
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Total de Contas a Pagar
-              </Typography>
-              <Typography variant="h4" component="div">{safeNum(data?.totalContasPagar)}</Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%', bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.8, mb: 1 }}>Saldo do Mês (Entradas - Saídas)</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    R$ {safeNum(data?.saldoMes).toFixed(2).replace('.', ',')}
+                  </Typography>
+                </Box>
+                <AccountBalanceWalletIcon sx={{ opacity: 0.5, fontSize: 40 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Valor Contas a Pagar (Mês)
-              </Typography>
-              <Typography variant="h4" color="warning.main" component="div">
-                R$ {safeNum(data?.totalValorContasPagarMes).toFixed(2).replace('.', ',')}
-              </Typography>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                  <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>Gastos Diários</Typography>
+                  <Typography variant="h5" color="error.main" sx={{ fontWeight: 700 }}>
+                    R$ {safeNum(data?.totalGastosMes).toFixed(2).replace('.', ',')}
+                  </Typography>
+                </Box>
+                <TrendingDownIcon color="error" sx={{ opacity: 0.5, fontSize: 40 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Contas Pagas
-              </Typography>
-              <Typography variant="h4" color="success.main" component="div">
-                {safeNum(data?.totalContasPagas)}
-              </Typography>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                  <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>Contas Pagas</Typography>
+                  <Typography variant="h5" color="success.main" sx={{ fontWeight: 700 }}>
+                    R$ {safeNum(data?.totalValorContasPagas).toFixed(2).replace('.', ',')}
+                  </Typography>
+                </Box>
+                <TrackChangesIcon color="success" sx={{ opacity: 0.5, fontSize: 40 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Valor Contas Pagas (Mês)
-              </Typography>
-              <Typography variant="h4" color="success.main" component="div">
-                R$ {safeNum(data?.totalValorContasPagas).toFixed(2).replace('.', ',')}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Contas Pendentes
-              </Typography>
-              <Typography variant="h4" color="warning.main" component="div">
-                {safeNum(data?.totalContasPendentesMes)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Total de Contas (Mês)
-              </Typography>
-              <Typography variant="h4" component="div">{safeNum(data?.totalContasMes)}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Valor Contas Vencidas
-              </Typography>
-              <Typography variant="h4" color="error.main" component="div">
-                R$ {(data?.totalValorContasVencidas || 0).toFixed(2).replace('.', ',')}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Card sx={{ height: '100%', minHeight: 140 }}>
-            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <Typography color="textSecondary" gutterBottom variant="body2">
-                Contas Próximo Mês
-              </Typography>
-              <Typography variant="h4" color="info.main" component="div">
-                {safeNum(data?.totalContasNextMonth)}
-              </Typography>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                <Box>
+                  <Typography color="textSecondary" variant="body2" sx={{ mb: 1 }}>Contas a Pagar</Typography>
+                  <Typography variant="h5" color="warning.main" sx={{ fontWeight: 700 }}>
+                    R$ {safeNum(data?.totalValorContasPagarMes).toFixed(2).replace('.', ',')}
+                  </Typography>
+                </Box>
+                <CreditCardIcon color="warning" sx={{ opacity: 0.5, fontSize: 40 }} />
+              </Box>
             </CardContent>
           </Card>
         </Grid>

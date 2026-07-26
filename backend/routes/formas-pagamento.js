@@ -35,6 +35,21 @@ router.get('/', async (req, res) => {
       existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
     }
 
+    // Identificar as que são padrão mas não estão marcadas como isSystem: true
+    const defaultNamesLower = defaultNames.map(n => n.toLowerCase().trim());
+    const needsSystemUpdate = existing.filter(f => 
+      !f.isSystem && defaultNamesLower.includes((f.nome || '').toLowerCase().trim())
+    );
+
+    if (needsSystemUpdate.length > 0) {
+      await FormaPagamento.updateMany(
+        { _id: { $in: needsSystemUpdate.map(f => f._id) } },
+        { $set: { isSystem: true } }
+      );
+      // Recarregar os dados do banco após a atualização
+      existing = await FormaPagamento.find({ usuario: req.user._id }).sort({ nome: 1 });
+    }
+
     if (req.query.all === 'true') {
       res.json(existing);
     } else {

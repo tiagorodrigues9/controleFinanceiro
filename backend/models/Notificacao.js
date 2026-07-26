@@ -35,4 +35,8 @@ const notificacaoSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Índices para otimização de consultas
+notificacaoSchema.index({ usuario: 1, createdAt: -1 });
+notificacaoSchema.index({ usuario: 1, lida: 1 });
+
 module.exports = mongoose.model('Notificacao', notificacaoSchema);

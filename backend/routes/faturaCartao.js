@@ -48,17 +48,31 @@ router.get('/', async (req, res) => {
       });
 
       // Mapear os gastos do model Gasto para um formato que a tela Fatura entenda
-      const despesasDeGastos = gastosCartao.map(g => ({
-        _id: g._id,
-        descricao: g.observacao || g.local || 'Gasto no Cartão',
-        valor: g.valor,
-        data: g.data,
-        isGastoDiario: true
-      }));
+      const gastosIds = gastosCartao.map(g => g._id.toString());
+      const despesasDeGastos = gastosCartao.map(g => {
+        let descricao = g.local || 'Gasto no Cartão';
+        if (g.observacao) descricao += ` - ${g.observacao}`;
+        return {
+          _id: g._id,
+          descricao: descricao,
+          valor: g.valor,
+          data: g.data,
+          isGastoDiario: true
+        };
+      });
+
+      // Filtrar as despesas que estão salvas nativamente na Fatura para remover as duplicações
+      // (qualquer despesa cujo ID da "conta" seja igual ao ID de um Gasto Diário extraído acima)
+      // Também verifica pela descrição caso o ID tenha se perdido, mas a prioridade é o ID
+      const despesasFiltradas = fatura.despesas.filter(d => {
+        const isGastoById = d.conta && gastosIds.includes(d.conta.toString());
+        const isGastoByDesc = d.descricao && d.descricao.startsWith('Gasto:');
+        return !isGastoById && !isGastoByDesc;
+      });
 
       // Unir as Contas a Pagar velhas com os Novos Gastos
       const todasDespesas = [
-        ...fatura.despesas.map(d => ({ ...d.toObject(), isGastoDiario: false })),
+        ...despesasFiltradas.map(d => ({ ...d.toObject(), isGastoDiario: false })),
         ...despesasDeGastos
       ].sort((a, b) => new Date(b.data) - new Date(a.data));
 
@@ -176,15 +190,7 @@ router.post('/:id/pagar', [
 
     if (!contaBancariaObj) return res.status(400).json({ message: 'Conta bancária inválida ou inativa' });
 
-    // Precisamos recalcular o valor exato no backend igual ao GET para cobrar o usuário
-    const { start, end } = obterPeriodoFatura(fatura.dataFechamento);
-    const gastosCartao = await Gasto.find({
-      usuario: req.user._id, cartao: fatura.cartao._id, data: { $gt: start, $lte: end }
-    });
-    
-    const valorGastos = gastosCartao.reduce((acc, g) => acc + g.valor, 0);
-    const valorOriginalFatura = fatura.valorTotal || 0;
-    const valorTotalParaCobrar = valorGastos + valorOriginalFatura;
+    const valorTotalParaCobrar = fatura.valorTotal || 0;
 
     if (valorTotalParaCobrar <= 0) {
       return res.status(400).json({ message: 'Fatura zerada. Não há o que pagar.' });
@@ -195,7 +201,8 @@ router.post('/:id/pagar', [
 
     try {
       // 1. Marcar fatura como paga usando o valor integral
-      fatura.valorTotal = valorTotalParaCobrar; // Salva o total cravado ao fechar
+      // O valor total já está correto nativamente no banco de dados
+      fatura.valorTotal = valorTotalParaCobrar;
       await fatura.pagarFatura(contaBancaria);
 
       // 2. Abater dinheiro real do caixa da conta (Hotfix crítico!)

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
+import api from '../utils/api';
 
 const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
@@ -25,7 +26,6 @@ const usePushNotifications = () => {
   const registerServiceWorker = async () => {
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js');
-      console.log('Service Worker registrado:', registration);
       return registration;
     } catch (error) {
       console.error('Erro ao registrar Service Worker:', error);
@@ -57,15 +57,13 @@ const usePushNotifications = () => {
       let pushSubscription = null;
       if ('pushManager' in window) {
         try {
+          const vapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BHEqzi9eqU0WRAoVjdRP6o_D3vjdV0FuOxBj5Dg8El3ZTTGXolN8_5J7B0LqQtg6BFULAIyHneqhm72fydqCfjI';
           pushSubscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlB64ToUint8Array(
-              'BHEqzi9eqU0WRAoVjdRP6o_D3vjdV0FuOxBj5Dg8El3ZTTGXolN8_5J7B0LqQtg6BFULAIyHneqhm72fydqCfjI'
-            )
+            applicationServerKey: urlB64ToUint8Array(vapidKey)
           });
           
           setSubscription(pushSubscription);
-          console.log('Inscrição push criada:', pushSubscription);
           
           // Enviar inscrição para o backend
           await sendSubscriptionToBackend(pushSubscription);
@@ -90,22 +88,11 @@ const usePushNotifications = () => {
   // Enviar inscrição para o backend
   const sendSubscriptionToBackend = async (subscription) => {
     try {
-      const response = await fetch('/api/notificacoes/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(subscription)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao enviar inscrição para o backend');
+      const response = await api.post('/notificacoes/subscribe', subscription);
+      
+      if (response.status !== 200) {
+        throw new Error('Falha ao registrar inscrição no servidor');
       }
-
-      const result = await response.json();
-      console.log('Inscrição enviada para o backend:', result);
-      return result;
     } catch (error) {
       console.error('Erro ao enviar inscrição:', error);
       throw error;
@@ -114,8 +101,10 @@ const usePushNotifications = () => {
 
   // Enviar notificação local (para testes)
   const sendLocalNotification = (title, body, url = '/notificacoes') => {
-    console.log('📱 Enviando notificação local:', { title, body, permission });
-    
+    if (permission !== 'granted') {
+      return;
+    }
+
     // Tentar mostrar notificação diretamente primeiro
     if (permission === 'granted' && 'Notification' in window) {
       try {
@@ -130,10 +119,10 @@ const usePushNotifications = () => {
         });
 
         // Adicionar evento de clique
-        notification.onclick = () => {
-          console.log('📱 Notificação clicada, abrindo:', url);
-          window.open(url, '_blank');
-          notification.close();
+        notification.onclick = function() {
+          window.focus();
+          window.location.href = url;
+          this.close();
         };
 
         // Auto-fechar após 5 segundos
@@ -141,10 +130,9 @@ const usePushNotifications = () => {
           notification.close();
         }, 5000);
 
-        console.log('✅ Notificação local mostrada diretamente');
         return;
-      } catch (error) {
-        console.error('❌ Erro ao mostrar notificação diretamente:', error);
+      } catch (e) {
+        console.error('Erro ao mostrar notificação:', e);
       }
     }
 
@@ -153,17 +141,12 @@ const usePushNotifications = () => {
       navigator.serviceWorker.ready.then((registration) => {
         if (registration.active) {
           registration.active.postMessage({
-            type: 'NOTIFICATION',
-            payload: { title, body, url, timestamp: Date.now() }
+            type: 'SHOW_NOTIFICATION',
+            payload: { title, body, url }
           });
-          console.log('✅ Mensagem enviada para service worker');
-        } else {
-          console.error('❌ Service worker não está ativo');
         }
       }).catch(error => {
-        console.error('❌ Erro ao acessar service worker:', error);
       });
-    } else {
       console.warn('⚠️ Permissão não concedida ou service worker não disponível');
     }
   };

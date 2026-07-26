@@ -161,7 +161,7 @@ router.post('/:id/subgrupos', validateObjectId, [
       return res.status(404).json({ message: 'Grupo não encontrado' });
     }
 
-    const nomeSubgrupo = req.body.nome;
+    const { nome: nomeSubgrupo, cor, icone } = req.body;
 
     // Verificar se já existe um subgrupo com este nome
     const subExists = grupo.subgrupos.some(sub => sub.nome.toLowerCase() === nomeSubgrupo.toLowerCase());
@@ -169,7 +169,11 @@ router.post('/:id/subgrupos', validateObjectId, [
       return res.status(400).json({ message: 'Esta subcategoria já existe neste grupo.' });
     }
 
-    grupo.subgrupos.push({ nome: nomeSubgrupo });
+    grupo.subgrupos.push({ 
+      nome: nomeSubgrupo,
+      cor: cor || '#6366f1',
+      icone: icone || 'Folder'
+    });
     await grupo.save();
 
     res.json(grupo);
@@ -205,7 +209,7 @@ router.put('/:id/subgrupos/:subId/renomear', validateObjectId, [
       return res.status(404).json({ message: 'Subgrupo não encontrado' });
     }
 
-    const novoNome = req.body.nome;
+    const { nome: novoNome, cor, icone } = req.body;
     const nomeAntigo = sub.nome;
 
     // Verificar duplicidade no mesmo grupo
@@ -217,6 +221,8 @@ router.put('/:id/subgrupos/:subId/renomear', validateObjectId, [
     }
 
     sub.nome = novoNome;
+    if (cor !== undefined) sub.cor = cor;
+    if (icone !== undefined) sub.icone = icone;
     await grupo.save();
 
     // Atualização em cascata nas despesas (Gastos e Contas)
