@@ -366,9 +366,9 @@ const Extrato: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const formatDateUTC = (dateString: string) => {
+  const formatDateLocal = (dateString: string) => {
     const d = new Date(dateString);
-    return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    return d.toLocaleDateString('pt-BR');
   };
 
   const ReferenceChip = ({ extrato }: { extrato: ExtratoItem }) => {
@@ -495,7 +495,7 @@ const Extrato: React.FC = () => {
                     <ReferenceChip extrato={extrato} />
                   </Box>
                   <Box mb={1}>
-                    <Typography variant="body2" color="text.secondary">Data: {formatDateUTC(extrato.data)}</Typography>
+                    <Typography variant="body2" color="text.secondary">Data: {formatDateLocal(extrato.data)}</Typography>
                     <Typography variant="body2" color="text.secondary">Conta: {extrato.contaBancaria?.nome || 'N/A'}</Typography>
                   </Box>
                   <Typography variant="h6" color={extrato.tipo === 'Saída' ? 'error.main' : 'success.main'} fontWeight="bold">
@@ -529,7 +529,7 @@ const Extrato: React.FC = () => {
                 <TableBody>
                   {extratos.map((extrato) => (
                     <TableRow key={extrato._id} hover>
-                      <TableCell>{formatDateUTC(extrato.data)}</TableCell>
+                      <TableCell>{formatDateLocal(extrato.data)}</TableCell>
                       <TableCell>{extrato.contaBancaria?.nome || 'N/A'}</TableCell>
                       <TableCell><ReferenceChip extrato={extrato} /></TableCell>
                       <TableCell>{extrato.motivo || '-'}</TableCell>
