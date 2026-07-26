@@ -485,6 +485,11 @@ router.get('/', [
   const contasPorFormaPagamento = {};
 
   gastos.forEach(gasto => {
+    // Ignorar gastos que foram gerados automaticamente pelo pagamento de contas
+    // Isso evita a duplicação no relatório de Formas de Pagamento
+    if (gasto.observacao && gasto.observacao.startsWith('[Pagamento da Conta]:')) {
+      return; 
+    }
     const formaPagamento = gasto.formaPagamento || 'Não informado';
     const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
     gastosPorFormaPagamento[formaPagamento] = (gastosPorFormaPagamento[formaPagamento] || 0) + valorGasto;
@@ -505,20 +510,26 @@ router.get('/', [
   const relatorioFormasPagamento = [];
   const todasFormas = new Set([...Object.keys(gastosPorFormaPagamento), ...Object.keys(contasPorFormaPagamento)]);
 
+  let sumTotalGeral = 0;
+
   todasFormas.forEach(forma => {
     const totalGastos = gastosPorFormaPagamento[forma] || 0;
     const totalContas = contasPorFormaPagamento[forma] || 0;
     const totalGeral = totalGastos + totalContas;
+    sumTotalGeral += totalGeral;
     
     if (totalGeral > 0) {
       relatorioFormasPagamento.push({
         formaPagamento: forma,
         totalGastos: totalGastos,
-        totalContas: 0, // Ignorando Contas Pagas (já são gastos)
-        totalGeral: totalGastos,
-        percentualGeral: totalGastos > 0 ? (totalGastos / Object.values(gastosPorFormaPagamento).reduce((a, b) => a + b, 0)) * 100 : 0
+        totalContas: totalContas,
+        totalGeral: totalGeral
       });
     }
+  });
+
+  relatorioFormasPagamento.forEach(item => {
+    item.percentualGeral = sumTotalGeral > 0 ? (item.totalGeral / sumTotalGeral) * 100 : 0;
   });
 
   relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);
