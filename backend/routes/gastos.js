@@ -40,13 +40,13 @@ router.get('/', async (req, res) => {
 
     // Se não houver filtro de data, aplicar filtro dos últimos 5 dias
     if (dataInicio && dataFim) {
-      // Criar datas em UTC para evitar problemas de timezone
+      // Criar datas considerando o fuso horário local
       const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
       const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
 
       query.data = {
-        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
-        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+        $gte: new Date(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0),
+        $lte: new Date(fimYear, fimMonth - 1, fimDay, 23, 59, 59, 999)
       };
     } else {
       // Aplicar filtro dos últimos 5 dias
