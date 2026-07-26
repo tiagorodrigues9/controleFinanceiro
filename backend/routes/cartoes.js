@@ -186,9 +186,9 @@ router.delete('/:id', async (req, res) => {
 
     // Verificar referências em outras tabelas antes de excluir
     const [faturasCount, gastosCount, extratosCount] = await Promise.all([
-      FaturaCartao.countDocuments({ cartao: cartao._id }),
+      FaturaCartao.countDocuments({ cartao: cartao._id, valorTotal: { $gt: 0 } }),
       Gasto.countDocuments({ cartao: cartao._id }),
-      Extrato.countDocuments({ cartao: cartao._id })
+      Extrato.countDocuments({ cartao: cartao._id, estornado: { $ne: true } })
     ]);
 
     const totalReferencias = faturasCount + gastosCount + extratosCount;
@@ -204,7 +204,11 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
-    await Cartao.deleteOne({ _id: req.params.id });
+    await Promise.all([
+      FaturaCartao.deleteMany({ cartao: req.params.id }),
+      Extrato.deleteMany({ cartao: req.params.id, estornado: true }),
+      Cartao.deleteOne({ _id: req.params.id })
+    ]);
     res.json({ message: 'Cartão excluído com sucesso' });
   } catch (error) {
     logger.error(error);
