@@ -240,7 +240,12 @@ const FaturasCartao: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
   };
 
-  const formatarData = (dataStr?: string) => {
+  const formatarDataLocal = (dataStr?: string) => {
+    if (!dataStr) return '-';
+    return new Date(dataStr).toLocaleDateString('pt-BR');
+  };
+
+  const formatarDataUTC = (dataStr?: string) => {
     if (!dataStr) return '-';
     return new Date(dataStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
@@ -328,10 +333,10 @@ const FaturasCartao: React.FC = () => {
                           Cartão: <strong>{fatura.cartao?.nome || '-'}</strong>
                         </Typography>
                         <Typography variant="body2" color={venceHojeOuAtrasada ? 'error.main' : 'text.secondary'} sx={{ fontWeight: venceHojeOuAtrasada ? 'bold' : 'normal' }}>
-                          Vencimento: {formatarData(fatura.dataVencimento)} {venceHojeOuAtrasada && '(Venceu!)'}
+                          Vencimento: {formatarDataLocal(fatura.dataVencimento)} {venceHojeOuAtrasada && '(Venceu!)'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Fechamento: {formatarData(fatura.dataFechamento)}
+                          Fechamento: {formatarDataLocal(fatura.dataFechamento)}
                         </Typography>
                       </Box>
 
@@ -353,7 +358,7 @@ const FaturasCartao: React.FC = () => {
                       {fatura.status === 'Paga' ? (
                         <Box>
                           <Typography variant="caption" color="success.main" display="block" mb={1} textAlign="center">
-                            Paga em {formatarData(fatura.dataPagamento)}
+                            Paga em {formatarDataLocal(fatura.dataPagamento)}
                           </Typography>
                           <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={1}>
                             <Button fullWidth variant="outlined" startIcon={<VisibilityIcon />} onClick={() => handleVerDetalhes(fatura)}>
@@ -482,7 +487,7 @@ const FaturasCartao: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                               primary={despesa.descricao} 
-                              secondary={formatarData(despesa.data)}
+                              secondary={formatarDataUTC(despesa.data)}
                               primaryTypographyProps={{ fontWeight: 500, variant: 'body2' }}
                               secondaryTypographyProps={{ variant: 'caption' }}
                             />
@@ -516,7 +521,7 @@ const FaturasCartao: React.FC = () => {
                                   />
                                 </TableCell>
                                 <TableCell sx={{ fontWeight: 500 }}>{despesa.descricao}</TableCell>
-                                <TableCell>{formatarData(despesa.data)}</TableCell>
+                                <TableCell>{formatarDataUTC(despesa.data)}</TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatarValor(despesa.valor)}</TableCell>
                               </TableRow>
                             ))}

@@ -29,7 +29,7 @@ function calcularDatasFatura(dataReferencia, diaFechamento, diaVencimento) {
   }
   
   // Data de fechamento da fatura
-  const dataFechamento = new Date(anoFatura, mesFatura, diaFech, 23, 59, 59);
+  const dataFechamento = new Date(Date.UTC(anoFatura, mesFatura, diaFech, 12, 0, 0));
   
   // Data de vencimento da fatura
   let mesVenc = mesFatura;
@@ -43,7 +43,7 @@ function calcularDatasFatura(dataReferencia, diaFechamento, diaVencimento) {
     }
   }
   
-  const dataVencimento = new Date(anoVenc, mesVenc, diaVenc, 23, 59, 59);
+  const dataVencimento = new Date(Date.UTC(anoVenc, mesVenc, diaVenc, 12, 0, 0));
   
   const mesStr = String(mesFatura + 1).padStart(2, '0');
   const mesReferencia = `${anoFatura}-${mesStr}`;
