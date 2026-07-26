@@ -121,7 +121,7 @@ const ContasPagar = () => {
   const [contaSelecionada, setContaSelecionada] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [contaEditId, setContaEditId] = useState(null);
-  const [fornecedorData, setFornecedorData] = useState({ nome: '', tipo: '' });
+  const [fornecedorData, setFornecedorData] = useState({ nome: '', tipo: '', documento: '', telefone: '', email: '', endereco: '', observacoes: '' });
   const [formData, setFormData] = useState({
     nome: '',
     dataVencimento: '',
@@ -141,11 +141,14 @@ const ContasPagar = () => {
   });
   const [openConfirmCancel, setOpenConfirmCancel] = useState(false);
   const [contaToCancel, setContaToCancel] = useState(null);
+  const [openConfirmEstorno, setOpenConfirmEstorno] = useState(false);
+  const [contaToEstornar, setContaToEstornar] = useState(null);
   const [openConfirmHardDelete, setOpenConfirmHardDelete] = useState(false);
   const [contaToHardDelete, setContaToHardDelete] = useState(null);
   const [openConfirmParcelas, setOpenConfirmParcelas] = useState(false);
   const [parcelasInfo, setParcelasInfo] = useState({ count: 0, contaId: null });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [parcelasList, setParcelasList] = useState([]);
   const [parcelaData, setParcelaData] = useState({ valor: '', data: '' });
   const [actionType, setActionType] = useState('cancel');
@@ -388,7 +391,7 @@ const ContasPagar = () => {
   };
 
   const handleOpenFornecedor = () => {
-    setFornecedorData({ nome: '', tipo: '' });
+    setFornecedorData({ nome: '', tipo: '', documento: '', telefone: '', email: '', endereco: '', observacoes: '' });
     setOpenFornecedor(true);
   };
 
@@ -576,15 +579,23 @@ const ContasPagar = () => {
     }
   };
 
-  const handleEstornar = async (id) => {
-    if (window.confirm('Tem certeza que deseja estornar o pagamento desta conta? Ela voltará a ficar pendente, e o dinheiro retornará.')) {
+  const handleEstornar = (id) => {
+    setContaToEstornar(id);
+    setOpenConfirmEstorno(true);
+  };
+
+  const confirmEstorno = async () => {
+    if (contaToEstornar) {
       try {
-        await api.post(`/contas/${id}/estornar`);
+        await api.post(`/contas/${contaToEstornar}/estornar`);
         setSuccess('Pagamento estornado com sucesso!');
         fetchContas();
       } catch (err) {
         console.error('Erro ao estornar:', err);
         setError(err.response?.data?.message || 'Erro ao estornar pagamento');
+      } finally {
+        setOpenConfirmEstorno(false);
+        setContaToEstornar(null);
       }
     }
   };
@@ -743,7 +754,7 @@ const ContasPagar = () => {
             Fornecedor: {conta.fornecedor?.nome || 'N/A'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Vencimento: {format(new Date(conta.dataVencimento), 'dd/MM/yyyy', { locale: ptBR })}
+            Vencimento: {new Date(conta.dataVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
           </Typography>
         </Box>
 
@@ -877,6 +888,12 @@ const ContasPagar = () => {
             {error}
           </Alert>
         )}
+        
+        {success && (
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setSuccess('')}>
+            {success}
+          </Alert>
+        )}
 
         {/* Filtros */}
         <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 3, bgcolor: '#f8fafc' }}>
@@ -1002,7 +1019,7 @@ const ContasPagar = () => {
                   </TableCell>
                   <TableCell>{conta.fornecedor?.nome}</TableCell>
                   <TableCell>
-                    {format(new Date(conta.dataVencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                    {new Date(conta.dataVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                   </TableCell>
                   <TableCell>
                     R$ {conta.valor.toFixed(2).replace('.', ',')}
@@ -1440,34 +1457,103 @@ const ContasPagar = () => {
       </Dialog>
 
       {/* Dialog Cadastro Fornecedor */}
-      <Dialog open={openFornecedor} onClose={handleCloseFornecedor} maxWidth="sm" fullWidth>
+      <Dialog open={openFornecedor} onClose={handleCloseFornecedor} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <form onSubmit={handleSubmitFornecedor}>
-          <DialogTitle>Cadastrar Fornecedor</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Nome"
-              margin="normal"
-              required
-              value={fornecedorData.nome}
-              onChange={(e) => setFornecedorData({ ...fornecedorData, nome: e.target.value })}
-            />
-            <TextField
-              fullWidth
-              label="Tipo"
-              margin="normal"
-              helperText="Opcional - se não informado, será 'Geral'"
-              value={fornecedorData.tipo || ''}
-              onChange={(e) => setFornecedorData({ ...fornecedorData, nome: fornecedorData.nome, tipo: e.target.value })}
-            />
+          <DialogTitle sx={{ pb: 1, borderBottom: '1px solid #f1f5f9', mb: 2 }}>
+            Cadastrar Novo Fornecedor
+          </DialogTitle>
+          <DialogContent sx={{ pt: 1 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={8}>
+                <TextField
+                  fullWidth
+                  label="Razão Social / Nome Completo"
+                  required
+                  value={fornecedorData.nome}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, nome: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  label="Categoria / Tipo"
+                  placeholder="Ex: TI, Limpeza, Geral"
+                  value={fornecedorData.tipo}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, tipo: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="CNPJ / CPF"
+                  placeholder="00.000.000/0000-00"
+                  value={fornecedorData.documento}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, documento: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Telefone / Celular"
+                  placeholder="(00) 00000-0000"
+                  value={fornecedorData.telefone}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, telefone: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12}>
+                <TextField
+                  fullWidth
+                  label="E-mail de Contato"
+                  type="email"
+                  placeholder="contato@fornecedor.com"
+                  value={fornecedorData.email}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, email: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Endereço Completo"
+                  value={fornecedorData.endereco}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, endereco: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Observações Adicionais"
+                  multiline
+                  rows={3}
+                  value={fornecedorData.observacoes}
+                  onChange={(e) => setFornecedorData({ ...fornecedorData, observacoes: e.target.value })}
+                />
+              </Grid>
+            </Grid>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseFornecedor}>Cancelar</Button>
+          <DialogActions sx={{ p: 3, borderTop: '1px solid #f1f5f9' }}>
+            <Button onClick={handleCloseFornecedor} color="inherit">Cancelar</Button>
             <Button type="submit" variant="contained">
               Salvar
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Dialog Confirmar Estorno */}
+      <Dialog open={openConfirmEstorno} onClose={() => setOpenConfirmEstorno(false)}>
+        <DialogTitle>Confirmar Estorno</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja estornar o pagamento desta conta?</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Ela voltará a ficar pendente e o valor pago retornará ao seu saldo.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenConfirmEstorno(false)}>Cancelar</Button>
+          <Button onClick={confirmEstorno} variant="contained" color="warning">
+            Sim, Estornar
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Dialog Confirmar Cancelamento */}
