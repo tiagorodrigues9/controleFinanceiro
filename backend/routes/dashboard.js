@@ -462,8 +462,9 @@ router.get('/', [
         limite: cartao.limite,
         totalGastos: totalGastosCartaoValor,
         totalContas: totalContasCartaoValor,
-        totalGeral: totalGastosCartaoValor, // Ignorar totalContasCartaoValor que já vira gasto
-        quantidadeTransacoes: gastosCartao.length,
+        totalGeral: totalGastosCartaoValor + totalContasCartaoValor,
+        quantidadeGastos: gastosCartao.length,
+        quantidadeContas: contasPagasCartao.length,
         limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
           (totalGastosCartaoValor / cartao.limite) * 100 : 0,
         disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null,
