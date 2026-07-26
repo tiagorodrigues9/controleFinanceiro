@@ -27,11 +27,11 @@ router.get('/', async (req, res) => {
     const query = { usuario: req.user._id, estornado: false };
 
     if (contaBancaria) {
-      query.contaBancaria = contaBancaria;
+      query.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
     }
 
     if (cartao) {
-      query.cartao = cartao;
+      query.cartao = new mongoose.Types.ObjectId(cartao);
     }
 
     if (dataInicio && dataFim) {
@@ -99,11 +99,26 @@ router.get('/', async (req, res) => {
             ]
           }
         },
+        { 
+          $lookup: {
+            from: 'contas',
+            localField: 'referencia.id',
+            foreignField: '_id',
+            as: 'contaRef',
+            pipeline: [
+              {
+                $match: {
+                  'tipoControle': new mongoose.Types.ObjectId(tipoDespesa)
+                }
+              }
+            ]
+          }
+        },
         {
           $match: {
             $or: [
-              { 'referencia.tipo': { $ne: 'Gasto' } },
-              { 'gastoRef.0': { $exists: true } }
+              { 'gastoRef.0': { $exists: true } },
+              { 'contaRef.0': { $exists: true } }
             ]
           }
         },
@@ -136,7 +151,7 @@ router.get('/', async (req, res) => {
 
       const facetResult = extratos[0] || { items: [], totalCount: [] };
       extratos = (facetResult.items || []).map(extrato => {
-        const { gastoRef, ...rest } = extrato;
+        const { gastoRef, contaRef, ...rest } = extrato;
         return rest;
       });
       total = facetResult.totalCount[0]?.count || 0;
