@@ -31,13 +31,12 @@ class NotificationService {
       console.log(`Data limite (7 dias): ${daqui7dias.toISOString()}`);
 
       // 1. Atualizar status de todas as contas que venceram para 'Vencida'
-      const dataParaVencimento = new Date(hoje);
-      dataParaVencimento.setHours(0, 0, 0, 0);
+      const hojeUTC = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()));
 
       const updateResult = await Conta.updateMany(
         {
           status: 'Pendente',
-          dataVencimento: { $lt: dataParaVencimento },
+          dataVencimento: { $lt: hojeUTC },
           ativo: { $ne: false }
         },
         { status: 'Vencida' }

@@ -95,9 +95,20 @@ router.get('/', async (req, res) => {
 
     logger.info('Buscando contas', { userId: req.user._id, filters: { mes, ano, ativo, status } });
 
-    // O status de contas vencidas agora é atualizado pelo NotificationScheduler diariamente
-    // e no momento da criação/edição através do pre-save hook no modelo Conta.
-
+    // Garantir que contas pendentes e vencidas estejam com o status correto em tempo real (Safety Net)
+    const agora = new Date();
+    const hojeUTC = new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
+    
+    await Conta.updateMany(
+      {
+        usuario: req.user._id,
+        status: 'Pendente',
+        dataVencimento: { $lt: hojeUTC },
+        ativo: { $ne: false }
+      },
+      { $set: { status: 'Vencida' } }
+    );
+    
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const skip = (page - 1) * limit;
