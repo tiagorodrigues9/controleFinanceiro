@@ -1,7 +1,7 @@
 node_modules
 npm-debug.log
+logs
+*.log
 .env
-build
-dist
-.git
-.gitignore
+uploads/*
+!uploads/.gitkeep
