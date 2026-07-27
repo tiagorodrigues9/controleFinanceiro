@@ -118,7 +118,7 @@ const getHojeUTCStr = () => {
 const GastosDiarios: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [gastos, setGastos] = useState<GastoItem[]>([]);
   const [grupos, setGrupos] = useState<any[]>([]);
   const [contasBancarias, setContasBancarias] = useState<any[]>([]);
@@ -126,7 +126,7 @@ const GastosDiarios: React.FC = () => {
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
-  
+
   const [filtros, setFiltros] = useState<Filtros>({
     tipoDespesa: '',
     subgrupo: '',
@@ -148,7 +148,7 @@ const GastosDiarios: React.FC = () => {
     cartao: '',
     parcelas: '1',
   });
-  
+
   const [error, setError] = useState('');
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState<GastoItem | null>(null);
@@ -176,7 +176,7 @@ const GastosDiarios: React.FC = () => {
       dataInicio: dataInicioStr,
       dataFim: dataFimStr,
     };
-    
+
     setFiltros(inicialFiltros);
     setFiltrosAplicados(inicialFiltros);
     filtrosReady.current = true;
@@ -335,9 +335,9 @@ const GastosDiarios: React.FC = () => {
   const handleEditar = (gasto: GastoItem) => {
     setFormData({
       _id: gasto._id,
-      tipoDespesa: { 
-        grupo: gasto.tipoDespesa.grupo._id, 
-        subgrupo: gasto.tipoDespesa.subgrupo || '' 
+      tipoDespesa: {
+        grupo: gasto.tipoDespesa.grupo._id,
+        subgrupo: gasto.tipoDespesa.subgrupo || ''
       },
       valor: gasto.valor.toString(),
       data: gasto.data.split('T')[0],
@@ -582,7 +582,7 @@ const GastosDiarios: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth required variant="outlined">
                     <InputLabel>Forma de Pagamento</InputLabel>
@@ -593,7 +593,7 @@ const GastosDiarios: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 {(formData.formaPagamento === 'Cartão de Crédito' || formData.formaPagamento === 'Cartão de Débito') && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
@@ -606,7 +606,7 @@ const GastosDiarios: React.FC = () => {
                     </FormControl>
                   </Grid>
                 )}
-                
+
                 {formData.formaPagamento !== 'Cartão de Crédito' && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
@@ -630,7 +630,7 @@ const GastosDiarios: React.FC = () => {
                       <InputLabel>Parcelas</InputLabel>
                       <Select value={formData.parcelas} disabled={!!formData._id} onChange={(e) => setFormData({ ...formData, parcelas: e.target.value })} label="Parcelas">
                         <MenuItem value="1">À vista (1x)</MenuItem>
-                        {[2,3,4,5,6,7,8,9,10,11,12,18,24].map(num => (
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map(num => (
                           <MenuItem key={num} value={num.toString()}>{num}x Parcelado</MenuItem>
                         ))}
                       </Select>
