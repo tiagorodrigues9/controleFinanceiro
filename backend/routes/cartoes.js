@@ -10,6 +10,13 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Cartões
+ *   description: CRUD de cartões de crédito e débito
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -18,6 +25,29 @@ router.use(auth);
 // @route   GET /api/cartoes
 // @desc    Obter todos os cartões do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes:
+ *   get:
+ *     summary: Listar todos os cartões do usuário
+ *     tags: [Cartões]
+ *     parameters:
+ *       - in: query
+ *         name: ativo
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const cartoes = await Cartao.find({ usuario: req.user._id })
@@ -32,6 +62,46 @@ router.get('/', async (req, res) => {
 // @route   POST /api/cartoes
 // @desc    Criar novo cartão
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes:
+ *   post:
+ *     summary: Criar novo cartão
+ *     tags: [Cartões]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome, tipo]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               bandeira:
+ *                 type: string
+ *               banco:
+ *                 type: string
+ *               limite:
+ *                 type: number
+ *               diaFechamento:
+ *                 type: integer
+ *               diaVencimento:
+ *                 type: integer
+ *               contaBancaria:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('nome').notEmpty().trim().withMessage('Nome do cartão é obrigatório'),
   body('tipo').isIn(['Crédito', 'Débito']).withMessage('Tipo deve ser Crédito ou Débito'),
@@ -77,9 +147,56 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/cartoes/:id
+// @route   PUT /api/cartoes:id
 // @desc    Atualizar cartão
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes/{id}:
+ *   put:
+ *     summary: Atualizar cartão
+ *     tags: [Cartões]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               bandeira:
+ *                 type: string
+ *               banco:
+ *                 type: string
+ *               limite:
+ *                 type: number
+ *               diaFechamento:
+ *                 type: integer
+ *               diaVencimento:
+ *                 type: integer
+ *               contaBancaria:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', [
   body('nome').optional().notEmpty().trim().withMessage('Nome do cartão não pode ser vazio'),
   body('tipo').optional().isIn(['Crédito', 'Débito']).withMessage('Tipo deve ser Crédito ou Débito'),
@@ -143,9 +260,33 @@ router.put('/:id', [
   }
 });
 
-// @route   PUT /api/cartoes/:id/inativar
+// @route   PUT /api/cartoes:id/inativar
 // @desc    Inativar/Ativar cartão
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes/{id}/inativar:
+ *   put:
+ *     summary: Inativar cartão
+ *     tags: [Cartões]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/inativar', async (req, res) => {
   try {
     const cartao = await Cartao.findOne({
@@ -170,9 +311,33 @@ router.put('/:id/inativar', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/cartoes/:id
+// @route   DELETE /api/cartoes:id
 // @desc    Excluir cartão (com verificação de cascade)
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes/{id}:
+ *   delete:
+ *     summary: Excluir cartão
+ *     tags: [Cartões]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     const cartao = await Cartao.findOne({
@@ -219,6 +384,33 @@ router.delete('/:id', async (req, res) => {
 // @route   GET /api/cartoes/relatorio-gastos
 // @desc    Relatório de gastos por cartão no mês
 // @access  Private
+/**
+ * @swagger
+ * /api/cartoes/relatorio-gastos:
+ *   get:
+ *     summary: Relatório de gastos por cartão
+ *     tags: [Cartões]
+ *     parameters:
+ *       - in: query
+ *         name: mes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/relatorio-gastos', async (req, res) => {
   try {
     const { mes, ano } = req.query;

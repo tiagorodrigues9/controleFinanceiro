@@ -9,6 +9,13 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Formas de Pagamento
+ *   description: CRUD de formas de pagamento
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -17,6 +24,22 @@ router.use(auth);
 // @route   GET /api/formas-pagamento
 // @desc    Obter todas as formas de pagamento do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento:
+ *   get:
+ *     summary: Listar formas de pagamento
+ *     tags: [Formas de Pagamento]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     // garante formas-padrão para o usuário se estiverem ausentes
@@ -61,9 +84,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/formas-pagamento/:id
+// @route   GET /api/formas-pagamento:id
 // @desc    Obter uma forma de pagamento específica
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento/{id}:
+ *   get:
+ *     summary: Obter forma de pagamento por ID
+ *     tags: [Formas de Pagamento]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const forma = await FormaPagamento.findOne({ _id: req.params.id, usuario: req.user._id });
@@ -82,6 +129,32 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/formas-pagamento
 // @desc    Criar nova forma de pagamento
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento:
+ *   post:
+ *     summary: Criar forma de pagamento
+ *     tags: [Formas de Pagamento]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('nome')
     .trim()
@@ -137,9 +210,33 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/formas-pagamento/:id
+// @route   PUT /api/formas-pagamento:id
 // @desc    Atualizar forma de pagamento
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento/{id}:
+ *   put:
+ *     summary: Atualizar forma de pagamento
+ *     tags: [Formas de Pagamento]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', [
   body('nome')
     .trim()
@@ -205,9 +302,33 @@ router.put('/:id', [
   }
 });
 
-// @route   DELETE /api/formas-pagamento/:id
+// @route   DELETE /api/formas-pagamento:id
 // @desc    Inativar forma de pagamento (soft delete)
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento/{id}:
+ *   delete:
+ *     summary: Inativar forma de pagamento
+ *     tags: [Formas de Pagamento]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     // Verificar se existem registros usando esta forma
@@ -243,9 +364,33 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// @route   PATCH /api/formas-pagamento/:id/reativar
+// @route   PATCH /api/formas-pagamento:id/reativar
 // @desc    Reativar forma de pagamento inativa
 // @access  Private
+/**
+ * @swagger
+ * /api/formas-pagamento/{id}/reativar:
+ *   patch:
+ *     summary: Reativar forma de pagamento
+ *     tags: [Formas de Pagamento]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.patch('/:id/reativar', async (req, res) => {
   try {
     const forma = await FormaPagamento.findOne({ _id: req.params.id, usuario: req.user._id });

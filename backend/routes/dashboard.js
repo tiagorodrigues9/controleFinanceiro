@@ -16,9 +16,32 @@ const router = express.Router();
 
 logger.debug('🔥 Dashboard router carregado!');
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard
+ *   description: Dados consolidados do dashboard principal
+ */
 router.use(auth);
 
 // Endpoint para limpar cache
+/**
+ * @swagger
+ * /api/dashboard/clear-cache:
+ *   get:
+ *     summary: Limpar cache do dashboard
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/clear-cache', asyncHandler(async (req, res) => {
   const { invalidateUserCache } = require('../utils/cache');
   invalidateUserCache(req.user._id);
@@ -26,6 +49,33 @@ router.get('/clear-cache', asyncHandler(async (req, res) => {
 }));
 
 // Aplicar validação e cache na rota do dashboard
+/**
+ * @swagger
+ * /api/dashboard:
+ *   get:
+ *     summary: Obter dados completos do dashboard
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: mes
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', [
   query('mes').optional().isInt({ min: 1, max: 12 }).withMessage('Mês deve estar entre 1 e 12'),
   query('ano').optional().isInt({ min: 2020, max: 2030 }).withMessage('Ano deve estar entre 2020 e 2030')

@@ -15,7 +15,7 @@ const generateToken = (id) => {
   }
   
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '15m', // Reduzido para 15min
+    expiresIn: process.env.JWT_EXPIRE || '15m',
     algorithm: 'HS256',
     issuer: 'controle-financeiro',
     audience: 'controle-financeiro-users'
@@ -29,6 +29,47 @@ const generateRefreshToken = (id) => {
   });
 };
 
+/**
+ * @swagger
+ * tags:
+ *   name: Autenticação
+ *   description: Registro, login, refresh token e gerenciamento de perfil
+ */
+
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Registrar novo usuário
+ *     tags: [Autenticação]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome, email, password]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *                 example: João Silva
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: joao@email.com
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: senha123
+ *     responses:
+ *       201:
+ *         description: Usuário criado com sucesso
+ *       400:
+ *         description: Dados inválidos ou usuário já existe
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/register', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').isEmail().withMessage('Email inválido'),
@@ -75,6 +116,38 @@ router.post('/register', [
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login do usuário
+ *     tags: [Autenticação]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: joao@email.com
+ *               password:
+ *                 type: string
+ *                 example: senha123
+ *     responses:
+ *       200:
+ *         description: Login realizado com sucesso (retorna token + refreshToken + user)
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Credenciais inválidas
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/login', [
   body('email').isEmail().withMessage('Email inválido'),
   body('password').notEmpty().withMessage('Senha é obrigatória')
@@ -123,6 +196,20 @@ router.post('/login', [
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Obter dados do usuário autenticado
+ *     tags: [Autenticação]
+ *     responses:
+ *       200:
+ *         description: Dados do perfil do usuário
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Usuário não encontrado
+ */
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -refreshToken -resetPasswordToken -resetPasswordExpire');
@@ -148,6 +235,29 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Renovar token de acesso usando refresh token
+ *     tags: [Autenticação]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Novo token gerado
+ *       401:
+ *         description: Refresh token inválido ou expirado
+ */
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -187,6 +297,32 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Solicitar recuperação de senha
+ *     tags: [Autenticação]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Email de recuperação enviado (resposta genérica por segurança)
+ *       400:
+ *         description: Email inválido
+ *       500:
+ *         description: Erro ao enviar email
+ */
 router.post('/forgot-password', [
   body('email').isEmail().withMessage('Email inválido')
 ], async (req, res) => {
@@ -267,6 +403,25 @@ router.post('/forgot-password', [
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/validate-reset-token/{token}:
+ *   get:
+ *     summary: Validar token de recuperação de senha
+ *     tags: [Autenticação]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Token válido
+ *       400:
+ *         description: Token inválido ou expirado
+ */
 router.get('/validate-reset-token/:token', async (req, res) => {
   try {
     const { token } = req.params;
@@ -288,6 +443,32 @@ router.get('/validate-reset-token/:token', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Redefinir senha com token de recuperação
+ *     tags: [Autenticação]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token, password]
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Senha redefinida com sucesso
+ *       400:
+ *         description: Token inválido ou dados inválidos
+ */
 router.post('/reset-password', [
   body('token').notEmpty().withMessage('Token é obrigatório'),
   body('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres')
@@ -323,6 +504,40 @@ router.post('/reset-password', [
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Atualizar perfil do usuário
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               endereco:
+ *                 type: string
+ *               bairro:
+ *                 type: string
+ *               cidade:
+ *                 type: string
+ *               telefone:
+ *                 type: string
+ *               fotoPerfil:
+ *                 type: string
+ *               configuracoes:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Perfil atualizado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ */
 router.put('/profile', auth, [
   body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio')
     .isLength({ max: 100 }).withMessage('Nome deve ter no máximo 100 caracteres'),
