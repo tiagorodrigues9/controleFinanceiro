@@ -5,6 +5,29 @@ const { logger } = require('../utils/logger');
 const auth = require('../middleware/auth');
 
 // Testar todos os provedores de e-mail
+
+/**
+ * @swagger
+ * tags:
+ *   name: Email Teste
+ *   description: Teste de configuração de email
+ */
+/**
+ * @swagger
+ * /api/email-test/test:
+ *   get:
+ *     summary: Verificar configuração de email
+ *     tags: [Email Teste]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/test', auth, async (req, res) => {
   try {
     logger.debug('🧪 Testando todos os provedores de e-mail...');
@@ -24,6 +47,33 @@ router.get('/test', auth, async (req, res) => {
 });
 
 // Enviar e-mail de teste
+/**
+ * @swagger
+ * /api/email-test/test-send:
+ *   post:
+ *     summary: Enviar email de teste
+ *     tags: [Email Teste]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               to:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/test-send', auth, async (req, res) => {
   try {
     const { to, subject = 'E-mail de Teste', message = 'Este é um e-mail de teste do sistema.' } = req.body;

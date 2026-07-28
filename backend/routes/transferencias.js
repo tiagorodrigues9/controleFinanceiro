@@ -10,12 +10,51 @@ const { asyncHandler } = require('../utils/errors');
 const validateObjectId = require('../middleware/validateObjectId');
 
 // Aplicar middlewares
+
+/**
+ * @swagger
+ * tags:
+ *   name: Transferências
+ *   description: Transferências entre contas bancárias
+ */
 router.param('id', validateObjectId);
 router.use(auth);
 
 // @route   POST /api/transferencias
 // @desc    Realizar transferência entre contas bancárias
 // @access  Private
+/**
+ * @swagger
+ * /api/transferencias:
+ *   post:
+ *     summary: Criar nova transferência
+ *     tags: [Transferências]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [contaOrigem, contaDestino, valor]
+ *             properties:
+ *               contaOrigem:
+ *                 type: string
+ *               contaDestino:
+ *                 type: string
+ *               valor:
+ *                 type: number
+ *               motivo:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('contaOrigem').notEmpty().withMessage('Conta de origem é obrigatória'),
   body('contaDestino').notEmpty().withMessage('Conta de destino é obrigatória'),
@@ -158,6 +197,35 @@ router.post('/', [
 // @route   GET /api/transferencias
 // @desc    Obter histórico de transferências do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/transferencias:
+ *   get:
+ *     summary: Listar transferências
+ *     tags: [Transferências]
+ *     parameters:
+ *       - in: query
+ *         name: dataInicio
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dataFim
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
@@ -227,9 +295,33 @@ router.get('/', asyncHandler(async (req, res) => {
   }
 }));
 
-// @route   DELETE /api/transferencias/:id
+// @route   DELETE /api/transferencias:id
 // @desc    Excluir transferência (apenas usuário dono)
 // @access  Private
+/**
+ * @swagger
+ * /api/transferencias/{id}:
+ *   delete:
+ *     summary: Excluir transferência
+ *     tags: [Transferências]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;

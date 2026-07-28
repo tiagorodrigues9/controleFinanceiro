@@ -13,6 +13,13 @@ const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/fat
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Gastos Diários
+ *   description: CRUD de gastos diários
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -21,6 +28,55 @@ router.use(auth);
 // @route   GET /api/gastos
 // @desc    Obter todos os gastos do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos:
+ *   get:
+ *     summary: Listar gastos diários
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: query
+ *         name: tipoDespesa
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: subgrupo
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: formaPagamento
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dataInicio
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dataFim
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const { tipoDespesa, subgrupo, formaPagamento, dataInicio, dataFim } = req.query;
@@ -95,9 +151,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/gastos/:id
+// @route   GET /api/gastos:id
 // @desc    Obter gasto específico
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   get:
+ *     summary: Obter gasto por ID
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({
@@ -122,6 +202,49 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/gastos
 // @desc    Criar novo gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos:
+ *   post:
+ *     summary: Criar novo gasto diário
+ *     tags: [Gastos Diários]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tipoDespesa.grupo:
+ *                 type: string
+ *               tipoDespesa.subgrupo:
+ *                 type: string
+ *               valor:
+ *                 type: number
+ *               data:
+ *                 type: string
+ *               local:
+ *                 type: string
+ *               observacao:
+ *                 type: string
+ *               formaPagamento:
+ *                 type: string
+ *               cartao:
+ *                 type: string
+ *               contaBancaria:
+ *                 type: string
+ *               parcelas:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('tipoDespesa.grupo').notEmpty().withMessage('Grupo é obrigatório'),
   body('tipoDespesa.subgrupo').notEmpty().withMessage('Subgrupo é obrigatório'),
@@ -278,9 +401,33 @@ router.post('/', [
   }
 });
 
-// @route   POST /api/gastos/:id/duplicar
+// @route   POST /api/gastos:id/duplicar
 // @desc    Duplicar gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}/duplicar:
+ *   post:
+ *     summary: Duplicar gasto existente
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/duplicar', async (req, res) => {
   try {
     const gastoOriginal = await Gasto.findOne({
@@ -361,9 +508,33 @@ router.post('/:id/duplicar', async (req, res) => {
   }
 });
 
-// @route   PUT /api/gastos/:id
+// @route   PUT /api/gastos:id
 // @desc    Atualizar gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   put:
+ *     summary: Atualizar gasto
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({
@@ -499,9 +670,33 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/gastos/:id
+// @route   DELETE /api/gastos:id
 // @desc    Excluir gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   delete:
+ *     summary: Excluir gasto
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({

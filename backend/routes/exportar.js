@@ -9,6 +9,13 @@ const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
 // Aplica autenticação em todas as rotas
+
+/**
+ * @swagger
+ * tags:
+ *   name: Exportação
+ *   description: Exportação de dados em PDF e Excel
+ */
 router.use(auth);
 
 // Helper para formatar moeda
@@ -24,6 +31,44 @@ const formatarData = (dataStr) => {
 // @route   GET /api/exportar/extrato
 // @desc    Exportar extrato em PDF ou Excel
 // @access  Private
+/**
+ * @swagger
+ * /api/exportar/extrato:
+ *   get:
+ *     summary: Exportar extrato (PDF ou Excel)
+ *     tags: [Exportação]
+ *     parameters:
+ *       - in: query
+ *         name: formato
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ['pdf', 'excel']
+ *       - in: query
+ *         name: contaBancaria
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: mes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/extrato', async (req, res) => {
   try {
     const { formato = 'pdf', mes, ano, contaBancaria } = req.query;
@@ -138,6 +183,39 @@ router.get('/extrato', async (req, res) => {
 // @route   GET /api/exportar/contas
 // @desc    Exportar contas a pagar/receber em PDF ou Excel
 // @access  Private
+/**
+ * @swagger
+ * /api/exportar/contas:
+ *   get:
+ *     summary: Exportar contas a pagar (PDF ou Excel)
+ *     tags: [Exportação]
+ *     parameters:
+ *       - in: query
+ *         name: formato
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ['pdf', 'excel']
+ *       - in: query
+ *         name: mes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/contas', async (req, res) => {
   try {
     const { formato = 'pdf', status } = req.query;
