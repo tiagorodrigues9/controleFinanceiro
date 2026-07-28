@@ -13,7 +13,8 @@ const options = {
       }
     },
     servers: [
-      { url: 'http://localhost:5000', description: 'Desenvolvimento' }
+      { url: 'https://controle-financeiro-backend1.vercel.app', description: 'Produção (Vercel)' },
+      { url: 'http://localhost:5000', description: 'Desenvolvimento Local' }
     ],
     components: {
       securitySchemes: {
