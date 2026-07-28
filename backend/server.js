@@ -211,7 +211,7 @@ const socket = require('./utils/socket');
 const PORT = process.env.PORT || 5000;
 app.use(errorHandler);
 
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'test' && (process.env.NODE_ENV !== 'production' || !process.env.VERCEL)) {
   // Iniciar agendador de notificações
   const NotificationScheduler = require('./schedulers/NotificationScheduler');
   NotificationScheduler.iniciar();
