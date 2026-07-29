@@ -107,6 +107,30 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Listener para notificações locais de teste disparadas pelo frontend (fallback para celular)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, body, url } = event.data.payload;
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body: body,
+        icon: '/logo192.png',
+        badge: '/logo192.png',
+        vibrate: [100, 50, 100],
+        data: {
+          url: url || '/notificacoes',
+          timestamp: Date.now()
+        },
+        actions: [
+          { action: 'open', title: 'Abrir App' },
+          { action: 'dismiss', title: 'Fechar' }
+        ],
+        requireInteraction: true
+      })
+    );
+  }
+});
+
 // Clique na notificação
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
