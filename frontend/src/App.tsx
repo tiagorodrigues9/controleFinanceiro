@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './context/AuthContext';
@@ -62,17 +62,18 @@ const theme = createTheme({
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Detectar se veio de um redirecionamento 404
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     const redirectedFrom = params.get('redirected');
     
     if (redirectedFrom && redirectedFrom !== location.pathname) {
-      // Redirecionar para a rota correta
-      window.history.replaceState({}, '', redirectedFrom);
+      // Redirecionar para a rota correta usando o React Router
+      navigate(redirectedFrom, { replace: true });
     }
-  }, [location]);
+  }, [location, navigate]);
 
   return (
     <Routes>
