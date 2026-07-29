@@ -10,7 +10,7 @@ export default [
             ecmaVersion: "latest",
             sourceType: "commonjs",
             globals: {
-                // Configura globals para Node.js
+                // Configura globals para Node
                 __dirname: "readonly",
                 module: "readonly",
                 require: "readonly",
