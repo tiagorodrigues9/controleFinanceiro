@@ -30,7 +30,9 @@ import {
   AppBar,
   Toolbar,
   BottomNavigation,
-  BottomNavigationAction
+  BottomNavigationAction,
+  ThemeProvider,
+  createTheme
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -48,6 +50,47 @@ import {
 } from '@mui/icons-material';
 import api from '../utils/api';
 import usePushNotifications from '../hooks/usePushNotifications';
+
+const premiumTheme = createTheme({
+  palette: {
+    primary: { main: '#6366f1', dark: '#4f46e5', light: '#818cf8' },
+    secondary: { main: '#10b981', dark: '#059669', light: '#34d399' },
+    background: { paper: '#ffffff', default: '#f8fafc' },
+    text: { primary: '#1e293b', secondary: '#64748b' },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: { fontWeight: 700, color: '#0f172a' },
+    h6: { fontWeight: 600, color: '#1e293b' },
+  },
+  shape: { borderRadius: 12 },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+          padding: '8px 16px',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 16,
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'
+          }
+        }
+      }
+    }
+  }
+});
+
 
 const Notificacoes = () => {
   const theme = useTheme();
@@ -100,7 +143,7 @@ const Notificacoes = () => {
   const marcarComoLida = async (id) => {
     try {
       await api.put(`/notificacoes/${id}/marcar-lida`);
-      setNotificacoes(notificacoes.map(n => 
+      setNotificacoes(notificacoes.map(n =>
         n._id === id ? { ...n, lida: true } : n
       ));
       setNaoLidasCount(prev => Math.max(0, prev - 1));
@@ -159,27 +202,27 @@ const Notificacoes = () => {
     try {
       // Criar notificação no banco primeiro
       const response = await api.post('/notificacoes/teste-criacao');
-      
+
       // Mostrar notificação local após sucesso
       sendLocalNotification(
         response.data.titulo || 'Notificação de Teste',
         response.data.mensagem || 'Esta é uma notificação de teste do sistema!',
         '/notificacoes'
       );
-      
-      setSnackbar({ 
-        open: true, 
-        message: 'Notificação de teste criada com sucesso!' 
+
+      setSnackbar({
+        open: true,
+        message: 'Notificação de teste criada com sucesso!'
       });
 
       // Atualizar lista de notificações
       fetchNotificacoes();
-      
+
     } catch (error) {
       console.error('Erro ao criar notificação de teste:', error);
-      setSnackbar({ 
-        open: true, 
-        message: 'Erro ao criar notificação de teste' 
+      setSnackbar({
+        open: true,
+        message: 'Erro ao criar notificação de teste'
       });
     }
   };
@@ -229,432 +272,420 @@ const Notificacoes = () => {
   }
 
   return (
-    <Box sx={{ 
-      pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
-      px: isMobile ? 1 : 2,
-      pt: isMobile ? 1 : 3,
-      minHeight: '100vh',
-      bgcolor: 'background.default',
-      maxWidth: '100vw',
-      overflowX: 'hidden'
-    }}>
-      {/* Header responsivo */}
-      {isMobile ? (
-        <AppBar position="sticky" color="default" elevation={1} sx={{ mb: 2 }}>
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+    <ThemeProvider theme={premiumTheme}>
+      <Box sx={{
+        pb: isMobile ? 8 : 3, // Espaço para navegação inferior em mobile
+        px: isMobile ? 1 : 2,
+        pt: isMobile ? 1 : 3,
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        maxWidth: '100vw',
+        overflowX: 'hidden'
+      }}>
+        {/* Header responsivo */}
+        {isMobile ? (
+          <AppBar position="sticky" color="default" elevation={1} sx={{ mb: 2 }}>
+            <Toolbar>
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                <Badge badgeContent={naoLidasCount} color="error">
+                  <NotificationsIcon />
+                </Badge>
+                {' '}Notificações
+              </Typography>
+              <IconButton
+                edge="end"
+                onClick={() => setMobileMenuOpen(true)}
+                sx={{ ml: 1 }}
+              >
+                <SettingsIcon />
+              </IconButton>
+            </Toolbar>
+          </AppBar>
+        ) : (
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Typography variant="h4" component="h1">
               <Badge badgeContent={naoLidasCount} color="error">
                 <NotificationsIcon />
               </Badge>
               {' '}Notificações
             </Typography>
-            <IconButton 
-              edge="end" 
-              onClick={() => setMobileMenuOpen(true)}
-              sx={{ ml: 1 }}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
-      ) : (
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1">
-            <Badge badgeContent={naoLidasCount} color="error">
-              <NotificationsIcon />
-            </Badge>
-            {' '}Notificações
-          </Typography>
-          
-          <Box>
-            {isSupported && (
-              <Button
-                variant="outlined"
-                onClick={() => setShowSettings(true)}
-                sx={{ mr: 1 }}
-                startIcon={<SettingsIcon />}
-              >
-                Configurar
-              </Button>
-            )}
-            {naoLidasCount > 0 && (
-              <Button
-                variant="outlined"
-                onClick={marcarTodasComoLidas}
-                sx={{ mr: 1 }}
-                startIcon={<DoneAllIcon />}
-              >
-                Marcar Todas como Lidas
-              </Button>
-            )}
-            {notificacoes.length > 0 && (
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={limparTodas}
-                startIcon={<ClearAllIcon />}
-              >
-                Limpar Todas
-              </Button>
-            )}
+
+            <Box>
+              {isSupported && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowSettings(true)}
+                  sx={{ mr: 1 }}
+                  startIcon={<SettingsIcon />}
+                >
+                  Configurar
+                </Button>
+              )}
+              {naoLidasCount > 0 && (
+                <Button
+                  variant="outlined"
+                  onClick={marcarTodasComoLidas}
+                  sx={{ mr: 1 }}
+                  startIcon={<DoneAllIcon />}
+                >
+                  Marcar Todas como Lidas
+                </Button>
+              )}
+              {notificacoes.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={limparTodas}
+                  startIcon={<ClearAllIcon />}
+                >
+                  Limpar Todas
+                </Button>
+              )}
+            </Box>
           </Box>
-        </Box>
-      )}
+        )}
 
-      {/* Alerta de configuração de notificações */}
-      {isSupported && permission === 'default' && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            Ative as notificações push para receber alertas no seu celular, mesmo quando o app estiver fechado!
-          </Typography>
-          <Button size="small" onClick={handleRequestPermission} sx={{ mt: 1 }}>
-            Ativar Notificações Push
-          </Button>
-        </Alert>
-      )}
-
-      {!isSupported && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            Seu navegador não suporta notificações push. Use um navegador moderno como Chrome, Firefox ou Edge.
-          </Typography>
-        </Alert>
-      )}
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Cards de notificações otimizados para mobile */}
-      {notificacoes.length === 0 ? (
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: isMobile ? 6 : 4, px: isMobile ? 2 : 3 }}>
-            <CheckCircleIcon sx={{ fontSize: isMobile ? 48 : 64, color: 'success.main', mb: 2 }} />
-            <Typography variant={isMobile ? 'body1' : 'h6'} color="text.secondary">
-              Nenhuma notificação
+        {/* Alerta de configuração de notificações */}
+        {isSupported && permission === 'default' && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Ative as notificações push para receber alertas no seu celular, mesmo quando o app estiver fechado!
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Você não possui notificações no momento.
+            <Button size="small" onClick={handleRequestPermission} sx={{ mt: 1 }}>
+              Ativar Notificações Push
+            </Button>
+          </Alert>
+        )}
+
+        {!isSupported && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              Seu navegador não suporta notificações push. Use um navegador moderno como Chrome, Firefox ou Edge.
             </Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <Box>
-          {notificacoes.map((notificacao) => (
-            <Card 
-              key={notificacao._id} 
-              sx={{ 
-                mb: 2, 
-                bgcolor: notificacao.lida ? 'background.paper' : 'primary.50',
-                border: notificacao.lida ? '1px solid' : '2px solid',
-                borderColor: notificacao.lida ? 'divider' : 'primary.main',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: 3
-                }
-              }}
-              onClick={() => setSelectedNotificacao(notificacao)}
-            >
-              <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-                <Box display="flex" alignItems="flex-start" gap={2}>
-                  <Box sx={{ mt: 1 }}>
-                    {getIcon(notificacao.tipo)}
-                  </Box>
-                  
-                  <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
-                    <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
-                      <Typography 
-                        variant={isMobile ? 'body2' : 'subtitle2'} 
-                        sx={{ 
-                          fontWeight: !notificacao.lida ? 'bold' : 'normal',
-                          color: !notificacao.lida ? 'primary.main' : 'text.primary',
+          </Alert>
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Cards de notificações otimizados para mobile */}
+        {notificacoes.length === 0 ? (
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: isMobile ? 6 : 4, px: isMobile ? 2 : 3 }}>
+              <CheckCircleIcon sx={{ fontSize: isMobile ? 48 : 64, color: 'success.main', mb: 2 }} />
+              <Typography variant={isMobile ? 'body1' : 'h6'} color="text.secondary">
+                Nenhuma notificação
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Você não possui notificações no momento.
+              </Typography>
+            </CardContent>
+          </Card>
+        ) : (
+          <Box>
+            {notificacoes.map((notificacao) => (
+              <Card
+                key={notificacao._id}
+                sx={{
+                  mb: 2,
+                  bgcolor: notificacao.lida ? 'background.paper' : 'primary.50',
+                  border: notificacao.lida ? '1px solid' : '2px solid',
+                  borderColor: notificacao.lida ? 'divider' : 'primary.main',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 3
+                  }
+                }}
+                onClick={() => setSelectedNotificacao(notificacao)}
+              >
+                <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+                  <Box display="flex" alignItems="flex-start" gap={2}>
+                    <Box sx={{ mt: 1 }}>
+                      {getIcon(notificacao.tipo)}
+                    </Box>
+
+                    <Box sx={{ flexGrow: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
+                        <Typography
+                          variant={isMobile ? 'body2' : 'subtitle2'}
+                          sx={{
+                            fontWeight: !notificacao.lida ? 'bold' : 'normal',
+                            color: !notificacao.lida ? 'primary.main' : 'text.primary',
+                            wordBreak: 'break-word',
+                            flex: 1,
+                            minWidth: 0
+                          }}
+                        >
+                          {notificacao.titulo}
+                        </Typography>
+                        <Chip
+                          label={notificacao.tipo.replace('_', ' ').toUpperCase()}
+                          color={getCorChip(notificacao.tipo)}
+                          size="small"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                        {!notificacao.lida && (
+                          <Chip
+                            label="NOVA"
+                            color="primary"
+                            size="small"
+                            sx={{ fontSize: '0.7rem', fontWeight: 'bold' }}
+                          />
+                        )}
+                      </Box>
+
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 1,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
                           wordBreak: 'break-word',
-                          flex: 1,
-                          minWidth: 0
+                          maxWidth: '100%'
                         }}
                       >
-                        {notificacao.titulo}
+                        {notificacao.mensagem}
                       </Typography>
-                      <Chip
-                        label={notificacao.tipo.replace('_', ' ').toUpperCase()}
-                        color={getCorChip(notificacao.tipo)}
-                        size="small"
-                        sx={{ fontSize: '0.7rem' }}
-                      />
-                      {!notificacao.lida && (
-                        <Chip
-                          label="NOVA"
-                          color="primary"
-                          size="small"
-                          sx={{ fontSize: '0.7rem', fontWeight: 'bold' }}
-                        />
-                      )}
-                    </Box>
-                    
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      sx={{ 
-                        mb: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        wordBreak: 'break-word',
-                        maxWidth: '100%'
-                      }}
-                    >
-                      {notificacao.mensagem}
-                    </Typography>
-                    
-                    <Typography variant="caption" color="text.secondary">
-                      {formatarData(notificacao.data)}
-                    </Typography>
-                  </Box>
 
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                    {!notificacao.lida && (
+                      <Typography variant="caption" color="text.secondary">
+                        {formatarData(notificacao.data)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      {!notificacao.lida && (
+                        <IconButton
+                          size={isMobile ? 'small' : 'medium'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            marcarComoLida(notificacao._id);
+                          }}
+                          title="Marcar como lida"
+                          sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                        >
+                          <MarkReadIcon fontSize={isMobile ? 'small' : 'medium'} />
+                        </IconButton>
+                      )}
                       <IconButton
                         size={isMobile ? 'small' : 'medium'}
                         onClick={(e) => {
                           e.stopPropagation();
-                          marcarComoLida(notificacao._id);
+                          excluirNotificacao(notificacao._id);
                         }}
-                        title="Marcar como lida"
-                        sx={{ bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } }}
+                        title="Excluir notificação"
+                        sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
                       >
-                        <MarkReadIcon fontSize={isMobile ? 'small' : 'medium'} />
+                        <DeleteIcon fontSize={isMobile ? 'small' : 'medium'} />
                       </IconButton>
-                    )}
-                    <IconButton
-                      size={isMobile ? 'small' : 'medium'}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        excluirNotificacao(notificacao._id);
-                      }}
-                      title="Excluir notificação"
-                      sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}
-                    >
-                      <DeleteIcon fontSize={isMobile ? 'small' : 'medium'} />
-                    </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
-      )}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
 
-      {/* Dialog para detalhes da notificação */}
-      <Dialog 
-        open={!!selectedNotificacao} 
-        onClose={() => setSelectedNotificacao(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        {selectedNotificacao && (
-          <>
-            <DialogTitle>
-              <Box display="flex" alignItems="center" gap={1}>
-                {getIcon(selectedNotificacao.tipo)}
-                {selectedNotificacao.titulo}
-              </Box>
-            </DialogTitle>
-            <DialogContent>
-              <Typography variant="body1" paragraph>
-                {selectedNotificacao.mensagem}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {formatarData(selectedNotificacao.data)}
-              </Typography>
-            </DialogContent>
-            <DialogActions>
-              {!selectedNotificacao.lida && (
-                <Button 
-                  onClick={() => {
-                    marcarComoLida(selectedNotificacao._id);
-                    setSelectedNotificacao(null);
-                  }}
-                  startIcon={<MarkReadIcon />}
+        {/* Dialog para detalhes da notificação */}
+        <Dialog
+          open={!!selectedNotificacao}
+          onClose={() => setSelectedNotificacao(null)}
+          maxWidth="sm"
+          fullWidth
+        >
+          {selectedNotificacao && (
+            <>
+              <DialogTitle>
+                <Box display="flex" alignItems="center" gap={1}>
+                  {getIcon(selectedNotificacao.tipo)}
+                  {selectedNotificacao.titulo}
+                </Box>
+              </DialogTitle>
+              <DialogContent>
+                <Typography variant="body1" paragraph>
+                  {selectedNotificacao.mensagem}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {formatarData(selectedNotificacao.data)}
+                </Typography>
+              </DialogContent>
+              <DialogActions>
+                {!selectedNotificacao.lida && (
+                  <Button
+                    onClick={() => {
+                      marcarComoLida(selectedNotificacao._id);
+                      setSelectedNotificacao(null);
+                    }}
+                    startIcon={<MarkReadIcon />}
+                  >
+                    Marcar como Lida
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setSelectedNotificacao(null)}
+                  startIcon={<CloseIcon />}
                 >
-                  Marcar como Lida
+                  Fechar
+                </Button>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
+
+        {/* Dialog para configurações de notificações */}
+        <Dialog
+          open={showSettings}
+          onClose={() => setShowSettings(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            <Box display="flex" alignItems="center" gap={1}>
+              <SettingsIcon />
+              Configurar Notificações Push
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            <Paper sx={{ p: 2, mb: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Status das Notificações
+              </Typography>
+
+              <Box sx={{ mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={permission === 'granted'}
+                      disabled={permission === 'granted'}
+                    />
+                  }
+                  label="Notificações Push Ativadas"
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Status: {permission === 'granted' ? '✅ Ativado' : permission === 'denied' ? '❌ Bloqueado' : '⏳ Não configurado'}
+                </Typography>
+              </Box>
+
+              {isSupported && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Com as notificações push ativadas, você receberá alertas no seu celular:
+                  </Typography>
+                  <ul>
+                    <li>Quando contas vencerem</li>
+                    <li>Quando contas estiverem próximas do vencimento</li>
+                    <li>Quando o limite do cartão for atingido</li>
+                    <li>Mesmo quando o app estiver fechado</li>
+                  </ul>
+                </Box>
+              )}
+
+              {permission === 'granted' && (
+                <Button
+                  variant="outlined"
+                  onClick={testNotification}
+                  sx={{ mr: 1 }}
+                >
+                  Testar Notificação
                 </Button>
               )}
-              <Button 
-                onClick={() => setSelectedNotificacao(null)}
-                startIcon={<CloseIcon />}
-              >
-                Fechar
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
+            </Paper>
 
-      {/* Dialog para configurações de notificações */}
-      <Dialog 
-        open={showSettings} 
-        onClose={() => setShowSettings(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <SettingsIcon />
-            Configurar Notificações Push
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Status das Notificações
-            </Typography>
-            
-            <Box sx={{ mb: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={permission === 'granted'}
-                    disabled={permission === 'granted'}
-                  />
-                }
-                label="Notificações Push Ativadas"
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Status: {permission === 'granted' ? '✅ Ativado' : permission === 'denied' ? '❌ Bloqueado' : '⏳ Não configurado'}
-              </Typography>
-            </Box>
-
-            {isSupported && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Com as notificações push ativadas, você receberá alertas no seu celular:
+            {permission === 'denied' && (
+              <Alert severity="warning">
+                <Typography variant="body2">
+                  As notificações estão bloqueadas. Para ativar, vá nas configurações do seu navegador e permita notificações para este site.
                 </Typography>
-                <ul>
-                  <li>Quando contas vencerem</li>
-                  <li>Quando contas estiverem próximas do vencimento</li>
-                  <li>Quando o limite do cartão for atingido</li>
-                  <li>Mesmo quando o app estiver fechado</li>
-                </ul>
-              </Box>
+              </Alert>
             )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowSettings(false)}>
+              Fechar
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-            {permission === 'granted' && (
-              <Button 
-                variant="outlined" 
-                onClick={testNotification}
-                sx={{ mr: 1 }}
-              >
-                Testar Notificação
-              </Button>
-            )}
-          </Paper>
 
-          {permission === 'denied' && (
-            <Alert severity="warning">
-              <Typography variant="body2">
-                As notificações estão bloqueadas. Para ativar, vá nas configurações do seu navegador e permita notificações para este site.
-              </Typography>
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowSettings(false)}>
-            Fechar
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* FAB para ações rápidas em mobile */}
-      {isMobile && (
-        <Fab
-          color="primary"
+        {/* Drawer mobile para ações */}
+        <Drawer
+          anchor="bottom"
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
           sx={{
-            position: 'fixed',
-            bottom: 80,
-            right: 16,
-            zIndex: 1000
+            '& .MuiDrawer-paper': {
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              p: 2
+            }
           }}
-          onClick={() => setMobileMenuOpen(true)}
         >
-          <MenuIcon />
-        </Fab>
-      )}
+          <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
+            Ações Rápidas
+          </Typography>
 
-      {/* Drawer mobile para ações */}
-      <Drawer
-        anchor="bottom"
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        sx={{
-          '& .MuiDrawer-paper': {
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            p: 2
-          }
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: 2, textAlign: 'center' }}>
-          Ações Rápidas
-        </Typography>
-        
-        {isSupported && (
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setShowSettings(true);
-              setMobileMenuOpen(false);
-            }}
-            sx={{ mb: 1, width: '100%' }}
-            startIcon={<SettingsIcon />}
-          >
-            Configurar Notificações
-          </Button>
-        )}
-        
-        {naoLidasCount > 0 && (
-          <Button
-            variant="outlined"
-            onClick={() => {
-              marcarTodasComoLidas();
-              setMobileMenuOpen(false);
-            }}
-            sx={{ mb: 1, width: '100%' }}
-            startIcon={<DoneAllIcon />}
-          >
-            Marcar Todas como Lidas ({naoLidasCount})
-          </Button>
-        )}
-        
-        {notificacoes.length > 0 && (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => {
-              limparTodas();
-              setMobileMenuOpen(false);
-            }}
-            sx={{ mb: 1, width: '100%' }}
-            startIcon={<ClearAllIcon />}
-          >
-            Limpar Todas
-          </Button>
-        )}
-      </Drawer>
+          {isSupported && (
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setShowSettings(true);
+                setMobileMenuOpen(false);
+              }}
+              sx={{ mb: 1, width: '100%' }}
+              startIcon={<SettingsIcon />}
+            >
+              Configurar Notificações
+            </Button>
+          )}
 
-      {/* Snackbar para feedback */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
-    </Box>
+          {naoLidasCount > 0 && (
+            <Button
+              variant="outlined"
+              onClick={() => {
+                marcarTodasComoLidas();
+                setMobileMenuOpen(false);
+              }}
+              sx={{ mb: 1, width: '100%' }}
+              startIcon={<DoneAllIcon />}
+            >
+              Marcar Todas como Lidas ({naoLidasCount})
+            </Button>
+          )}
+
+          {notificacoes.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => {
+                limparTodas();
+                setMobileMenuOpen(false);
+              }}
+              sx={{ mb: 1, width: '100%' }}
+              startIcon={<ClearAllIcon />}
+            >
+              Limpar Todas
+            </Button>
+          )}
+        </Drawer>
+
+        {/* Snackbar para feedback */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          message={snackbar.message}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        />
+      </Box>
+    </ThemeProvider>
   );
 };
 

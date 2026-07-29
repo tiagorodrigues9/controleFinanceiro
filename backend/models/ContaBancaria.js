@@ -21,8 +21,7 @@ const contaBancariaSchema = new mongoose.Schema({
   },
   saldo: {
     type: Number,
-    default: 0,
-    min: 0
+    default: 0
   },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,

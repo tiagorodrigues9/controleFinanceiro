@@ -54,7 +54,7 @@ const corsOptions = {
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['X-Total-Count', 'X-Total-Pages'],
   maxAge: 86400 // 24 horas
@@ -92,9 +92,10 @@ const authLimiter = rateLimit({
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rota raiz
@@ -111,7 +112,8 @@ app.get('/', (req, res) => {
       grupos: '/api/grupos',
       extrato: '/api/extrato',
       dashboard: '/api/dashboard',
-      transferencias: '/api/transferencias'
+      transferencias: '/api/transferencias',
+      formasPagamento: '/api/formas-pagamento'
     }
   });
 });
@@ -209,7 +211,7 @@ const socket = require('./utils/socket');
 const PORT = process.env.PORT || 5000;
 app.use(errorHandler);
 
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'test' && (process.env.NODE_ENV !== 'production' || !process.env.VERCEL)) {
   // Iniciar agendador de notificações
   const NotificationScheduler = require('./schedulers/NotificationScheduler');
   NotificationScheduler.iniciar();

@@ -8,6 +8,13 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Fornecedores
+ *   description: CRUD de fornecedores
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -16,6 +23,28 @@ router.use(auth);
 // @route   GET /api/fornecedores
 // @desc    Obter todos os fornecedores do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores:
+ *   get:
+ *     summary: Listar fornecedores
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: query
+ *         name: ativo
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const fornecedores = await Fornecedor.find({
@@ -29,9 +58,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/fornecedores/:id
+// @route   GET /api/fornecedores:id
 // @desc    Obter fornecedor específico
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}:
+ *   get:
+ *     summary: Obter fornecedor por ID
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const fornecedor = await Fornecedor.findOne({
@@ -53,9 +106,47 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/fornecedores
 // @desc    Criar novo fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores:
+ *   post:
+ *     summary: Criar novo fornecedor
+ *     tags: [Fornecedores]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               documento:
+ *                 type: string
+ *               telefone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               endereco:
+ *                 type: string
+ *               observacoes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
-  body('nome').notEmpty().withMessage('Nome é obrigatório')
-  // Tipo não é mais obrigatório
+  body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('E-mail inválido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -63,11 +154,30 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, tipo } = req.body;
+    const { nome, tipo, documento, telefone, email, endereco, observacoes } = req.body;
+
+    const escapeRegExp = (string) => {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    };
+
+    // Verificar se já existe um fornecedor com este nome para este usuário
+    const existingFornecedor = await Fornecedor.findOne({
+      usuario: req.user._id,
+      nome: { $regex: new RegExp(`^${escapeRegExp(nome)}$`, 'i') } // case-insensitive exact match
+    });
+
+    if (existingFornecedor) {
+      return res.status(400).json({ message: 'Você já possui um fornecedor cadastrado com este nome.' });
+    }
 
     const fornecedor = await Fornecedor.create({
       nome,
-      tipo: tipo || 'Geral', // Tipo padrão se não informado
+      tipo: tipo || 'Geral',
+      documento,
+      telefone,
+      email,
+      endereco,
+      observacoes,
       usuario: req.user._id
     });
 
@@ -78,12 +188,36 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/fornecedores/:id
+// @route   PUT /api/fornecedores:id
 // @desc    Atualizar fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}:
+ *   put:
+ *     summary: Atualizar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', [
-  body('nome').optional().notEmpty().withMessage('Nome não pode ser vazio')
-  // Tipo não é mais obrigatório para atualização
+  body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio'),
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('E-mail inválido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -100,12 +234,31 @@ router.put('/:id', [
       return res.status(404).json({ message: 'Fornecedor não encontrado' });
     }
 
-    const { nome, tipo } = req.body;
+    const { nome, tipo, documento, telefone, email, endereco, observacoes, ativo } = req.body;
     
-    // Atualizar apenas os campos fornecidos
-    if (nome) fornecedor.nome = nome;
-    if (tipo) fornecedor.tipo = tipo;
-    // Se tipo não for informado, mantém o valor atual
+    // Se o nome foi alterado, verificar duplicidade
+    if (nome && nome.toLowerCase() !== fornecedor.nome.toLowerCase()) {
+      const escapeRegExp = (string) => {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      };
+      const existingFornecedor = await Fornecedor.findOne({
+        usuario: req.user._id,
+        nome: { $regex: new RegExp(`^${escapeRegExp(nome)}$`, 'i') }
+      });
+
+      if (existingFornecedor) {
+        return res.status(400).json({ message: 'Você já possui outro fornecedor cadastrado com este nome.' });
+      }
+    }
+    
+    if (nome !== undefined) fornecedor.nome = nome;
+    if (tipo !== undefined) fornecedor.tipo = tipo;
+    if (documento !== undefined) fornecedor.documento = documento;
+    if (telefone !== undefined) fornecedor.telefone = telefone;
+    if (email !== undefined) fornecedor.email = email;
+    if (endereco !== undefined) fornecedor.endereco = endereco;
+    if (observacoes !== undefined) fornecedor.observacoes = observacoes;
+    if (ativo !== undefined) fornecedor.ativo = ativo; // Permite reativar ou inativar via PUT
     
     await fornecedor.save();
 
@@ -116,9 +269,33 @@ router.put('/:id', [
   }
 });
 
-// @route   PUT /api/fornecedores/:id/inativar
+// @route   PUT /api/fornecedores:id/inativar
 // @desc    Inativar fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}/inativar:
+ *   put:
+ *     summary: Inativar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/inativar', async (req, res) => {
   try {
     const fornecedor = await Fornecedor.findOne({
@@ -153,5 +330,52 @@ router.put('/:id/inativar', async (req, res) => {
   }
 });
 
-module.exports = router;
+// @route   PUT /api/fornecedores:id/ativar
+// @desc    Ativar (Reativar) fornecedor
+// @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}/ativar:
+ *   put:
+ *     summary: Reativar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
+router.put('/:id/ativar', async (req, res) => {
+  try {
+    const fornecedor = await Fornecedor.findOne({
+      _id: req.params.id,
+      usuario: req.user._id
+    });
 
+    if (!fornecedor) {
+      return res.status(404).json({ message: 'Fornecedor não encontrado' });
+    }
+
+    fornecedor.ativo = true;
+    await fornecedor.save();
+
+    res.json({ message: 'Fornecedor reativado com sucesso' });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ message: 'Erro ao reativar fornecedor' });
+  }
+});
+
+module.exports = router;

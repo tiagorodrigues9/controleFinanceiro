@@ -31,6 +31,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  telefone: {
+    type: String,
+    trim: true
+  },
+  fotoPerfil: {
+    type: String,
+    default: null
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
   refreshToken: String,
@@ -59,6 +67,10 @@ const userSchema = new mongoose.Schema({
         max: 30
       }
     }
+  },
+  pushSubscriptions: {
+    type: [Object],
+    default: []
   }
 }, {
   timestamps: true

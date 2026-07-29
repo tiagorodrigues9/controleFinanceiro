@@ -23,8 +23,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Verificar se já existe usuário logado ao carregar a página
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
 
     if (token && userData) {
       try {
@@ -34,6 +34,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
       }
     }
     
@@ -41,16 +43,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+  const login = async (email: string, password: string, rememberMe: boolean = true): Promise<{ success: boolean; message?: string }> => {
     try {
       setError(null);
       
       const response = await api.post('/auth/login', { email, password });
       const { token, refreshToken, user } = response.data;
 
-      localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      if (rememberMe) {
+        localStorage.setItem('token', token);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+      }
 
       setUser(user);
 
@@ -89,6 +96,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setUser(null);
   };
 
@@ -116,9 +125,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const validateResetToken = async (token: string): Promise<{ valid: boolean; message?: string }> => {
+    try {
+      await api.get(`/auth/validate-reset-token/${token}`);
+      return { valid: true };
+    } catch (error: any) {
+      return {
+        valid: false,
+        message: error.response?.data?.message || 'Token inválido ou expirado',
+      };
+    }
+  };
+
   const updateUser = (userData: User): void => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    if (localStorage.getItem('user')) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    } else if (sessionStorage.getItem('user')) {
+      sessionStorage.setItem('user', JSON.stringify(userData));
+    }
   };
 
   return (
@@ -133,6 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout,
         forgotPassword,
         resetPassword,
+        validateResetToken,
         updateUser,
       }}
     >

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const NodeCache = require('node-cache');
 const { connectDB } = require('../utils/db');
+const { logger } = require('../utils/logger');
 
 // Cache para evitar queries repetitivas ao banco (TTL de 5 minutos)
 const userAuthCache = new NodeCache({ stdTTL: 300 });
@@ -23,7 +24,7 @@ const auth = async (req, res, next) => {
       await connectDB();
       
       // Se não estiver no cache, buscar no banco
-      user = await User.findById(decoded.id).select('_id email nome').lean();
+      user = await User.findById(decoded.id).select('_id email nome endereco bairro cidade telefone fotoPerfil configuracoes').lean();
       
       if (!user) {
         return res.status(401).json({ message: 'Acesso negado. Usuário não encontrado.' });
@@ -44,8 +45,14 @@ const auth = async (req, res, next) => {
     }
     
     // Se não for um erro do JWT (como erro de banco de dados, timeout, etc)
-    console.error('Erro interno no middleware de auth:', error);
+    logger.error('Erro interno no middleware de auth:', error);
     return res.status(500).json({ message: 'Erro interno no servidor ao validar autenticação.' });
+  }
+};
+
+auth.clearCache = (userId) => {
+  if (userId) {
+    userAuthCache.del(userId.toString());
   }
 };
 

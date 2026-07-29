@@ -17,6 +17,13 @@ const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/fat
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Contas a Pagar
+ *   description: Gerenciamento de contas a pagar, pagamentos e estornos
+ */
 router.param('id', validateObjectId);
 
 const crypto = require('crypto');
@@ -34,7 +41,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limite de 5MB
   fileFilter: (req, file, cb) => {
@@ -54,11 +61,60 @@ router.use(auth);
 // @route   GET /api/contas
 // @desc    Obter todas as contas do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/contas:
+ *   get:
+ *     summary: Listar contas a pagar
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: query
+ *         name: mes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['pendentes', 'pagas', 'vencidas', 'todos']
+ *       - in: query
+ *         name: ativo
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: ['ativas', 'inativas', 'todas']
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     logger.debug('🔍 Rotas Contas - GET /api/contas chamado');
     logger.debug('🔍 Rotas Contas - req.user._id:', req.user._id);
-    
+
     const { mes, ano, ativo, status, dataInicio, dataFim } = req.query;
     const query = { usuario: req.user._id, valor: { $ne: null } };
 
@@ -88,16 +144,27 @@ router.get('/', async (req, res) => {
     }
     if (dataFim) {
       const fim = new Date(dataFim);
-      fim.setHours(23,59,59,999);
+      fim.setHours(23, 59, 59, 999);
       query.dataVencimento = query.dataVencimento || {};
       query.dataVencimento.$lte = fim;
     }
 
     logger.info('Buscando contas', { userId: req.user._id, filters: { mes, ano, ativo, status } });
 
-    // O status de contas vencidas agora é atualizado pelo NotificationScheduler diariamente
-    // e no momento da criação/edição através do pre-save hook no modelo Conta.
-
+    // Garantir que contas pendentes e vencidas estejam com o status correto em tempo real (Safety Net)
+    const agora = new Date();
+    const hojeUTC = new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
+    
+    await Conta.updateMany(
+      {
+        usuario: req.user._id,
+        status: 'Pendente',
+        dataVencimento: { $lt: hojeUTC },
+        ativo: { $ne: false }
+      },
+      { $set: { status: 'Vencida' } }
+    );
+    
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const skip = (page - 1) * limit;
@@ -132,9 +199,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/contas/:id
+// @route   GET /api/contas:id
 // @desc    Obter conta específica
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}:
+ *   get:
+ *     summary: Obter conta por ID
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const conta = await Conta.findOne({
@@ -158,6 +249,22 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/contas
 // @desc    Criar nova conta
 // @access  Private
+/**
+ * @swagger
+ * /api/contas:
+ *   post:
+ *     summary: Criar nova conta a pagar (suporta anexo)
+ *     tags: [Contas a Pagar]
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', upload.single('anexo'), [
   body('nome').notEmpty().withMessage('Nome é obrigatório'),
   body('dataVencimento').optional().notEmpty().withMessage('Data de vencimento é obrigatória'),
@@ -271,9 +378,33 @@ router.post('/', upload.single('anexo'), [
   }
 });
 
-// @route   PUT /api/contas/:id
+// @route   PUT /api/contas:id
 // @desc    Atualizar conta
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}:
+ *   put:
+ *     summary: Atualizar conta a pagar
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', upload.single('anexo'), async (req, res) => {
   try {
     const conta = await Conta.findOne({
@@ -310,9 +441,33 @@ router.put('/:id', upload.single('anexo'), async (req, res) => {
   }
 });
 
-// @route   GET /api/contas/:id/check-installments
+// @route   GET /api/contas:id/check-installments
 // @desc    Verificar se há parcelas restantes para a conta
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/check-installments:
+ *   get:
+ *     summary: Verificar parcelas da conta
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id/check-installments', async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -340,16 +495,40 @@ router.get('/:id/check-installments', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contas/:id
+// @route   DELETE /api/contas:id
 // @desc    Excluir conta permanentemente
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}:
+ *   delete:
+ *     summary: Inativar conta (soft delete)
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     // Validar se o ID é um ObjectId válido
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'ID de conta inválido' });
     }
-    
+
     const conta = await Conta.findOne({
       _id: req.params.id,
       usuario: req.user._id
@@ -363,7 +542,7 @@ router.delete('/:id', async (req, res) => {
     // Check if there are remaining active installments
     let hasRemainingInstallments = false;
     let remainingCount = 0;
-    
+
     if (conta.parcelaId && req.query.force !== 'true') {
       const remainingInstallments = await Conta.find({
         parcelaId: conta.parcelaId,
@@ -393,9 +572,33 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contas/:id/hard-all-remaining
+// @route   DELETE /api/contas:id/hard-all-remaining
 // @desc    Inativar todas as parcelas do mesmo grupo
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/hard-all-remaining:
+ *   delete:
+ *     summary: Excluir todas as parcelas restantes
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id/hard-all-remaining', async (req, res) => {
   try {
     const conta = await Conta.findOne({
@@ -407,7 +610,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
     if (!conta) {
       return res.status(404).json({ message: 'Conta não encontrada ou não pertence a um grupo de parcelas' });
     }
-    
+
     // Inativar todas as parcelas do mesmo parcelaId
     const result = await Conta.updateMany(
       {
@@ -420,7 +623,7 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
       }
     );
 
-    res.json({ 
+    res.json({
       message: 'Todas as parcelas foram inativadas com sucesso',
       updatedCount: result.modifiedCount
     });
@@ -430,9 +633,33 @@ router.delete('/:id/hard-all-remaining', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contas/:id/cancel-all-remaining
+// @route   DELETE /api/contas:id/cancel-all-remaining
 // @desc    Excluir todas as parcelas do mesmo grupo
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/cancel-all-remaining:
+ *   delete:
+ *     summary: Cancelar todas as parcelas restantes
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id/cancel-all-remaining', async (req, res) => {
   try {
     const conta = await Conta.findOne({
@@ -451,12 +678,12 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
       usuario: req.user._id
     });
 
-    logger.info('Parcelas excluídas permanentemente', { 
-      parcelaId: conta.parcelaId, 
-      count: result.deletedCount 
+    logger.info('Parcelas excluídas permanentemente', {
+      parcelaId: conta.parcelaId,
+      count: result.deletedCount
     });
 
-    res.json({ 
+    res.json({
       message: `${result.deletedCount} parcela(s) excluída(s) permanentemente com sucesso`,
       count: result.deletedCount
     });
@@ -466,9 +693,33 @@ router.delete('/:id/cancel-all-remaining', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contas/:id/hard
+// @route   DELETE /api/contas:id/hard
 // @desc    Inativar conta permanentemente (apenas usuário dono)
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/hard:
+ *   delete:
+ *     summary: Excluir conta permanentemente (hard delete)
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id/hard', async (req, res) => {
   try {
     const conta = await Conta.findOne({ _id: req.params.id, usuario: req.user._id });
@@ -478,7 +729,7 @@ router.delete('/:id/hard', async (req, res) => {
     conta.ativo = false;
     conta.status = 'Cancelada';
     await conta.save();
-    
+
     res.json({ message: 'Conta inativada com sucesso' });
   } catch (error) {
     logger.error(error);
@@ -486,20 +737,44 @@ router.delete('/:id/hard', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/contas/:id/permanent
+// @route   DELETE /api/contas:id/permanent
 // @desc    Excluir permanentemente conta inativa (apenas usuário dono)
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/permanent:
+ *   delete:
+ *     summary: Excluir conta e todas as parcelas permanentemente
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id/permanent', async (req, res) => {
   try {
-    const conta = await Conta.findOne({ 
-      _id: req.params.id, 
+    const conta = await Conta.findOne({
+      _id: req.params.id,
       usuario: req.user._id,
       ativo: false // Apenas pode excluir se já estiver inativa
     });
-    
+
     if (!conta) {
-      return res.status(404).json({ 
-        message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.' 
+      return res.status(404).json({
+        message: 'Conta não encontrada ou ainda está ativa. Inative a conta primeiro.'
       });
     }
 
@@ -511,7 +786,7 @@ router.delete('/:id/permanent', async (req, res) => {
         ativo: { $ne: false },
         _id: { $ne: conta._id }
       });
-      
+
       if (remainingInstallments.length > 0) {
         return res.status(400).json({
           message: `Existem ${remainingInstallments.length} parcela(s) restantes. Cancele todas as parcelas primeiro.`,
@@ -522,17 +797,17 @@ router.delete('/:id/permanent', async (req, res) => {
 
     // Excluir permanentemente
     await Conta.deleteOne({ _id: req.params.id, usuario: req.user._id });
-    
-    logger.info('Conta excluída permanentemente', { 
-      contaId: conta._id, 
+
+    logger.info('Conta excluída permanentemente', {
+      contaId: conta._id,
       nome: conta.nome,
-      userId: req.user._id 
+      userId: req.user._id
     });
-    
+
     res.json({ message: 'Conta excluída permanentemente com sucesso' });
   } catch (error) {
-    logger.error('Erro ao excluir conta permanentemente', { 
-      error: error.message, 
+    logger.error('Erro ao excluir conta permanentemente', {
+      error: error.message,
       stack: error.stack,
       contaId: req.params.id,
       userId: req.user._id
@@ -541,9 +816,47 @@ router.delete('/:id/permanent', async (req, res) => {
   }
 });
 
-// @route   POST /api/contas/:id/pagar
+// @route   POST /api/contas:id/pagar
 // @desc    Pagar conta
 // @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/pagar:
+ *   post:
+ *     summary: Pagar conta
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [contaBancaria]
+ *             properties:
+ *               contaBancaria:
+ *                 type: string
+ *               dataPagamento:
+ *                 type: string
+ *               jurosPago:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/pagar', [
   body('formaPagamento').notEmpty().withMessage('Forma de pagamento é obrigatória'),
   body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória')
@@ -555,7 +868,7 @@ router.post('/:id/pagar', [
     }
 
     const { formaPagamento, contaBancaria, cartao, juros } = req.body;
-    
+
     // Validação customizada: cartão é obrigatório para pagamentos com cartão
     if ((formaPagamento === 'Cartão de Crédito' || formaPagamento === 'Cartão de Débito') && !cartao) {
       return res.status(400).json({ message: 'Cartão é obrigatório para pagamentos com cartão' });
@@ -617,7 +930,7 @@ router.post('/:id/pagar', [
           valor: valorPago,
           data: new Date(),
           local: conta.fornecedor?.nome || 'Pagamento de conta',
-          observacao: `Pagamento da conta: ${conta.nome}`,
+          observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`,
           formaPagamento,
           contaBancaria: contaBancaria,
           cartao: cartaoObj ? cartaoObj._id : null,
@@ -644,20 +957,15 @@ router.post('/:id/pagar', [
         // Para cartão de crédito, adicionar à fatura do cartão
         if (cartaoObj) {
           const FaturaCartao = require('../models/FaturaCartao');
-          
-          // Determinar o mês de referência da fatura
-          const diaFech = cartaoObj.diaFatura || 25;
-          const diaVenc = cartaoObj.diaVencimento || (diaFech + 3 > 28 ? 5 : diaFech + 3);
-          const dataPagamento = new Date();
-          const { dataVencimento, dataFechamento, mesReferencia } = calcularDatasFatura(dataPagamento, diaFech, diaVenc);
 
-          // Buscar ou criar fatura do mês (garantindo que esteja Aberta)
+          // Determinar a data do pagamento para enviar ao novo robô de faturas
+          const dataPagamento = new Date();
+
+          // Buscar ou criar fatura do mês com a nova assinatura segura
           let fatura = await buscarOuCriarFaturaAberta(
-            cartaoObj._id, 
-            req.user._id, 
-            dataVencimento, 
-            dataFechamento, 
-            mesReferencia
+            cartaoObj,
+            req.user._id,
+            dataPagamento
           );
 
           // Adicionar despesa à fatura
@@ -665,7 +973,8 @@ router.post('/:id/pagar', [
             conta._id,
             valorPago,
             dataPagamento,
-            `${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}`
+            `${conta.nome} - ${conta.fornecedor?.nome || 'Fornecedor não informado'}`,
+            session
           );
         }
       }
@@ -693,5 +1002,120 @@ router.post('/:id/pagar', [
   }
 });
 
+// @route   POST /api/contas:id/estornar
+// @desc    Estornar pagamento de conta e limpar Extrato/Gastos/Faturas
+// @access  Private
+/**
+ * @swagger
+ * /api/contas/{id}/estornar:
+ *   post:
+ *     summary: Estornar pagamento de conta
+ *     tags: [Contas a Pagar]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
+router.post('/:id/estornar', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const conta = await Conta.findOne({
+      _id: req.params.id,
+      usuario: req.user._id,
+      ativo: { $ne: false }
+    }).populate('fornecedor');
+
+    if (!conta) {
+      return res.status(404).json({ message: 'Conta não encontrada' });
+    }
+
+    if (conta.status !== 'Pago') {
+      return res.status(400).json({ message: 'Apenas contas pagas podem ser estornadas' });
+    }
+
+    const valorPago = conta.valor + (conta.jurosPago || 0);
+
+    // 1. Remover Gasto Espelho (se foi criado)
+    const Gasto = require('../models/Gasto');
+    await Gasto.deleteMany({
+      usuario: req.user._id,
+      observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`
+    }, { session });
+
+    // Para gastos antigos (antes da atualização da observação com o ID)
+    await Gasto.deleteMany({
+      usuario: req.user._id,
+      observacao: `Pagamento da conta: ${conta.nome}`,
+      valor: valorPago
+    }, { session });
+
+    // 2. Extrato - Estornar/Remover Saída
+    if (conta.formaPagamento !== 'Cartão de Crédito') {
+      await Extrato.deleteMany({
+        usuario: req.user._id,
+        'referencia.tipo': 'Conta',
+        'referencia.id': conta._id
+      }, { session });
+    } else {
+      // 3. Remover a despesa da Fatura do Cartão de Crédito
+      const FaturaCartao = require('../models/FaturaCartao');
+      const faturaAntiga = await FaturaCartao.findOne({
+        usuario: req.user._id,
+        'despesas.conta': conta._id
+      }).session(session);
+
+      if (faturaAntiga) {
+        // Deduzir o valor
+        faturaAntiga.valorTotal = Math.round((faturaAntiga.valorTotal - valorPago) * 100) / 100;
+        if (faturaAntiga.valorTotal < 0) faturaAntiga.valorTotal = 0;
+        // Filtrar a despesa
+        faturaAntiga.despesas = faturaAntiga.despesas.filter(d => d.conta && d.conta.toString() !== conta._id.toString());
+        await faturaAntiga.save({ session });
+      }
+    }
+
+    // 4. Restaurar a Conta
+    conta.status = 'Pendente';
+    conta.dataPagamento = null;
+    conta.formaPagamento = null;
+    conta.contaBancaria = null;
+    conta.cartao = null;
+    conta.jurosPago = 0;
+
+    // Validar se não está Vencida
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    if (conta.dataVencimento < hoje) {
+      conta.status = 'Vencida';
+    }
+
+    await conta.save({ session });
+
+    await session.commitTransaction();
+    res.json({ message: 'Pagamento estornado com sucesso', conta });
+  } catch (error) {
+    await session.abortTransaction();
+    logger.error('❌ Erro ao estornar conta:', error.message);
+    res.status(500).json({ message: 'Erro ao estornar pagamento da conta' });
+  } finally {
+    await session.endSession();
+  }
+});
+
 module.exports = router;
+
 

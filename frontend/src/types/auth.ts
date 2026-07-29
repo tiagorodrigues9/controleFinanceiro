@@ -5,6 +5,8 @@ interface User {
   endereco?: string;
   bairro?: string;
   cidade?: string;
+  telefone?: string;
+  fotoPerfil?: string | null;
   configuracoes?: {
     notificacoes: {
       ativo: boolean;
@@ -21,11 +23,12 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   setError: (error: string | null) => void;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string }>;
   register: (nome: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
   resetPassword: (token: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  validateResetToken: (token: string) => Promise<{ valid: boolean; message?: string }>;
   updateUser: (userData: User) => void;
 }
 

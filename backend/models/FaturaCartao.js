@@ -76,7 +76,7 @@ faturaCartaoSchema.index({ status: 1 });
 faturaCartaoSchema.index({ dataVencimento: 1 });
 
 // Método para adicionar despesa à fatura
-faturaCartaoSchema.methods.adicionarDespesa = function(contaId, valor, data, descricao) {
+faturaCartaoSchema.methods.adicionarDespesa = function(contaId, valor, data, descricao, session) {
   this.despesas.push({
     conta: contaId,
     valor: valor,
@@ -84,6 +84,10 @@ faturaCartaoSchema.methods.adicionarDespesa = function(contaId, valor, data, des
     descricao: descricao
   });
   this.valorTotal += valor;
+  
+  if (session) {
+    return this.save({ session });
+  }
   return this.save();
 };
 

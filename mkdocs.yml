@@ -1,0 +1,103 @@
+site_name: Controle Financeiro - Documentação
+site_description: Documentação completa do sistema de Controle Financeiro pessoal e empresarial.
+site_author: Tiago Rodrigues
+site_url: "https://controlefinanceiro-i7s6.onrender.com/"
+
+repo_name: controleFinanceiro
+repo_url: https://github.com/tiagorodrigues9/controleFinanceiro
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Alternar para modo escuro
+    - scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Alternar para modo claro
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: pt
+  - git-revision-date-localized:
+      type: date
+      fallback_to_build_date: true
+      locale: pt
+      enable_creation_date: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.mark
+  - pymdownx.critic
+  - pymdownx.keys
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.magiclink
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/tiagorodrigues9/controleFinanceiro
+
+copyright: "&copy; 2026 Controle Financeiro"
+
+nav:
+  - Início: index.md
+  - Início Rápido: guia-inicio-rapido.md
+  - Arquitetura: arquitetura.md
+  - Funcionalidades:
+      - Autenticação: funcionalidades/autenticacao.md
+      - Contas a Pagar/Receber: funcionalidades/contas.md
+      - Gastos Diários: funcionalidades/gastos-diarios.md
+      - Extrato Bancário: funcionalidades/extrato.md
+      - Cartões e Faturas: funcionalidades/cartoes-faturas.md
+      - Orçamentos: funcionalidades/orcamentos.md
+      - Dashboard: funcionalidades/dashboard.md
+      - Exportação: funcionalidades/exportacao.md
+      - Notificações: funcionalidades/notificacoes.md
+      - Transferências: funcionalidades/transferencias.md
+  - API:
+      - Visão Geral: api/visao-geral.md
+      - Endpoints: api/endpoints.md
+  - Changelog: changelog.md

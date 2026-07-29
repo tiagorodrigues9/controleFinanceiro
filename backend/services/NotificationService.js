@@ -4,6 +4,18 @@ const Conta = require('../models/Conta');
 const Cartao = require('../models/Cartao');
 const Gasto = require('../models/Gasto');
 const User = require('../models/User');
+const webpush = require('web-push');
+
+// Configurar chaves VAPID
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@example.com',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+} else {
+  console.warn('⚠️ ATENÇÃO: Chaves VAPID não configuradas no arquivo .env. As notificações Web Push não funcionarão.');
+}
 
 class NotificationService {
   // Verificar contas vencidas e próximas ao vencimento
@@ -19,13 +31,12 @@ class NotificationService {
       console.log(`Data limite (7 dias): ${daqui7dias.toISOString()}`);
 
       // 1. Atualizar status de todas as contas que venceram para 'Vencida'
-      const dataParaVencimento = new Date(hoje);
-      dataParaVencimento.setHours(0, 0, 0, 0);
+      const hojeUTC = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()));
 
       const updateResult = await Conta.updateMany(
         {
           status: 'Pendente',
-          dataVencimento: { $lt: dataParaVencimento },
+          dataVencimento: { $lt: hojeUTC },
           ativo: { $ne: false }
         },
         { status: 'Vencida' }
@@ -81,65 +92,59 @@ class NotificationService {
         return;
       }
       
-      if (!config?.contasVencidas) {
-        console.log(`❌ Usuário ${usuarioId} não quer notificações de contas vencidas`);
-        return;
-      }
-      
-      // Buscar contas vencidas
-      const contasVencidas = await Conta.find({
-        usuario: usuarioId,
-        dataVencimento: { $lt: hoje },
-        status: { $in: ['Pendente', 'Vencida'] },
-        ativo: { $ne: false }
-      }).populate('fornecedor');
+      // Buscar e gerar notificações para contas vencidas
+      if (config?.contasVencidas !== false) {
+        const contasVencidas = await Conta.find({
+          usuario: usuarioId,
+          dataVencimento: { $lt: hoje },
+          status: { $in: ['Pendente', 'Vencida'] },
+          ativo: { $ne: false }
+        }).populate('fornecedor');
 
-      console.log(`📅 Contas vencidas encontradas: ${contasVencidas.length}`);
-      contasVencidas.forEach((conta, index) => {
-        console.log(`   ${index + 1}. ${conta.nome} - ${conta.fornecedor?.nome} - Vencimento: ${conta.dataVencimento} - Status: ${conta.status}`);
-      });
-
-      // Buscar contas próximas ao vencimento
-      const contasProximas = await Conta.find({
-        usuario: usuarioId,
-        dataVencimento: { 
-          $gte: hoje, 
-          $lte: daqui7dias 
-        },
-        status: 'Pendente',
-        ativo: { $ne: false }
-      }).populate('fornecedor');
-
-      console.log(`⏰ Contas próximas ao vencimento: ${contasProximas.length}`);
-
-      // Gerar notificações para contas vencidas
-      for (const conta of contasVencidas) {
-        console.log(`🔔 Processando conta vencida: ${conta.nome} - ${conta.fornecedor?.nome}`);
-        console.log(`   - ID da conta: ${conta._id}`);
-        console.log(`   - ID da conta (string): ${conta._id.toString()}`);
+        console.log(`📅 Contas vencidas encontradas: ${contasVencidas.length}`);
         
-        await this.criarNotificacao(
-          usuarioId,
-          'conta_vencida',
-          'Conta Vencida',
-          `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} está vencida. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
-          'Conta',
-          conta._id.toString()
-        );
+        for (const conta of contasVencidas) {
+          await this.criarNotificacao(
+            usuarioId,
+            'conta_vencida',
+            'Conta Vencida',
+            `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} está vencida. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
+            'Conta',
+            conta._id.toString()
+          );
+        }
+      } else {
+        console.log(`❌ Usuário ${usuarioId} tem notificações de contas vencidas desativadas`);
       }
 
-      // Gerar notificações para contas próximas
-      for (const conta of contasProximas) {
-        const diasVencimento = Math.ceil((conta.dataVencimento - hoje) / (1000 * 60 * 60 * 24));
-        
-        await this.criarNotificacao(
-          usuarioId,
-          'conta_proxima_vencimento',
-          'Conta Próxima ao Vencimento',
-          `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} vencerá em ${diasVencimento} dias. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
-          'Conta',
-          conta._id.toString()
-        );
+      // Buscar e gerar notificações para contas próximas
+      if (config?.contasProximas !== false) {
+        const contasProximas = await Conta.find({
+          usuario: usuarioId,
+          dataVencimento: { 
+            $gte: hoje, 
+            $lte: daqui7dias 
+          },
+          status: 'Pendente',
+          ativo: { $ne: false }
+        }).populate('fornecedor');
+
+        console.log(`⏰ Contas próximas ao vencimento: ${contasProximas.length}`);
+
+        for (const conta of contasProximas) {
+          const diasVencimento = Math.ceil((conta.dataVencimento - hoje) / (1000 * 60 * 60 * 24));
+          
+          await this.criarNotificacao(
+            usuarioId,
+            'conta_proxima_vencimento',
+            'Conta Próxima ao Vencimento',
+            `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} vencerá em ${diasVencimento} dias. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
+            'Conta',
+            conta._id.toString()
+          );
+        }
+      } else {
+        console.log(`❌ Usuário ${usuarioId} tem notificações de contas próximas desativadas`);
       }
     } catch (error) {
       console.error(`❌ Erro ao verificar contas do usuário ${usuarioId}:`, error);
@@ -156,7 +161,8 @@ class NotificationService {
       const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
 
       const usuarios = await User.find({ 
-        'configuracoes.notificacoes.ativo': true 
+        'configuracoes.notificacoes.ativo': true,
+        'configuracoes.notificacoes.limiteCartao': { $ne: false }
       });
 
       for (const usuario of usuarios) {
@@ -268,21 +274,59 @@ class NotificationService {
   // Enviar notificação push
   static async enviarNotificacaoPush(usuarioId, titulo, mensagem, url = '/notificacoes') {
     try {
-      // Em produção, aqui você buscaria a inscrição push do usuário
-      // e usaria Web Push Protocol para enviar
-      
+      if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+        console.warn('⚠️ Chaves VAPID não configuradas. Pulando envio do Web Push.');
+        return false;
+      }
+
       console.log(`📱 Enviando notificação push para usuário ${usuarioId}:`);
       console.log(`   - Título: ${titulo}`);
-      console.log(`   - Mensagem: ${mensagem}`);
-      console.log(`   - URL: ${url}`);
       
-      // Simulação - em produção você usaria:
-      // const webpush = require('web-push');
-      // await webpush.sendNotification(subscription, payload);
-      
+      const user = await User.findById(usuarioId);
+      if (!user || !user.pushSubscriptions || user.pushSubscriptions.length === 0) {
+        console.log(`   - Usuário não tem dispositivos registrados para Push.`);
+        return false;
+      }
+
+      const payload = JSON.stringify({
+        titulo,
+        mensagem,
+        url,
+        timestamp: new Date().toISOString()
+      });
+
+      // Array para guardar assinaturas inválidas que precisam ser removidas
+      const subscriptionsParaRemover = [];
+
+      // Enviar para todos os dispositivos do usuário
+      const sendPromises = user.pushSubscriptions.map(async (subscription, index) => {
+        try {
+          await webpush.sendNotification(subscription, payload);
+          console.log(`   ✅ Enviado para dispositivo ${index + 1}`);
+        } catch (err) {
+          console.error(`   ❌ Falha no dispositivo ${index + 1}:`, err.statusCode);
+          // Se a assinatura for inválida/expirada (410 ou 404), deve ser removida no futuro
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            subscriptionsParaRemover.push(subscription.endpoint);
+          }
+        }
+      });
+
+      await Promise.allSettled(sendPromises);
+
+      // Remover assinaturas inválidas do banco de dados
+      if (subscriptionsParaRemover.length > 0) {
+        console.log(`🧹 Removendo ${subscriptionsParaRemover.length} assinaturas expiradas do usuário ${usuarioId}`);
+        await User.findByIdAndUpdate(usuarioId, {
+          $pull: {
+            pushSubscriptions: { endpoint: { $in: subscriptionsParaRemover } }
+          }
+        });
+      }
+
       return true;
     } catch (error) {
-      console.error('❌ Erro ao enviar notificação push:', error);
+      console.error('❌ Erro global ao enviar notificação push:', error);
       return false;
     }
   }
