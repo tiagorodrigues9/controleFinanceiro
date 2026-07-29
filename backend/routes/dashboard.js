@@ -521,8 +521,7 @@ router.get('/', [
         totalGastosMesValor,
         totalEntradasMesValor,
         totalSaidasMesValor,
-        saldoMesValor,
-        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null
+        saldoMesValor
       };
     })
   );

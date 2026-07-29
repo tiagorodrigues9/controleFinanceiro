@@ -1,6 +1,9 @@
 import js from "@eslint/js";
 
 export default [
+    {
+        ignores: ["eslint.config.mjs"]
+    },
     js.configs.recommended,
     {
         languageOptions: {
@@ -13,6 +16,10 @@ export default [
                 require: "readonly",
                 process: "readonly",
                 console: "readonly",
+                setInterval: "readonly",
+                setTimeout: "readonly",
+                clearInterval: "readonly",
+                clearTimeout: "readonly",
                 // Configura globals para o Jest
                 describe: "readonly",
                 it: "readonly",
