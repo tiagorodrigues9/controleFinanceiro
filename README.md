@@ -22,7 +22,7 @@ O **Controle Financeiro** é uma aplicação completa Full Stack desenvolvida pa
 ## 🔗 Links do Projeto
 
 - **Aplicação Web (Frontend):** [https://controlefinanceiro-i7s6.onrender.com/](https://controlefinanceiro-i7s6.onrender.com/)
-- **Documentação do Sistema (MkDocs):** [Acessar GitHub Pages](https://tiagorodrigues9.github.io/controleFinanceiro/) *(Altere o link conforme o nome do seu usuário)*
+- **Documentação do Sistema (MkDocs):** [Acessar GitHub Pages](https://tiagorodrigues9.github.io/controleFinanceiro/)
 - **Documentação da API (Swagger):** [https://controle-financeiro-backend1.vercel.app/api-docs](https://controle-financeiro-backend1.vercel.app/api-docs)
 
 ---
