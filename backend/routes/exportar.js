@@ -158,7 +158,7 @@ router.get('/extrato', async (req, res) => {
         });
         
         // Formatar valores numericos
-        row.getCell('valor').numFmt = '"R$" #,##0.00;[Red]\-"R$" #,##0.00';
+        row.getCell('valor').numFmt = '"R$" #,##0.00;[Red]-"R$" #,##0.00';
         
         // Cores de zebra nas linhas
         if (index % 2 === 0) {
