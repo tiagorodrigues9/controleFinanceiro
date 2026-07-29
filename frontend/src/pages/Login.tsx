@@ -66,7 +66,7 @@ const Login: React.FC = () => {
     const result = await login(email, password, rememberMe);
 
     if (result.success) {
-      navigate('/');
+      setTimeout(() => navigate('/'), 100);
     } else {
       setSubmitting(false);
     }
@@ -111,7 +111,7 @@ const Login: React.FC = () => {
             label="E-mail"
             name="email"
             type="email"
-            autoComplete="email"
+            autoComplete="username"
             autoFocus
             value={email}
             onChange={(e) => {
