@@ -1240,16 +1240,13 @@ const ContasPagar = () => {
               value={formData.observacao}
               onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
             />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Tipo de Controle</InputLabel>
+            <FormControl fullWidth margin="normal" required>
+              <InputLabel>Categoria (Grupo)</InputLabel>
               <Select
                 value={formData.tipoControle}
                 onChange={(e) => handleTipoControleChange(e.target.value)}
-                label="Tipo de Controle"
+                label="Categoria (Grupo)"
               >
-                <MenuItem value="">
-                  <em>Nenhum</em>
-                </MenuItem>
                 {grupos.map((grupo) => (
                   <MenuItem key={grupo._id} value={grupo.nome}>
                     {grupo.nome}
