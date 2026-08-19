@@ -919,24 +919,35 @@ router.post('/:id/pagar', [
       if (juros) {
         conta.jurosPago = parseFloat(juros);
       }
+      // Garantir que a conta tenha um grupo para gerar o Gasto
+      if (!conta.tipoDespesa || !conta.tipoDespesa.grupo) {
+        const Grupo = require('../models/Grupo');
+        let fallbackGrupo = await Grupo.findOne({ usuario: req.user._id, nome: 'Outros' });
+        if (!fallbackGrupo) {
+          const fallbackGrupos = await Grupo.create([{ usuario: req.user._id, nome: 'Outros' }], { session });
+          fallbackGrupo = fallbackGrupos[0];
+        }
+        conta.tipoDespesa = { grupo: fallbackGrupo._id };
+        // Atualizar também o tipoControle para refletir o grupo
+        conta.tipoControle = 'Outros';
+      }
+
       await conta.save({ session });
 
       const valorPago = conta.valor + (conta.jurosPago || 0);
 
-      if (conta.tipoDespesa && conta.tipoDespesa.grupo) {
-        const Gasto = require('../models/Gasto');
-        await Gasto.create([{
-          tipoDespesa: conta.tipoDespesa,
-          valor: valorPago,
-          data: new Date(),
-          local: conta.fornecedor?.nome || 'Pagamento de conta',
-          observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`,
-          formaPagamento,
-          contaBancaria: contaBancaria,
-          cartao: cartaoObj ? cartaoObj._id : null,
-          usuario: req.user._id
-        }], { session });
-      }
+      const Gasto = require('../models/Gasto');
+      await Gasto.create([{
+        tipoDespesa: conta.tipoDespesa,
+        valor: valorPago,
+        data: new Date(),
+        local: conta.fornecedor?.nome || 'Pagamento de conta',
+        observacao: `[Pagamento da Conta]: ${conta.nome} - ID:${conta._id}`,
+        formaPagamento,
+        contaBancaria: contaBancaria,
+        cartao: cartaoObj ? cartaoObj._id : null,
+        usuario: req.user._id
+      }], { session });
 
       // Criar registro no extrato apenas para pagamentos que afetam a conta bancária imediatamente
       if (formaPagamento !== 'Cartão de Crédito') {
