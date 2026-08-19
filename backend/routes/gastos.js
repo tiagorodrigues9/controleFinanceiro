@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
@@ -186,6 +187,11 @@ router.post('/', [
     const [year, month, day] = data.split('-').map(Number);
     const dataBaseParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
+    // Gerar identificador de grupo para parcelamentos
+    const grupoParcelamento = (formaPagamento === 'Cartão de Crédito' && totalParcelas > 1)
+      ? crypto.randomUUID()
+      : undefined;
+
     let gastosCriados = [];
 
     // RAMIFICAÇÃO: Cartão de Crédito (Parcelado ou À Vista) vs Dinheiro/Débito
@@ -214,6 +220,8 @@ router.post('/', [
           formaPagamento,
           contaBancaria: contaBancaria || undefined,
           cartao: cartaoObj._id,
+          grupoParcelamento,
+          parcelaInfo: totalParcelas > 1 ? { atual: i, total: totalParcelas } : undefined,
           usuario: req.user._id
         });
         
@@ -549,6 +557,77 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     logger.error('Erro ao excluir gasto:', error);
     res.status(500).json({ message: 'Erro ao excluir gasto' });
+  }
+});
+
+// @route   DELETE /api/gastos/:id/parcelas
+// @desc    Excluir todas as parcelas de um parcelamento
+// @access  Private
+router.delete('/:id/parcelas', async (req, res) => {
+  try {
+    const gasto = await Gasto.findOne({
+      _id: req.params.id,
+      usuario: req.user._id
+    });
+
+    if (!gasto) {
+      return res.status(404).json({ message: 'Gasto não encontrado' });
+    }
+
+    if (!gasto.grupoParcelamento) {
+      return res.status(400).json({ message: 'Este gasto não faz parte de um parcelamento identificado.' });
+    }
+
+    // Buscar todas as parcelas do mesmo grupo
+    const parcelasIrmas = await Gasto.find({
+      usuario: req.user._id,
+      grupoParcelamento: gasto.grupoParcelamento
+    });
+
+    if (parcelasIrmas.length === 0) {
+      return res.status(404).json({ message: 'Nenhuma parcela encontrada para este grupo.' });
+    }
+
+    const FaturaCartao = require('../models/FaturaCartao');
+
+    // Excluir cada parcela e limpar sua fatura
+    for (const parcela of parcelasIrmas) {
+      if (parcela.formaPagamento === 'Cartão de Crédito') {
+        const faturaAlvo = await FaturaCartao.findOne({
+          usuario: req.user._id,
+          'despesas.conta': parcela._id
+        });
+
+        if (faturaAlvo) {
+          faturaAlvo.valorTotal = Math.round((faturaAlvo.valorTotal - parcela.valor) * 100) / 100;
+          if (faturaAlvo.valorTotal < 0) faturaAlvo.valorTotal = 0;
+          faturaAlvo.despesas = faturaAlvo.despesas.filter(
+            d => d.conta && d.conta.toString() !== parcela._id.toString()
+          );
+          await faturaAlvo.save();
+        }
+      } else {
+        // Caso raro: parcela que não é cartão de crédito
+        await Extrato.updateMany(
+          {
+            'referencia.tipo': 'Gasto',
+            'referencia.id': parcela._id,
+            usuario: req.user._id
+          },
+          { estornado: true }
+        );
+      }
+
+      await parcela.deleteOne();
+    }
+
+    res.json({
+      message: `${parcelasIrmas.length} parcela(s) excluída(s) com sucesso`,
+      totalExcluidas: parcelasIrmas.length
+    });
+  } catch (error) {
+    logger.error('Erro ao excluir parcelas:', error);
+    res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
 
