@@ -52,6 +52,15 @@ const gastoSchema = new mongoose.Schema({
       return this.formaPagamento !== 'Cartão de Crédito';
     }
   },
+  grupoParcelamento: {
+    type: String,
+    required: false,
+    index: true
+  },
+  parcelaInfo: {
+    atual: { type: Number },
+    total: { type: Number }
+  },
   usuario: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
