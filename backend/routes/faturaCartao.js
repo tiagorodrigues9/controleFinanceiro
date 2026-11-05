@@ -13,11 +13,45 @@ const { calcularDatasFatura, buscarOuCriarFaturaAberta, obterPeriodoFatura } = r
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Faturas de Cartão
+ *   description: Gerenciamento de faturas de cartão de crédito
+ */
 router.use(auth);
 
 // @route   GET /api/fatura-cartao
 // @desc    Obter todas as faturas do usuário unindo Contas Pagas + Gastos Diários
 // @access  Private
+/**
+ * @swagger
+ * /api/fatura-cartao:
+ *   get:
+ *     summary: Listar faturas
+ *     tags: [Faturas de Cartão]
+ *     parameters:
+ *       - in: query
+ *         name: cartao
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const { cartao, status, mesReferencia } = req.query;
@@ -104,6 +138,34 @@ router.get('/', async (req, res) => {
 // @route   POST /api/fatura-cartao/pagar-conta
 // @desc    Adicionar despesa à fatura do cartão de crédito através de uma "Conta a Pagar"
 // @access  Private
+/**
+ * @swagger
+ * /api/fatura-cartao/pagar-conta:
+ *   post:
+ *     summary: Pagar fatura via conta bancária
+ *     tags: [Faturas de Cartão]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [faturaId, contaBancaria]
+ *             properties:
+ *               faturaId:
+ *                 type: string
+ *               contaBancaria:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/pagar-conta', [
   body('contaId').notEmpty().withMessage('ID da conta é obrigatório').isMongoId().withMessage('ID da conta inválido'),
   body('cartaoId').notEmpty().withMessage('ID do cartão é obrigatório').isMongoId().withMessage('ID do cartão inválido')
@@ -160,9 +222,43 @@ router.post('/pagar-conta', [
   }
 });
 
-// @route   POST /api/fatura-cartao/:id/pagar
+// @route   POST /api/fatura-cartao:id/pagar
 // @desc    Pagar fatura do cartão de crédito (abatendo saldo)
 // @access  Private
+/**
+ * @swagger
+ * /api/fatura-cartao/{id}/pagar:
+ *   post:
+ *     summary: Pagar fatura por ID
+ *     tags: [Faturas de Cartão]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [contaBancaria]
+ *             properties:
+ *               contaBancaria:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/pagar', [
   body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória').isMongoId().withMessage('ID da conta bancária inválido')
 ], async (req, res) => {
@@ -237,9 +333,33 @@ router.post('/:id/pagar', [
   }
 });
 
-// @route   POST /api/fatura-cartao/:id/estornar
+// @route   POST /api/fatura-cartao:id/estornar
 // @desc    Estornar o pagamento de uma fatura de cartão e devolver o saldo
 // @access  Private
+/**
+ * @swagger
+ * /api/fatura-cartao/{id}/estornar:
+ *   post:
+ *     summary: Estornar pagamento de fatura
+ *     tags: [Faturas de Cartão]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/estornar', async (req, res) => {
   try {
     const fatura = await FaturaCartao.findOne({ _id: req.params.id, usuario: req.user._id });

@@ -7,6 +7,40 @@ const { logger } = require('../utils/logger');
 const router = express.Router();
 
 // Listar e-mails salvos (só admin)
+
+/**
+ * @swagger
+ * tags:
+ *   name: Emails
+ *   description: Log de emails enviados pelo sistema
+ */
+/**
+ * @swagger
+ * /api/emails:
+ *   get:
+ *     summary: Listar emails enviados
+ *     tags: [Emails]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', auth, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, to } = req.query;
@@ -36,6 +70,22 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Estatísticas dos e-mails
+/**
+ * @swagger
+ * /api/emails/stats:
+ *   get:
+ *     summary: Estatísticas de emails enviados
+ *     tags: [Emails]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/stats', auth, async (req, res) => {
   try {
     const stats = await EmailLog.aggregate([
@@ -62,6 +112,30 @@ router.get('/stats', auth, async (req, res) => {
 });
 
 // Ver detalhes de um e-mail
+/**
+ * @swagger
+ * /api/emails/{id}:
+ *   get:
+ *     summary: Obter email por ID
+ *     tags: [Emails]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', auth, async (req, res) => {
   try {
     const email = await EmailLog.findById(req.params.id);

@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const Gasto = require('../models/Gasto');
 const Extrato = require('../models/Extrato');
@@ -13,6 +14,13 @@ const { calcularDatasFatura, buscarOuCriarFaturaAberta } = require('../utils/fat
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Gastos Diários
+ *   description: CRUD de gastos diários
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -21,6 +29,55 @@ router.use(auth);
 // @route   GET /api/gastos
 // @desc    Obter todos os gastos do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos:
+ *   get:
+ *     summary: Listar gastos diários
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: query
+ *         name: tipoDespesa
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: subgrupo
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: formaPagamento
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dataInicio
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dataFim
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const { tipoDespesa, subgrupo, formaPagamento, dataInicio, dataFim } = req.query;
@@ -40,13 +97,13 @@ router.get('/', async (req, res) => {
 
     // Se não houver filtro de data, aplicar filtro dos últimos 5 dias
     if (dataInicio && dataFim) {
-      // Criar datas em UTC para evitar problemas de timezone
+      // Criar datas considerando o fuso horário local
       const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
       const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
 
       query.data = {
-        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
-        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+        $gte: new Date(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0),
+        $lte: new Date(fimYear, fimMonth - 1, fimDay, 23, 59, 59, 999)
       };
     } else {
       // Aplicar filtro dos últimos 5 dias
@@ -95,9 +152,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/gastos/:id
+// @route   GET /api/gastos:id
 // @desc    Obter gasto específico
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   get:
+ *     summary: Obter gasto por ID
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({
@@ -122,6 +203,49 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/gastos
 // @desc    Criar novo gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos:
+ *   post:
+ *     summary: Criar novo gasto diário
+ *     tags: [Gastos Diários]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tipoDespesa.grupo:
+ *                 type: string
+ *               tipoDespesa.subgrupo:
+ *                 type: string
+ *               valor:
+ *                 type: number
+ *               data:
+ *                 type: string
+ *               local:
+ *                 type: string
+ *               observacao:
+ *                 type: string
+ *               formaPagamento:
+ *                 type: string
+ *               cartao:
+ *                 type: string
+ *               contaBancaria:
+ *                 type: string
+ *               parcelas:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('tipoDespesa.grupo').notEmpty().withMessage('Grupo é obrigatório'),
   body('tipoDespesa.subgrupo').notEmpty().withMessage('Subgrupo é obrigatório'),
@@ -186,6 +310,11 @@ router.post('/', [
     const [year, month, day] = data.split('-').map(Number);
     const dataBaseParsed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 
+    // Gerar identificador de grupo para parcelamentos
+    const grupoParcelamento = (formaPagamento === 'Cartão de Crédito' && totalParcelas > 1)
+      ? crypto.randomUUID()
+      : undefined;
+
     let gastosCriados = [];
 
     // RAMIFICAÇÃO: Cartão de Crédito (Parcelado ou À Vista) vs Dinheiro/Débito
@@ -214,6 +343,8 @@ router.post('/', [
           formaPagamento,
           contaBancaria: contaBancaria || undefined,
           cartao: cartaoObj._id,
+          grupoParcelamento,
+          parcelaInfo: totalParcelas > 1 ? { atual: i, total: totalParcelas } : undefined,
           usuario: req.user._id
         });
         
@@ -278,9 +409,33 @@ router.post('/', [
   }
 });
 
-// @route   POST /api/gastos/:id/duplicar
+// @route   POST /api/gastos:id/duplicar
 // @desc    Duplicar gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}/duplicar:
+ *   post:
+ *     summary: Duplicar gasto existente
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/duplicar', async (req, res) => {
   try {
     const gastoOriginal = await Gasto.findOne({
@@ -361,9 +516,33 @@ router.post('/:id/duplicar', async (req, res) => {
   }
 });
 
-// @route   PUT /api/gastos/:id
+// @route   PUT /api/gastos:id
 // @desc    Atualizar gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   put:
+ *     summary: Atualizar gasto
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({
@@ -499,9 +678,33 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/gastos/:id
+// @route   DELETE /api/gastos:id
 // @desc    Excluir gasto
 // @access  Private
+/**
+ * @swagger
+ * /api/gastos/{id}:
+ *   delete:
+ *     summary: Excluir gasto
+ *     tags: [Gastos Diários]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     const gasto = await Gasto.findOne({
@@ -549,6 +752,77 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     logger.error('Erro ao excluir gasto:', error);
     res.status(500).json({ message: 'Erro ao excluir gasto' });
+  }
+});
+
+// @route   DELETE /api/gastos/:id/parcelas
+// @desc    Excluir todas as parcelas de um parcelamento
+// @access  Private
+router.delete('/:id/parcelas', async (req, res) => {
+  try {
+    const gasto = await Gasto.findOne({
+      _id: req.params.id,
+      usuario: req.user._id
+    });
+
+    if (!gasto) {
+      return res.status(404).json({ message: 'Gasto não encontrado' });
+    }
+
+    if (!gasto.grupoParcelamento) {
+      return res.status(400).json({ message: 'Este gasto não faz parte de um parcelamento identificado.' });
+    }
+
+    // Buscar todas as parcelas do mesmo grupo
+    const parcelasIrmas = await Gasto.find({
+      usuario: req.user._id,
+      grupoParcelamento: gasto.grupoParcelamento
+    });
+
+    if (parcelasIrmas.length === 0) {
+      return res.status(404).json({ message: 'Nenhuma parcela encontrada para este grupo.' });
+    }
+
+    const FaturaCartao = require('../models/FaturaCartao');
+
+    // Excluir cada parcela e limpar sua fatura
+    for (const parcela of parcelasIrmas) {
+      if (parcela.formaPagamento === 'Cartão de Crédito') {
+        const faturaAlvo = await FaturaCartao.findOne({
+          usuario: req.user._id,
+          'despesas.conta': parcela._id
+        });
+
+        if (faturaAlvo) {
+          faturaAlvo.valorTotal = Math.round((faturaAlvo.valorTotal - parcela.valor) * 100) / 100;
+          if (faturaAlvo.valorTotal < 0) faturaAlvo.valorTotal = 0;
+          faturaAlvo.despesas = faturaAlvo.despesas.filter(
+            d => d.conta && d.conta.toString() !== parcela._id.toString()
+          );
+          await faturaAlvo.save();
+        }
+      } else {
+        // Caso raro: parcela que não é cartão de crédito
+        await Extrato.updateMany(
+          {
+            'referencia.tipo': 'Gasto',
+            'referencia.id': parcela._id,
+            usuario: req.user._id
+          },
+          { estornado: true }
+        );
+      }
+
+      await parcela.deleteOne();
+    }
+
+    res.json({
+      message: `${parcelasIrmas.length} parcela(s) excluída(s) com sucesso`,
+      totalExcluidas: parcelasIrmas.length
+    });
+  } catch (error) {
+    logger.error('Erro ao excluir parcelas:', error);
+    res.status(500).json({ message: 'Erro ao excluir parcelas' });
   }
 });
 

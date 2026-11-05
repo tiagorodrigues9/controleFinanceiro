@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar arquivos de dependência primeiro (cache de camadas)
+COPY package.json package-lock.json ./
+
+# Instalar dependências
+RUN npm ci
+
+# O código-fonte será montado via volume no docker-compose
+# Não copiamos o código aqui para manter o hot-reload
+
+EXPOSE 3000
+
+# Variável para react-scripts aceitar conexões externas ao container
+ENV WATCHPACK_POLLING=true
+ENV CHOKIDAR_USEPOLLING=true
+
+CMD ["npm", "run", "dev"]

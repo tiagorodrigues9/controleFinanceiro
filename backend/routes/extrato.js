@@ -9,6 +9,13 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Extrato
+ *   description: Extrato financeiro - lançamentos e estornos
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -17,6 +24,60 @@ router.use(auth);
 // @route   GET /api/extrato
 // @desc    Obter extrato
 // @access  Private
+/**
+ * @swagger
+ * /api/extrato:
+ *   get:
+ *     summary: Listar extratos
+ *     tags: [Extrato]
+ *     parameters:
+ *       - in: query
+ *         name: contaBancaria
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: cartao
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: tipoDespesa
+ *         required: false
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dataInicio
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dataFim
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     logger.debug('=== EXTRATO DEBUG ===');
@@ -27,21 +88,21 @@ router.get('/', async (req, res) => {
     const query = { usuario: req.user._id, estornado: false };
 
     if (contaBancaria) {
-      query.contaBancaria = contaBancaria;
+      query.contaBancaria = new mongoose.Types.ObjectId(contaBancaria);
     }
 
     if (cartao) {
-      query.cartao = cartao;
+      query.cartao = new mongoose.Types.ObjectId(cartao);
     }
 
     if (dataInicio && dataFim) {
-      // Criar datas em UTC para evitar problemas de timezone
+      // Criar datas considerando o fuso horário local
       const [inicioYear, inicioMonth, inicioDay] = dataInicio.split('-').map(Number);
       const [fimYear, fimMonth, fimDay] = dataFim.split('-').map(Number);
 
       query.data = {
-        $gte: new Date(Date.UTC(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0)),
-        $lte: new Date(Date.UTC(fimYear, fimMonth - 1, fimDay, 23, 59, 59))
+        $gte: new Date(inicioYear, inicioMonth - 1, inicioDay, 0, 0, 0),
+        $lte: new Date(fimYear, fimMonth - 1, fimDay, 23, 59, 59, 999)
       };
     }
 
@@ -99,11 +160,26 @@ router.get('/', async (req, res) => {
             ]
           }
         },
+        { 
+          $lookup: {
+            from: 'contas',
+            localField: 'referencia.id',
+            foreignField: '_id',
+            as: 'contaRef',
+            pipeline: [
+              {
+                $match: {
+                  'tipoControle': new mongoose.Types.ObjectId(tipoDespesa)
+                }
+              }
+            ]
+          }
+        },
         {
           $match: {
             $or: [
-              { 'referencia.tipo': { $ne: 'Gasto' } },
-              { 'gastoRef.0': { $exists: true } }
+              { 'gastoRef.0': { $exists: true } },
+              { 'contaRef.0': { $exists: true } }
             ]
           }
         },
@@ -136,7 +212,7 @@ router.get('/', async (req, res) => {
 
       const facetResult = extratos[0] || { items: [], totalCount: [] };
       extratos = (facetResult.items || []).map(extrato => {
-        const { gastoRef, ...rest } = extrato;
+        const { gastoRef, contaRef, ...rest } = extrato;
         return rest;
       });
       total = facetResult.totalCount[0]?.count || 0;
@@ -210,6 +286,40 @@ router.get('/', async (req, res) => {
 // @route   POST /api/extrato
 // @desc    Criar lançamento manual
 // @access  Private
+/**
+ * @swagger
+ * /api/extrato:
+ *   post:
+ *     summary: Criar lançamento manual no extrato
+ *     tags: [Extrato]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tipo, valor, contaBancaria]
+ *             properties:
+ *               tipo:
+ *                 type: string
+ *               valor:
+ *                 type: number
+ *               data:
+ *                 type: string
+ *               motivo:
+ *                 type: string
+ *               contaBancaria:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('contaBancaria').notEmpty().withMessage('Conta bancária é obrigatória'),
   body('tipo').isIn(['Entrada', 'Saída']).withMessage('Tipo deve ser Entrada ou Saída'),
@@ -266,9 +376,33 @@ router.post('/', [
   }
 });
 
-// @route   POST /api/extrato/:id/estornar
+// @route   POST /api/extrato:id/estornar
 // @desc    Estornar lançamento
 // @access  Private
+/**
+ * @swagger
+ * /api/extrato/{id}/estornar:
+ *   post:
+ *     summary: Estornar lançamento do extrato
+ *     tags: [Extrato]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/estornar', async (req, res) => {
   try {
     // Validar se o ID é um ObjectId válido

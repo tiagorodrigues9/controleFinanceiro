@@ -1,75 +1,98 @@
-# Controle Financeiro
+<div align="center">
+  <h1 align="center">Controle Financeiro</h1>
+  <p align="center">
+    Sistema completo e moderno para controle financeiro pessoal e empresarial.
+  </p>
 
-Sistema completo de controle financeiro pessoal e empresarial. Construído com uma arquitetura moderna utilizando React (TypeScript), Node.js, Express, e MongoDB.
+  <!-- Badges -->
+  <p align="center">
+    <img src="https://img.shields.io/badge/React-18.x-blue?style=flat-square&logo=react" alt="React" />
+    <img src="https://img.shields.io/badge/Node.js-18.x-green?style=flat-square&logo=nodedotjs" alt="Node.js" />
+    <img src="https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square&logo=mongodb" alt="MongoDB" />
+    <img src="https://img.shields.io/badge/Deploy-Vercel%20%7C%20Render-black?style=flat-square" alt="Deploy" />
+  </p>
+</div>
+
+---
+
+## 📖 Visão Geral
+
+O **Controle Financeiro** é uma aplicação completa Full Stack desenvolvida para gerenciar finanças com facilidade. Ele permite o acompanhamento de contas a pagar, faturas de cartão de crédito, gastos diários e orçamentos, oferecendo gráficos detalhados em tempo real e exportação de relatórios nativos (PDF/Excel).
+
+## 🔗 Links do Projeto
+
+- **Aplicação Web (Frontend):** [https://controlefinanceiro-i7s6.onrender.com/](https://controlefinanceiro-i7s6.onrender.com/)
+- **Documentação do Sistema (MkDocs):** [Acessar GitHub Pages](https://tiagorodrigues9.github.io/controleFinanceiro/) *(Altere o link conforme o nome do seu usuário)*
+- **Documentação da API (Swagger):** [https://controle-financeiro-backend1.vercel.app/api-docs](https://controle-financeiro-backend1.vercel.app/api-docs)
+
+---
 
 ## 🚀 Tecnologias
 
-### Backend
+O projeto adota uma arquitetura moderna dividida entre Frontend, Backend e Site Estático de Documentação.
+
+### Frontend (Render)
+- **React + TypeScript** (Tipagem forte e componentização usando Create React App)
+- **Material-UI (MUI)** (Design System moderno e responsivo)
+- **Recharts** (Visualização de dados e gráficos)
+- **Axios** (Cliente HTTP com interceptores avançados de Refresh Token)
+- **Workbox** (Suporte PWA e cache offline)
+
+### Backend (Vercel / Serverless)
 - **Node.js + Express** (Servidor HTTP e API RESTful)
 - **MongoDB + Mongoose** (Banco de dados NoSQL)
-- **JWT (jsonwebtoken)** (Autenticação baseada em tokens com Access & Refresh Tokens)
-- **Socket.io** (Notificações em tempo real bidirecionais)
-- **node-cron** (Automação e tarefas agendadas - ex: contas recorrentes)
-- **PDFKit & ExcelJS** (Geração e exportação de relatórios nativos)
-- **Swagger UI** (Documentação interativa da API)
-- **Winston** (Logging estruturado)
+- **JWT** (Autenticação segura via Access Token de curta duração e Refresh Token)
+- **Multer** (Upload de anexos com armazenamento local/nuvem)
+- **PDFKit & ExcelJS** (Geração e exportação de relatórios)
+- **Nodemailer** (Serviço de disparo de e-mails para recuperação de senha)
 
-### Frontend
-- **React + TypeScript** (Tipagem forte e componentização)
-- **Material-UI (MUI)** (Design System moderno e responsivo)
-- **Axios** (Cliente HTTP com interceptores avançados de Refresh Token)
-- **React Router** (Navegação SPA)
+### Documentação (GitHub Pages)
+- **Material for MkDocs** (Gerador de site estático)
+- **Markdown** (Para toda a escrita técnica e guias de uso)
 
 ---
 
 ## 🎯 Funcionalidades Principais
 
-- ✅ **Autenticação Segura:** Login/Cadastro com fluxo moderno de Access Token (curta duração) e Refresh Token (longa duração).
-- ✅ **Contas a Pagar e Receber:** Filtros avançados, parcelamentos e associação por formas de pagamento e fornecedores.
-- ✅ **Contas Recorrentes:** Automação de contas (mensais, anuais, semanais) geradas automaticamente por Cron Job.
-- ✅ **Orçamento Mensal:** Definição de limites de gastos mensais globais e categorizados (por grupo).
-- ✅ **Gastos Diários:** Registro com upload de anexos e categorização por Grupos/Subgrupos.
-- ✅ **Extrato Bancário:** Visão unificada com sistema de estorno inteligente que atualiza o saldo e volta as faturas originais.
-- ✅ **Dashboard Realtime:** Gráficos e métricas. WebSockets embutidos atualizam dados imediatamente se houver um novo gasto lançado em outro dispositivo.
-- ✅ **Exportação:** Geração de relatórios de Extratos e Contas nos formatos **PDF** e **Excel (.xlsx)**.
+- ✅ **Autenticação Segura:** Login, cadastro e recuperação de senha.
+- ✅ **Dashboard Analytics:** Gráficos e métricas interativas com atualização rápida.
+- ✅ **Contas e Gastos:** Registro de contas a pagar (recorrentes, parceladas) e gastos diários com categorização.
+- ✅ **Gestão de Cartões:** Controle completo de faturas, datas de fechamento e limites.
+- ✅ **Extrato Bancário:** Visão unificada com sistema inteligente de saldo e estornos.
+- ✅ **Orçamento Mensal:** Definição de limites de gastos mensais globais e por grupo de despesa.
+- ✅ **Exportação:** Geração de relatórios nos formatos **PDF** e **Excel (.xlsx)**.
 
 ---
 
-## 📦 Inicialização Rápida (Docker)
+## 📦 Como Rodar Localmente
 
-O projeto está totalmente "Dockerizado" para facilitar a inicialização. Requer o [Docker](https://www.docker.com/) e [Docker Compose](https://docs.docker.com/compose/) instalados.
+Você pode iniciar o projeto localmente utilizando o Docker ou rodando os servidores manualmente.
 
-1. **Clone o repositório:**
+### Opção 1: Via Docker (Recomendado)
+Requer o [Docker](https://www.docker.com/) e [Docker Compose](https://docs.docker.com/compose/) instalados.
+
 ```bash
-git clone https://github.com/seu-usuario/controleFinanceiro.git
+# Clone o repositório
+git clone https://github.com/tiagorodrigues9/controleFinanceiro.git
 cd controleFinanceiro
-```
 
-2. **Inicie os containers:**
-```bash
+# Inicie os containers em background
 docker-compose up -d --build
 ```
+O ambiente estará disponível em `http://localhost:80` (Frontend) e `http://localhost:5000` (Backend).
 
-O ambiente será exposto nas seguintes portas:
-- **Frontend (Web):** `http://localhost:80`
-- **Backend (API):** `http://localhost:5000`
-- **Swagger Docs:** `http://localhost:5000/api-docs`
+### Opção 2: Desenvolvimento Manual
 
----
-
-## 🛠 Desenvolvimento Manual
-
-Caso não deseje utilizar o Docker, você pode rodar os servidores separadamente:
-
-### 1. Backend (Terminal 1)
-Certifique-se de ter um MongoDB local ou remoto e configure as variáveis de ambiente em um arquivo `.env` (baseie-se no `server.js`).
+#### 1. Backend
+Certifique-se de ter um MongoDB local ou remoto e configure as variáveis de ambiente em um arquivo `backend/.env`.
 ```bash
 cd backend
 npm install
 npm run dev
 ```
 
-### 2. Frontend (Terminal 2)
+#### 2. Frontend
+Configure as variáveis em `frontend/.env` apontando para o seu backend local.
 ```bash
 cd frontend
 npm install
@@ -79,22 +102,19 @@ Acesse o app via `http://localhost:3000`.
 
 ---
 
-## 🚀 CI / CD (GitHub Actions)
+## 📚 Documentação (MkDocs)
 
-Este repositório possui fluxos de **Continuous Integration (CI)**.
-Sempre que um push ou PR for feito para a branch `main`, o GitHub Actions irá:
-1. Instalar as dependências de backend e frontend.
-2. Rodar o Linter do Backend (`npm run lint`).
-3. Fazer o Build do Frontend (`npm run build`).
-4. Relatar falhas antes de qualquer merge.
+O projeto possui uma documentação rica e estruturada para desenvolvedores e usuários.
+Para rodar a documentação localmente e visualizar as edições em tempo real:
 
----
+```bash
+# Requer Python instalado
+pip install mkdocs-material mkdocs-git-revision-date-localized-plugin
 
-## 📝 Documentação da API
-
-A documentação interativa da API foi gerada com Swagger.
-Quando o backend estiver rodando, acesse:
-[http://localhost:5000/api-docs](http://localhost:5000/api-docs)
+# Inicia o servidor local de documentação
+mkdocs serve
+```
+A documentação ficará acessível em `http://127.0.0.1:8000/`. Todo o deploy da documentação é feito de forma automatizada (CI/CD) para o GitHub Pages através do GitHub Actions.
 
 ---
 

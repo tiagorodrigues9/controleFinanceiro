@@ -7,11 +7,45 @@ const { logger } = require('../utils/logger');
 const router = express.Router();
 
 // Aplicar middleware de autenticação em todas as rotas
+
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard Faturas
+ *   description: Dados do dashboard de faturas de cartão
+ */
 router.use(auth);
 
 // @route   GET /api/dashboard-faturas/resumo
 // @desc    Obter resumo de faturas para dashboard
 // @access  Private
+/**
+ * @swagger
+ * /api/dashboard-faturas/resumo:
+ *   get:
+ *     summary: Resumo de faturas
+ *     tags: [Dashboard Faturas]
+ *     parameters:
+ *       - in: query
+ *         name: mes
+ *         required: false
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: false
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/resumo', async (req, res) => {
   try {
     const usuarioId = req.user._id;
@@ -130,6 +164,22 @@ router.get('/resumo', async (req, res) => {
 // @route   GET /api/dashboard-faturas/tendencias
 // @desc    Obter tendências de gastos com cartão nos últimos 6 meses
 // @access  Private
+/**
+ * @swagger
+ * /api/dashboard-faturas/tendencias:
+ *   get:
+ *     summary: Tendências de faturas ao longo do tempo
+ *     tags: [Dashboard Faturas]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/tendencias', async (req, res) => {
   try {
     const usuarioId = req.user._id;

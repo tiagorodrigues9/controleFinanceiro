@@ -12,6 +12,13 @@ const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Contas Bancárias
+ *   description: CRUD de contas bancárias
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -20,6 +27,22 @@ router.use(auth);
 // @route   GET /api/contas-bancarias
 // @desc    Obter todas as contas bancárias do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/contas-bancarias:
+ *   get:
+ *     summary: Listar todas as contas bancárias
+ *     tags: [Contas Bancárias]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     // por padrão retorna apenas contas ativas; para listar todas use ?all=true
@@ -70,9 +93,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/contas-bancarias/:id
+// @route   GET /api/contas-bancarias:id
 // @desc    Obter conta bancária específica
 // @access  Private
+/**
+ * @swagger
+ * /api/contas-bancarias/{id}:
+ *   get:
+ *     summary: Obter conta bancária por ID
+ *     tags: [Contas Bancárias]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const contaBancaria = await ContaBancaria.findOne({
@@ -112,6 +159,40 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/contas-bancarias
 // @desc    Criar nova conta bancária
 // @access  Private
+/**
+ * @swagger
+ * /api/contas-bancarias:
+ *   post:
+ *     summary: Criar nova conta bancária
+ *     tags: [Contas Bancárias]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome, banco]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               banco:
+ *                 type: string
+ *               agencia:
+ *                 type: string
+ *               numeroConta:
+ *                 type: string
+ *               saldo:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('nome').notEmpty().withMessage('Nome é obrigatório').isLength({ max: 50 }).withMessage('Nome pode ter no máximo 50 caracteres'),
   body('banco').notEmpty().withMessage('Banco é obrigatório').isLength({ max: 50 }).withMessage('Banco pode ter no máximo 50 caracteres'),
@@ -162,9 +243,50 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/contas-bancarias/:id
+// @route   PUT /api/contas-bancarias:id
 // @desc    Atualizar conta bancária
 // @access  Private
+/**
+ * @swagger
+ * /api/contas-bancarias/{id}:
+ *   put:
+ *     summary: Atualizar conta bancária
+ *     tags: [Contas Bancárias]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               banco:
+ *                 type: string
+ *               agencia:
+ *                 type: string
+ *               numeroConta:
+ *                 type: string
+ *               saldo:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', [
   body('nome').notEmpty().withMessage('Nome é obrigatório').isLength({ max: 50 }).withMessage('Nome pode ter no máximo 50 caracteres'),
   body('banco').notEmpty().withMessage('Banco é obrigatório').isLength({ max: 50 }).withMessage('Banco pode ter no máximo 50 caracteres'),
@@ -213,9 +335,33 @@ router.put('/:id', [
   }
 });
 
-// @route   DELETE /api/contas-bancarias/:id
+// @route   DELETE /api/contas-bancarias:id
 // @desc    Excluir conta bancária
 // @access  Private
+/**
+ * @swagger
+ * /api/contas-bancarias/{id}:
+ *   delete:
+ *     summary: Excluir conta bancária
+ *     tags: [Contas Bancárias]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', async (req, res) => {
   try {
     const contaBancaria = await ContaBancaria.findOne({

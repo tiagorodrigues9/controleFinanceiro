@@ -20,6 +20,7 @@ import {
   CircularProgress,
   Alert,
   FormControl,
+  FormControlLabel,
   InputLabel,
   Select,
   Grid,
@@ -31,7 +32,9 @@ import {
   TablePagination,
   ThemeProvider,
   createTheme,
-  Chip
+  Chip,
+  Radio,
+  RadioGroup
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -98,6 +101,8 @@ interface GastoItem {
   local: string;
   observacao: string;
   valor: number;
+  grupoParcelamento?: string;
+  parcelaInfo?: { atual: number; total: number };
 }
 
 interface Filtros {
@@ -118,7 +123,7 @@ const getHojeUTCStr = () => {
 const GastosDiarios: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+
   const [gastos, setGastos] = useState<GastoItem[]>([]);
   const [grupos, setGrupos] = useState<any[]>([]);
   const [contasBancarias, setContasBancarias] = useState<any[]>([]);
@@ -126,7 +131,7 @@ const GastosDiarios: React.FC = () => {
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [openCadastro, setOpenCadastro] = useState(false);
-  
+
   const [filtros, setFiltros] = useState<Filtros>({
     tipoDespesa: '',
     subgrupo: '',
@@ -148,10 +153,11 @@ const GastosDiarios: React.FC = () => {
     cartao: '',
     parcelas: '1',
   });
-  
+
   const [error, setError] = useState('');
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [gastoToDelete, setGastoToDelete] = useState<GastoItem | null>(null);
+  const [deleteMode, setDeleteMode] = useState<'single' | 'all'>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalHoje, setTotalHoje] = useState<number | null>(null);
 
@@ -176,7 +182,7 @@ const GastosDiarios: React.FC = () => {
       dataInicio: dataInicioStr,
       dataFim: dataFimStr,
     };
-    
+
     setFiltros(inicialFiltros);
     setFiltrosAplicados(inicialFiltros);
     filtrosReady.current = true;
@@ -320,9 +326,14 @@ const GastosDiarios: React.FC = () => {
   const confirmDelete = async () => {
     if (!gastoToDelete) return;
     try {
-      await api.delete(`/gastos/${gastoToDelete._id}`);
+      if (deleteMode === 'all' && gastoToDelete.grupoParcelamento) {
+        await api.delete(`/gastos/${gastoToDelete._id}/parcelas`);
+      } else {
+        await api.delete(`/gastos/${gastoToDelete._id}`);
+      }
       setOpenDeleteConfirm(false);
       setGastoToDelete(null);
+      setDeleteMode('single');
       fetchTotalHoje(); // Atualiza total do dia
       if (filtrosAplicados) {
         fetchGastosComFiltros(filtrosAplicados, page);
@@ -332,12 +343,18 @@ const GastosDiarios: React.FC = () => {
     }
   };
 
+  const handleOpenDeleteConfirm = (gasto: GastoItem) => {
+    setGastoToDelete(gasto);
+    setDeleteMode('single');
+    setOpenDeleteConfirm(true);
+  };
+
   const handleEditar = (gasto: GastoItem) => {
     setFormData({
       _id: gasto._id,
-      tipoDespesa: { 
-        grupo: gasto.tipoDespesa.grupo._id, 
-        subgrupo: gasto.tipoDespesa.subgrupo || '' 
+      tipoDespesa: {
+        grupo: gasto.tipoDespesa.grupo._id,
+        subgrupo: gasto.tipoDespesa.subgrupo || ''
       },
       valor: gasto.valor.toString(),
       data: gasto.data.split('T')[0],
@@ -444,15 +461,9 @@ const GastosDiarios: React.FC = () => {
                 variant="outlined" size="small" InputLabelProps={{ shrink: true }} sx={{ bgcolor: 'white' }}
               />
             </Grid>
-            <Grid item xs={12} md="auto">
-              <Box display="flex" gap={1} alignItems="center">
-                <Button variant="contained" startIcon={<SearchIcon />} onClick={aplicarFiltros} size="small" sx={{ height: '40px' }}>
-                  Aplicar
-                </Button>
-                <Button variant="outlined" onClick={limparFiltros} size="small" color="inherit" sx={{ minWidth: '40px', width: '40px', height: '40px', p: 0 }} title="Limpar Filtros">
-                  <ClearIcon fontSize="small" />
-                </Button>
-              </Box>
+            <Grid item xs={12} md={2}>
+              <Button variant="contained" color="primary" size="small" onClick={aplicarFiltros}>Aplicar</Button>
+              <Button variant="contained" color="primary" size="small" sx={{ ml: 1 }} onClick={limparFiltros}>Limpar</Button>
             </Grid>
           </Grid>
         </Paper>
@@ -466,8 +477,11 @@ const GastosDiarios: React.FC = () => {
                 <CardContent>
                   <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
                     <Typography variant="subtitle1" fontWeight="bold" sx={{ flexGrow: 1 }}>{gasto.local || gasto.tipoDespesa.grupo.nome}</Typography>
-                    <Box display="flex" flexDirection="column" alignItems="flex-end">
+                    <Box display="flex" flexDirection="column" alignItems="flex-end" gap={0.5}>
                       <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText', fontWeight: 'bold' }} />
+                      {gasto.parcelaInfo && gasto.parcelaInfo.total > 1 && (
+                        <Chip label={`${gasto.parcelaInfo.atual}/${gasto.parcelaInfo.total}`} size="small" variant="outlined" sx={{ fontSize: '0.7rem', height: 20, bgcolor: '#fef3c7', borderColor: '#f59e0b', color: '#92400e' }} />
+                      )}
                       {gasto.cartao && <Typography variant="caption" color="text.secondary">{gasto.cartao.nome}</Typography>}
                     </Box>
                   </Box>
@@ -482,7 +496,7 @@ const GastosDiarios: React.FC = () => {
                   <IconButton size="small" color="primary" onClick={() => handleEditar(gasto)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto); setOpenDeleteConfirm(true); }}>
+                  <IconButton size="small" color="error" onClick={() => handleOpenDeleteConfirm(gasto)}>
                     <DeleteIcon />
                   </IconButton>
                 </CardActions>
@@ -517,7 +531,12 @@ const GastosDiarios: React.FC = () => {
                       <TableCell>{gasto.local}</TableCell>
                       <TableCell>
                         <Box display="flex" flexDirection="column" alignItems="flex-start" gap={0.5}>
-                          <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText' }} />
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <Chip label={gasto.formaPagamento} size="small" sx={{ bgcolor: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.light' : 'primary.light', color: gasto.formaPagamento === 'Cartão de Crédito' ? 'secondary.contrastText' : 'primary.contrastText' }} />
+                            {gasto.parcelaInfo && gasto.parcelaInfo.total > 1 && (
+                              <Chip label={`${gasto.parcelaInfo.atual}/${gasto.parcelaInfo.total}`} size="small" variant="outlined" sx={{ fontSize: '0.7rem', height: 20, bgcolor: '#fef3c7', borderColor: '#f59e0b', color: '#92400e' }} />
+                            )}
+                          </Box>
                           {gasto.cartao && <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{gasto.cartao.nome}</Typography>}
                         </Box>
                       </TableCell>
@@ -531,7 +550,7 @@ const GastosDiarios: React.FC = () => {
                         <IconButton size="small" color="primary" onClick={() => handleEditar(gasto)} title="Editar Lançamento">
                           <EditIcon />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => { setGastoToDelete(gasto); setOpenDeleteConfirm(true); }} title="Excluir Lançamento">
+                        <IconButton size="small" color="error" onClick={() => handleOpenDeleteConfirm(gasto)} title="Excluir Lançamento">
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>
@@ -588,7 +607,7 @@ const GastosDiarios: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth required variant="outlined">
                     <InputLabel>Forma de Pagamento</InputLabel>
@@ -599,7 +618,7 @@ const GastosDiarios: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 {(formData.formaPagamento === 'Cartão de Crédito' || formData.formaPagamento === 'Cartão de Débito') && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
@@ -612,7 +631,7 @@ const GastosDiarios: React.FC = () => {
                     </FormControl>
                   </Grid>
                 )}
-                
+
                 {formData.formaPagamento !== 'Cartão de Crédito' && (
                   <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required variant="outlined">
@@ -636,7 +655,7 @@ const GastosDiarios: React.FC = () => {
                       <InputLabel>Parcelas</InputLabel>
                       <Select value={formData.parcelas} disabled={!!formData._id} onChange={(e) => setFormData({ ...formData, parcelas: e.target.value })} label="Parcelas">
                         <MenuItem value="1">À vista (1x)</MenuItem>
-                        {[2,3,4,5,6,7,8,9,10,11,12,18,24].map(num => (
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map(num => (
                           <MenuItem key={num} value={num.toString()}>{num}x Parcelado</MenuItem>
                         ))}
                       </Select>
@@ -665,18 +684,63 @@ const GastosDiarios: React.FC = () => {
         </Dialog>
 
         {/* Dialog Confirmar Exclusão */}
-        <Dialog open={openDeleteConfirm} onClose={() => setOpenDeleteConfirm(false)} PaperProps={{ sx: { borderRadius: 3 } }}>
-          <DialogTitle>Confirmar Exclusão</DialogTitle>
+        <Dialog open={openDeleteConfirm} onClose={() => { setOpenDeleteConfirm(false); setDeleteMode('single'); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+          <DialogTitle sx={{ fontWeight: 600 }}>Confirmar Exclusão</DialogTitle>
           <DialogContent>
-            <Typography>
-              Tem certeza que deseja apagar este gasto?
-              {gastoToDelete?.formaPagamento === 'Cartão de Crédito' && " Se for parte de um parcelamento, apenas esta parcela será apagada da fatura."}
-              {gastoToDelete?.formaPagamento !== 'Cartão de Crédito' && " O valor será devolvido à conta bancária associada via estorno."}
-            </Typography>
+            {gastoToDelete?.grupoParcelamento && gastoToDelete?.parcelaInfo && gastoToDelete.parcelaInfo.total > 1 ? (
+              <Box>
+                <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                  Este gasto é a <strong>parcela {gastoToDelete.parcelaInfo.atual} de {gastoToDelete.parcelaInfo.total}</strong>
+                  {gastoToDelete.local ? ` — ${gastoToDelete.local}` : ''}.
+                </Alert>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Escolha como deseja proceder:
+                </Typography>
+                <RadioGroup
+                  value={deleteMode}
+                  onChange={(e) => setDeleteMode(e.target.value as 'single' | 'all')}
+                >
+                  <FormControlLabel
+                    value="single"
+                    control={<Radio />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={500}>Excluir apenas esta parcela</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Remove somente a parcela {gastoToDelete.parcelaInfo.atual}/{gastoToDelete.parcelaInfo.total} da fatura correspondente.
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ alignItems: 'flex-start', mb: 1, p: 1, borderRadius: 2, border: deleteMode === 'single' ? '2px solid' : '1px solid', borderColor: deleteMode === 'single' ? 'primary.main' : 'divider', bgcolor: deleteMode === 'single' ? 'primary.50' : 'transparent', transition: 'all 0.2s' }}
+                  />
+                  <FormControlLabel
+                    value="all"
+                    control={<Radio color="error" />}
+                    label={
+                      <Box>
+                        <Typography variant="body1" fontWeight={500} color="error.main">Excluir todas as {gastoToDelete.parcelaInfo.total} parcelas</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Remove todas as parcelas deste parcelamento de suas respectivas faturas.
+                        </Typography>
+                      </Box>
+                    }
+                    sx={{ alignItems: 'flex-start', p: 1, borderRadius: 2, border: deleteMode === 'all' ? '2px solid' : '1px solid', borderColor: deleteMode === 'all' ? 'error.main' : 'divider', bgcolor: deleteMode === 'all' ? 'error.50' : 'transparent', transition: 'all 0.2s' }}
+                  />
+                </RadioGroup>
+              </Box>
+            ) : (
+              <Typography>
+                Tem certeza que deseja apagar este gasto?
+                {gastoToDelete?.formaPagamento === 'Cartão de Crédito' && " Esta parcela será apagada da fatura."}
+                {gastoToDelete?.formaPagamento !== 'Cartão de Crédito' && " O valor será devolvido à conta bancária associada via estorno."}
+              </Typography>
+            )}
           </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button onClick={() => setOpenDeleteConfirm(false)} color="inherit">Cancelar</Button>
-            <Button onClick={confirmDelete} color="error" variant="contained">Excluir Gasto</Button>
+          <DialogActions sx={{ p: 3, pt: 1 }}>
+            <Button onClick={() => { setOpenDeleteConfirm(false); setDeleteMode('single'); }} color="inherit">Cancelar</Button>
+            <Button onClick={confirmDelete} color="error" variant="contained">
+              {deleteMode === 'all' && gastoToDelete?.parcelaInfo ? `Excluir ${gastoToDelete.parcelaInfo.total} Parcelas` : 'Excluir Gasto'}
+            </Button>
           </DialogActions>
         </Dialog>
 

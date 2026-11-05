@@ -1,7 +1,8 @@
 // @ts-nocheck
-import React, { useState, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import {
   Box,
   Drawer,
@@ -18,9 +19,10 @@ import {
   useTheme,
   useMediaQuery,
   Avatar,
+  Badge,
+  Tooltip
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import BusinessIcon from '@mui/icons-material/Business';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -37,17 +39,16 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
-const drawerWidth = 240;
+const drawerWidth = 260;
 
-interface MenuItem {
+interface MenuLink {
   text: string;
   icon: React.ReactElement;
   path: string;
 }
 
-const menuItems: MenuItem[] = [
+const menuItems: MenuLink[] = [
   { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
-  { text: 'Perfil', icon: <AccountCircleIcon />, path: '/perfil' },
   { text: 'Contas a Pagar', icon: <ReceiptIcon />, path: '/contas-pagar' },
   { text: 'Fornecedores', icon: <BusinessIcon />, path: '/fornecedores' },
   { text: 'Categorias', icon: <AccountBalanceIcon />, path: '/categorias' },
@@ -58,7 +59,6 @@ const menuItems: MenuItem[] = [
   { text: 'Cartões', icon: <CreditCardIcon />, path: '/cartoes' },
   { text: 'Faturas de Cartão', icon: <ReceiptLongIcon />, path: '/faturas-cartao' },
   { text: 'Formas de Pagamento', icon: <PaymentIcon />, path: '/formas-pagamento' },
-  { text: 'Notificações', icon: <NotificationsIcon />, path: '/notificacoes' },
   { text: 'Extrato', icon: <CategoryIcon />, path: '/extrato' },
 ];
 
@@ -68,14 +68,36 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+  const [naoLidasCount, setNaoLidasCount] = useState(0);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
+  useEffect(() => {
+    // Buscar quantidade de notificações não lidas ao carregar o layout
+    const fetchNotificacoes = async () => {
+      if (user) {
+        try {
+          const res = await api.get('/notificacoes/nao-lidas');
+          setNaoLidasCount(res.data.length);
+        } catch (error) {
+          console.error('Erro ao buscar notificações:', error);
+        }
+      }
+    };
+    fetchNotificacoes();
+  }, [location.pathname, user]); // Atualiza sempre que mudar de rota
+
   const handleDrawerToggle = (): void => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    if (isMobile) setMobileOpen(false);
   };
 
   const handleLogout = (): void => {
@@ -89,9 +111,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   ];
 
   const drawer = (
-    <Box>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.paper' }}>
+      <Toolbar sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        py: 2
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main', letterSpacing: '-0.5px' }}>
           Controle Financeiro
         </Typography>
       </Toolbar>
@@ -119,29 +146,45 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         ))}
         <Divider sx={{ my: 1 }} />
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout}>
+          <ListItemButton 
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              color: 'error.main',
+              '&:hover': {
+                bgcolor: 'error.50',
+              },
+              '& .MuiListItemIcon-root': {
+                color: 'error.main',
+              }
+            }}
+          >
             <ListItemIcon>
               <ExitToAppIcon />
             </ListItemIcon>
-            <ListItemText primary="Sair" />
+            <ListItemText primary="Sair" primaryTypographyProps={{ fontWeight: 600 }} />
           </ListItemButton>
         </ListItem>
-        <Box sx={{ m: 2 }}>
-          <Typography variant="caption" color="text.secondary">
-            Desenvolvido por Tiago Rodrigues
-          </Typography>
-        </Box>
-      </List>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 2 }}>
+          Desenvolvido por Tiago Rodrigues
+        </Typography>
+      </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          color: 'text.primary'
         }}
       >
         <Toolbar>
@@ -154,16 +197,50 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, justifyContent: 'flex-end' }}>
-            <Typography variant="subtitle1" noWrap component="div" sx={{ mr: 2 }}>
-              {user?.nome || 'Usuário'}
-            </Typography>
-            <Avatar 
-              src={user?.fotoPerfil || undefined}
-              sx={{ width: 40, height: 40, bgcolor: 'primary.main', border: '2px solid white' }}
+          
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Notificações">
+              <IconButton color="inherit" onClick={() => navigate('/notificacoes')} sx={{ mr: 1 }}>
+                <Badge badgeContent={naoLidasCount} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+            </Tooltip>
+
+            <Box 
+              onClick={() => navigate('/perfil')}
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5, 
+                cursor: 'pointer',
+                p: 0.5,
+                pr: 1.5,
+                borderRadius: 8,
+                transition: 'all 0.2s',
+                '&:hover': {
+                  bgcolor: 'rgba(0, 0, 0, 0.04)'
+                }
+              }}
             >
-              {!user?.fotoPerfil && user?.nome ? user.nome.charAt(0).toUpperCase() : ''}
-            </Avatar>
+              <Avatar 
+                src={user?.fotoPerfil || undefined}
+                sx={{ 
+                  width: 36, 
+                  height: 36, 
+                  bgcolor: 'primary.main',
+                  fontSize: '1rem',
+                  fontWeight: 600
+                }}
+              >
+                {!user?.fotoPerfil && user?.nome ? user.nome.charAt(0).toUpperCase() : ''}
+              </Avatar>
+              <Typography variant="subtitle2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 600 }}>
+                {user?.nome || 'Usuário'}
+              </Typography>
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
@@ -180,7 +257,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           }}
           sx={{
             display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              borderRight: 'none',
+              boxShadow: '4px 0 24px rgba(0,0,0,0.05)'
+            },
           }}
         >
           {drawer}
@@ -189,7 +271,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: drawerWidth,
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 'none'
+            },
           }}
           open
         >
@@ -200,8 +288,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 1, sm: 2, md: 3 },
+          p: { xs: 2, sm: 3, md: 4 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: '100vw',
+          overflowX: 'hidden'
         }}
       >
         <Toolbar />

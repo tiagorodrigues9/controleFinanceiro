@@ -361,8 +361,8 @@ const FormasPagamento: React.FC = () => {
               {React.cloneElement(getIconeForma(forma.nome), { fontSize: 'small' })}
             </Avatar>
             <Box>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ 
-                lineHeight: 1.2, 
+              <Typography variant="subtitle1" fontWeight="bold" sx={{
+                lineHeight: 1.2,
                 color: isActive(forma) ? 'text.primary' : 'text.secondary',
                 fontStyle: isActive(forma) ? 'normal' : 'italic'
               }}>
@@ -522,7 +522,7 @@ const FormasPagamento: React.FC = () => {
                         }}>
                           {React.cloneElement(getIconeForma(forma.nome), { fontSize: 'small' })}
                         </Avatar>
-                        <Typography variant="subtitle2" fontWeight="bold" sx={{ 
+                        <Typography variant="subtitle2" fontWeight="bold" sx={{
                           color: isActive(forma) ? 'text.primary' : 'text.secondary',
                           fontStyle: isActive(forma) ? 'normal' : 'italic'
                         }}>

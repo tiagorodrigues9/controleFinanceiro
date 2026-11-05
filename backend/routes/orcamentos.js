@@ -8,11 +8,47 @@ const validateObjectId = require('../middleware/validateObjectId');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Orçamentos
+ *   description: Gerenciamento de orçamentos mensais
+ */
 router.use(auth);
 
-// @route   GET /api/orcamentos/:ano/:mes
+// @route   GET /api/orcamentos:ano/:mes
 // @desc    Obter orçamento de um mês específico
 // @access  Private
+/**
+ * @swagger
+ * /api/orcamentos/{ano}/{mes}:
+ *   get:
+ *     summary: Obter orçamento do mês
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: ano
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: mes
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:ano/:mes', async (req, res) => {
   try {
     const { ano, mes } = req.params;
@@ -123,9 +159,49 @@ router.get('/:ano/:mes', async (req, res) => {
   }
 });
 
-// @route   POST /api/orcamentos/:ano/:mes
+// @route   POST /api/orcamentos:ano/:mes
 // @desc    Criar ou atualizar orçamento mensal
 // @access  Private
+/**
+ * @swagger
+ * /api/orcamentos/{ano}/{mes}:
+ *   post:
+ *     summary: Criar ou atualizar orçamento do mês
+ *     tags: [Orçamentos]
+ *     parameters:
+ *       - in: path
+ *         name: ano
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: mes
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               valorLimiteGeral:
+ *                 type: number
+ *               limitesPorGrupo:
+ *                 type: array
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:ano/:mes', [
   body('valorLimiteGeral').isNumeric().withMessage('Valor geral deve ser numérico'),
   body('limitesPorGrupo').isArray().withMessage('Limites por grupo devem ser um array')

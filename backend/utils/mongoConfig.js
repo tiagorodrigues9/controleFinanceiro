@@ -2,6 +2,11 @@
  * Configuração centralizada do MongoDB (local, Atlas, Vercel serverless).
  */
 function buildMongoUri() {
+  // Suporte a URI completa (Docker, ambientes customizados)
+  if (process.env.MONGO_URI) {
+    return process.env.MONGO_URI;
+  }
+
   const mongoUser = process.env.MONGO_USER || '';
   const mongoPass = process.env.MONGO_PASS || '';
   const mongoDb = process.env.MONGO_DB || 'controle-financeiro';

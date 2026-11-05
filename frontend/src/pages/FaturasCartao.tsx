@@ -125,20 +125,20 @@ const FaturasCartao: React.FC = () => {
   const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [cartoes, setCartoes] = useState<Cartao[]>([]);
   const [contasBancarias, setContasBancarias] = useState<ContaBancaria[]>([]);
-  
+
   const [selectedCartao, setSelectedCartao] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedFatura, setSelectedFatura] = useState<Fatura | null>(null);
   const [contaBancariaPagamento, setContaBancariaPagamento] = useState('');
   const [loadingPagamento, setLoadingPagamento] = useState(false);
-  
+
   const [openEstornoDialog, setOpenEstornoDialog] = useState(false);
   const [loadingEstorno, setLoadingEstorno] = useState(false);
-  
+
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const fetchDados = useCallback(async () => {
@@ -240,7 +240,12 @@ const FaturasCartao: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
   };
 
-  const formatarData = (dataStr?: string) => {
+  const formatarDataLocal = (dataStr?: string) => {
+    if (!dataStr) return '-';
+    return new Date(dataStr).toLocaleDateString('pt-BR');
+  };
+
+  const formatarDataUTC = (dataStr?: string) => {
     if (!dataStr) return '-';
     return new Date(dataStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
@@ -311,8 +316,8 @@ const FaturasCartao: React.FC = () => {
 
               return (
                 <Grid item xs={12} md={6} lg={4} key={fatura._id}>
-                  <Card sx={{ 
-                    borderRadius: 3, 
+                  <Card sx={{
+                    borderRadius: 3,
                     borderTop: `4px solid ${statusProp.color === 'default' ? '#94a3b8' : faturasTheme.palette[statusProp.color as 'primary' | 'warning' | 'success'].main}`,
                     transition: 'transform 0.2s',
                     '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 }
@@ -322,16 +327,16 @@ const FaturasCartao: React.FC = () => {
                         <Typography variant="h6">{fatura.mesReferencia}</Typography>
                         <Chip label={statusProp.label} color={statusProp.color} size="small" sx={{ fontWeight: 'bold' }} />
                       </Box>
-                      
+
                       <Box mb={2} sx={{ bgcolor: '#f8fafc', p: 1.5, borderRadius: 2 }}>
                         <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
                           Cartão: <strong>{fatura.cartao?.nome || '-'}</strong>
                         </Typography>
                         <Typography variant="body2" color={venceHojeOuAtrasada ? 'error.main' : 'text.secondary'} sx={{ fontWeight: venceHojeOuAtrasada ? 'bold' : 'normal' }}>
-                          Vencimento: {formatarData(fatura.dataVencimento)} {venceHojeOuAtrasada && '(Venceu!)'}
+                          Vencimento: {formatarDataLocal(fatura.dataVencimento)} {venceHojeOuAtrasada && '(Venceu!)'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Fechamento: {formatarData(fatura.dataFechamento)}
+                          Fechamento: {formatarDataLocal(fatura.dataFechamento)}
                         </Typography>
                       </Box>
 
@@ -353,7 +358,7 @@ const FaturasCartao: React.FC = () => {
                       {fatura.status === 'Paga' ? (
                         <Box>
                           <Typography variant="caption" color="success.main" display="block" mb={1} textAlign="center">
-                            Paga em {formatarData(fatura.dataPagamento)}
+                            Paga em {formatarDataLocal(fatura.dataPagamento)}
                           </Typography>
                           <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={1}>
                             <Button fullWidth variant="outlined" startIcon={<VisibilityIcon />} onClick={() => handleVerDetalhes(fatura)}>
@@ -469,7 +474,7 @@ const FaturasCartao: React.FC = () => {
                     <Typography variant="h5" fontWeight="bold">{formatarValor(selectedFatura.valorTotal)}</Typography>
                   </Box>
                 </Box>
-                
+
                 <Box p={3}>
                   <Typography variant="subtitle1" fontWeight="bold" mb={2}>Demonstrativo de Despesas</Typography>
                   {selectedFatura.despesas?.length > 0 ? (
@@ -480,9 +485,9 @@ const FaturasCartao: React.FC = () => {
                             <ListItemIcon sx={{ minWidth: 40 }}>
                               {despesa.isGastoDiario ? <FastfoodIcon color="primary" /> : <ReceiptIcon color="secondary" />}
                             </ListItemIcon>
-                            <ListItemText 
-                              primary={despesa.descricao} 
-                              secondary={formatarData(despesa.data)}
+                            <ListItemText
+                              primary={despesa.descricao}
+                              secondary={formatarDataUTC(despesa.data)}
                               primaryTypographyProps={{ fontWeight: 500, variant: 'body2' }}
                               secondaryTypographyProps={{ variant: 'caption' }}
                             />
@@ -507,16 +512,16 @@ const FaturasCartao: React.FC = () => {
                             {selectedFatura.despesas.map((despesa) => (
                               <TableRow key={despesa._id} hover>
                                 <TableCell>
-                                  <Chip 
-                                    icon={despesa.isGastoDiario ? <FastfoodIcon fontSize="small"/> : <ReceiptIcon fontSize="small" />} 
-                                    label={despesa.isGastoDiario ? 'Gasto' : 'Conta Fixa'} 
-                                    size="small" 
-                                    color={despesa.isGastoDiario ? 'primary' : 'secondary'} 
-                                    variant="outlined" 
+                                  <Chip
+                                    icon={despesa.isGastoDiario ? <FastfoodIcon fontSize="small" /> : <ReceiptIcon fontSize="small" />}
+                                    label={despesa.isGastoDiario ? 'Gasto' : 'Conta Fixa'}
+                                    size="small"
+                                    color={despesa.isGastoDiario ? 'primary' : 'secondary'}
+                                    variant="outlined"
                                   />
                                 </TableCell>
                                 <TableCell sx={{ fontWeight: 500 }}>{despesa.descricao}</TableCell>
-                                <TableCell>{formatarData(despesa.data)}</TableCell>
+                                <TableCell>{formatarDataUTC(despesa.data)}</TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>{formatarValor(despesa.valor)}</TableCell>
                               </TableRow>
                             ))}

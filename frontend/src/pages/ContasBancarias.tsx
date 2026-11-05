@@ -124,6 +124,7 @@ const BANCOS = [
   { nome: 'C6 Bank', cor: '#1e293b' },
   { nome: 'XP', cor: '#1e293b' },
   { nome: 'BTG Pactual', cor: '#3b82f6' },
+  { nome: 'Mercado Pago', cor: '#0ea5e9' },
   { nome: 'Outro', cor: '#64748b' }
 ];
 

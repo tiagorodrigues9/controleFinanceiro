@@ -15,11 +15,34 @@ const escapeRegExp = (string) => {
 };
 
 // Aplicar middleware de autenticação em todas as rotas
+
+/**
+ * @swagger
+ * tags:
+ *   name: Grupos
+ *   description: Grupos e subgrupos de despesas
+ */
 router.use(auth);
 
 // @route   GET /api/grupos
 // @desc    Obter todos os grupos do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos:
+ *   get:
+ *     summary: Listar todos os grupos
+ *     tags: [Grupos]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const grupos = await Grupo.find({
@@ -33,9 +56,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/grupos/:id
+// @route   GET /api/grupos:id
 // @desc    Obter grupo específico
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}:
+ *   get:
+ *     summary: Obter grupo por ID
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', validateObjectId, async (req, res) => {
   try {
     const grupo = await Grupo.findOne({
@@ -57,6 +104,36 @@ router.get('/:id', validateObjectId, async (req, res) => {
 // @route   POST /api/grupos
 // @desc    Criar novo grupo
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos:
+ *   post:
+ *     summary: Criar novo grupo
+ *     tags: [Grupos]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               cor:
+ *                 type: string
+ *               icone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório')
 ], async (req, res) => {
@@ -93,9 +170,33 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/grupos/:id/editar
+// @route   PUT /api/grupos:id/editar
 // @desc    Editar grupo (nome, cor, ícone)
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}/editar:
+ *   put:
+ *     summary: Editar grupo
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/editar', validateObjectId, [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório')
 ], async (req, res) => {
@@ -140,9 +241,47 @@ router.put('/:id/editar', validateObjectId, [
   }
 });
 
-// @route   POST /api/grupos/:id/subgrupos
+// @route   POST /api/grupos:id/subgrupos
 // @desc    Adicionar subgrupo
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}/subgrupos:
+ *   post:
+ *     summary: Adicionar subgrupo ao grupo
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               cor:
+ *                 type: string
+ *               icone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/:id/subgrupos', validateObjectId, [
   body('nome').trim().notEmpty().withMessage('Nome do subgrupo é obrigatório')
 ], async (req, res) => {
@@ -183,9 +322,38 @@ router.post('/:id/subgrupos', validateObjectId, [
   }
 });
 
-// @route   PUT /api/grupos/:id/subgrupos/:subId/renomear
+// @route   PUT /api/grupos:id/subgrupos/:subId/renomear
 // @desc    Renomear subgrupo e atualizar em cascata nas contas/gastos
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}/subgrupos/{subId}/renomear:
+ *   put:
+ *     summary: Renomear subgrupo
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: subId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/subgrupos/:subId/renomear', validateObjectId, [
   body('nome').trim().notEmpty().withMessage('Nome do subgrupo é obrigatório')
 ], async (req, res) => {
@@ -247,9 +415,33 @@ router.put('/:id/subgrupos/:subId/renomear', validateObjectId, [
 });
 
 
-// @route   DELETE /api/grupos/:id
+// @route   DELETE /api/grupos:id
 // @desc    Excluir grupo
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}:
+ *   delete:
+ *     summary: Excluir grupo
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id', validateObjectId, async (req, res) => {
   try {
     const grupo = await Grupo.findOne({
@@ -278,9 +470,38 @@ router.delete('/:id', validateObjectId, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/grupos/:id/subgrupos/:subId
+// @route   DELETE /api/grupos:id/subgrupos/:subId
 // @desc    Excluir subgrupo de um grupo
 // @access  Private
+/**
+ * @swagger
+ * /api/grupos/{id}/subgrupos/{subId}:
+ *   delete:
+ *     summary: Excluir subgrupo
+ *     tags: [Grupos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: subId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.delete('/:id/subgrupos/:subId', validateObjectId, async (req, res) => {
   try {
     const grupo = await Grupo.findOne({

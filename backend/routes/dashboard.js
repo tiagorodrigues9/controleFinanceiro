@@ -16,9 +16,32 @@ const router = express.Router();
 
 logger.debug('🔥 Dashboard router carregado!');
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Dashboard
+ *   description: Dados consolidados do dashboard principal
+ */
 router.use(auth);
 
 // Endpoint para limpar cache
+/**
+ * @swagger
+ * /api/dashboard/clear-cache:
+ *   get:
+ *     summary: Limpar cache do dashboard
+ *     tags: [Dashboard]
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/clear-cache', asyncHandler(async (req, res) => {
   const { invalidateUserCache } = require('../utils/cache');
   invalidateUserCache(req.user._id);
@@ -26,6 +49,33 @@ router.get('/clear-cache', asyncHandler(async (req, res) => {
 }));
 
 // Aplicar validação e cache na rota do dashboard
+/**
+ * @swagger
+ * /api/dashboard:
+ *   get:
+ *     summary: Obter dados completos do dashboard
+ *     tags: [Dashboard]
+ *     parameters:
+ *       - in: query
+ *         name: mes
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: ano
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', [
   query('mes').optional().isInt({ min: 1, max: 12 }).withMessage('Mês deve estar entre 1 e 12'),
   query('ano').optional().isInt({ min: 2020, max: 2030 }).withMessage('Ano deve estar entre 2020 e 2030')
@@ -101,6 +151,7 @@ router.get('/', [
       {
         $match: {
           usuario: new mongoose.Types.ObjectId(req.user._id),
+          estornado: false,
           data: { $gte: startDate, $lte: endDate }
         }
       },
@@ -290,8 +341,8 @@ router.get('/', [
     .slice(0, 5)
     .map(([nome, valor]) => ({ nome, valor }));
 
-  // Evolução do saldo
-  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id }).lean();
+  // Evolução do saldo - buscar apenas contas ativas
+  const contasBancarias = await ContaBancaria.find({ usuario: req.user._id, ativo: { $ne: false } }).lean();
   const monthsRange = [];
   for (let i = 5; i >= 0; i--) {
     const ref = new Date(anoAtual, mesAtual - 1 - i, 1);
@@ -307,11 +358,16 @@ router.get('/', [
     data: { $lte: lastMonthEnd }
   }).lean();
 
-  const evolucaoSaldo = contasBancarias.map((conta) => {
+  const evolucaoSaldoRaw = contasBancarias.map((conta) => {
     // Filtrar extratos apenas desta conta bancária e ordenar cronologicamente
     const extratosConta = extratosEvolucao
       .filter(ext => ext.contaBancaria.toString() === conta._id.toString())
       .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+    // Se não há extratos para esta conta, não incluir no resultado
+    if (extratosConta.length === 0) {
+      return null;
+    }
 
     let saldoAcumulado = 0;
     let indexExtrato = 0;
@@ -332,6 +388,9 @@ router.get('/', [
 
     return { conta: conta.nome, saldos };
   });
+
+  // Remover contas sem movimentação
+  const evolucaoSaldo = evolucaoSaldoRaw.filter(item => item !== null);
 
   // Percentual por categoria
   const grupos = await Grupo.find({ usuario: req.user._id }).lean();
@@ -453,16 +512,16 @@ router.get('/', [
         limite: cartao.limite,
         totalGastos: totalGastosCartaoValor,
         totalContas: totalContasCartaoValor,
-        totalGeral: totalGastosCartaoValor, // Ignorar totalContasCartaoValor que já vira gasto
-        quantidadeTransacoes: gastosCartao.length,
+        totalGeral: totalGastosCartaoValor + totalContasCartaoValor,
+        quantidadeGastos: gastosCartao.length,
+        quantidadeContas: contasPagasCartao.length,
         limiteUtilizado: cartao.tipo === 'Crédito' && cartao.limite > 0 ? 
           (totalGastosCartaoValor / cartao.limite) * 100 : 0,
         disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null,
         totalGastosMesValor,
         totalEntradasMesValor,
         totalSaidasMesValor,
-        saldoMesValor,
-        disponivel: cartao.tipo === 'Crédito' ? cartao.limite - totalGastosCartaoValor : null
+        saldoMesValor
       };
     })
   );
@@ -476,6 +535,11 @@ router.get('/', [
   const contasPorFormaPagamento = {};
 
   gastos.forEach(gasto => {
+    // Ignorar gastos que foram gerados automaticamente pelo pagamento de contas
+    // Isso evita a duplicação no relatório de Formas de Pagamento
+    if (gasto.observacao && gasto.observacao.startsWith('[Pagamento da Conta]:')) {
+      return; 
+    }
     const formaPagamento = gasto.formaPagamento || 'Não informado';
     const valorGasto = Math.round(parseFloat(gasto.valor) * 100) / 100;
     gastosPorFormaPagamento[formaPagamento] = (gastosPorFormaPagamento[formaPagamento] || 0) + valorGasto;
@@ -496,20 +560,26 @@ router.get('/', [
   const relatorioFormasPagamento = [];
   const todasFormas = new Set([...Object.keys(gastosPorFormaPagamento), ...Object.keys(contasPorFormaPagamento)]);
 
+  let sumTotalGeral = 0;
+
   todasFormas.forEach(forma => {
     const totalGastos = gastosPorFormaPagamento[forma] || 0;
     const totalContas = contasPorFormaPagamento[forma] || 0;
     const totalGeral = totalGastos + totalContas;
+    sumTotalGeral += totalGeral;
     
     if (totalGeral > 0) {
       relatorioFormasPagamento.push({
         formaPagamento: forma,
         totalGastos: totalGastos,
-        totalContas: 0, // Ignorando Contas Pagas (já são gastos)
-        totalGeral: totalGastos,
-        percentualGeral: totalGastos > 0 ? (totalGastos / Object.values(gastosPorFormaPagamento).reduce((a, b) => a + b, 0)) * 100 : 0
+        totalContas: totalContas,
+        totalGeral: totalGeral
       });
     }
+  });
+
+  relatorioFormasPagamento.forEach(item => {
+    item.percentualGeral = sumTotalGeral > 0 ? (item.totalGeral / sumTotalGeral) * 100 : 0;
   });
 
   relatorioFormasPagamento.sort((a, b) => b.totalGeral - a.totalGeral);

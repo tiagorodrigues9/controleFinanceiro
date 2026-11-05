@@ -8,6 +8,13 @@ const { logger } = require('../utils/logger');
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Fornecedores
+ *   description: CRUD de fornecedores
+ */
 router.param('id', validateObjectId);
 
 // Aplicar middleware de autenticação em todas as rotas
@@ -16,6 +23,28 @@ router.use(auth);
 // @route   GET /api/fornecedores
 // @desc    Obter todos os fornecedores do usuário
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores:
+ *   get:
+ *     summary: Listar fornecedores
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: query
+ *         name: ativo
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/', async (req, res) => {
   try {
     const fornecedores = await Fornecedor.find({
@@ -29,9 +58,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/fornecedores/:id
+// @route   GET /api/fornecedores:id
 // @desc    Obter fornecedor específico
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}:
+ *   get:
+ *     summary: Obter fornecedor por ID
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.get('/:id', async (req, res) => {
   try {
     const fornecedor = await Fornecedor.findOne({
@@ -53,6 +106,44 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/fornecedores
 // @desc    Criar novo fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores:
+ *   post:
+ *     summary: Criar novo fornecedor
+ *     tags: [Fornecedores]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nome]
+ *             properties:
+ *               nome:
+ *                 type: string
+ *               tipo:
+ *                 type: string
+ *               documento:
+ *                 type: string
+ *               telefone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               endereco:
+ *                 type: string
+ *               observacoes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Criado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       500:
+ *         description: Erro interno
+ */
 router.post('/', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('E-mail inválido')
@@ -97,9 +188,33 @@ router.post('/', [
   }
 });
 
-// @route   PUT /api/fornecedores/:id
+// @route   PUT /api/fornecedores:id
 // @desc    Atualizar fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}:
+ *   put:
+ *     summary: Atualizar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id', [
   body('nome').optional().trim().notEmpty().withMessage('Nome não pode ser vazio'),
   body('email').optional({ checkFalsy: true }).isEmail().withMessage('E-mail inválido')
@@ -154,9 +269,33 @@ router.put('/:id', [
   }
 });
 
-// @route   PUT /api/fornecedores/:id/inativar
+// @route   PUT /api/fornecedores:id/inativar
 // @desc    Inativar fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}/inativar:
+ *   put:
+ *     summary: Inativar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/inativar', async (req, res) => {
   try {
     const fornecedor = await Fornecedor.findOne({
@@ -191,9 +330,33 @@ router.put('/:id/inativar', async (req, res) => {
   }
 });
 
-// @route   PUT /api/fornecedores/:id/ativar
+// @route   PUT /api/fornecedores:id/ativar
 // @desc    Ativar (Reativar) fornecedor
 // @access  Private
+/**
+ * @swagger
+ * /api/fornecedores/{id}/ativar:
+ *   put:
+ *     summary: Reativar fornecedor
+ *     tags: [Fornecedores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       401:
+ *         description: Não autenticado
+ *       404:
+ *         description: Não encontrado
+ *       500:
+ *         description: Erro interno
+ */
 router.put('/:id/ativar', async (req, res) => {
   try {
     const fornecedor = await Fornecedor.findOne({

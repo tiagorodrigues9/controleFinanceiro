@@ -132,7 +132,7 @@ const Extrato: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [openLancamento, setOpenLancamento] = useState(false);
   const [openSaldoInicial, setOpenSaldoInicial] = useState(false);
-  
+
   const [filtros, setFiltros] = useState<Filtros>({
     contaBancaria: '',
     tipoDespesa: '',
@@ -262,7 +262,7 @@ const Extrato: React.FC = () => {
     try {
       const response = await api.post('/extrato', formData);
       const novoExtrato = response.data;
-      
+
       setExtratos(prevExtratos => {
         const atualizados = [novoExtrato, ...prevExtratos];
         return atualizados.filter(extrato => {
@@ -271,13 +271,13 @@ const Extrato: React.FC = () => {
           return true;
         });
       });
-      
+
       if (novoExtrato.tipo === 'Entrada' || novoExtrato.tipo === 'Saldo Inicial') {
         setTotalEntradas(prev => prev + novoExtrato.valor);
       } else {
         setTotalSaidas(prev => prev + novoExtrato.valor);
       }
-      
+
       setOpenLancamento(false);
       setError('');
     } catch (err: any) {
@@ -317,9 +317,9 @@ const Extrato: React.FC = () => {
     if (!estornoId) return;
     try {
       await api.post(`/extrato/${estornoId}/estornar`);
-      
+
       setExtratos(prevExtratos => prevExtratos.filter(extrato => extrato._id !== estornoId));
-      
+
       const extratoEstornado = extratos.find(extrato => extrato._id === estornoId);
       if (extratoEstornado) {
         if (extratoEstornado.tipo === 'Entrada' || extratoEstornado.tipo === 'Saldo Inicial') {
@@ -328,7 +328,7 @@ const Extrato: React.FC = () => {
           setTotalSaidas(prev => prev - extratoEstornado.valor);
         }
       }
-      
+
       setOpenConfirmEstorno(false);
       setEstornoId(null);
       setError('');
@@ -341,13 +341,13 @@ const Extrato: React.FC = () => {
     try {
       const params: any = { formato };
       if (filtros.contaBancaria) params.contaBancaria = filtros.contaBancaria;
-      
+
       if (filtros.dataInicio && filtros.dataFim) {
         const date = new Date(filtros.dataFim);
         params.mes = date.getMonth() + 1;
         params.ano = date.getFullYear();
       }
-      
+
       const response = await api.get('/exportar/extrato', { params, responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement('a');
@@ -373,7 +373,7 @@ const Extrato: React.FC = () => {
 
   const ReferenceChip = ({ extrato }: { extrato: ExtratoItem }) => {
     const tipoRef = extrato.referencia?.tipo || 'Lancamento';
-    
+
     if (tipoRef === 'FaturaCartao') {
       return <Chip label="Fatura" size="small" sx={{ bgcolor: 'secondary.light', color: 'secondary.contrastText', fontWeight: 'bold' }} />;
     } else if (tipoRef === 'Conta' || tipoRef === 'Gasto') {
@@ -390,7 +390,7 @@ const Extrato: React.FC = () => {
           <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <AccountBalanceWalletIcon color="primary" fontSize="large" /> Extrato Financeiro
           </Typography>
-          
+
           <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} gap={1}>
             <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={() => handleExportar('pdf')} size="small" color="error">
               PDF

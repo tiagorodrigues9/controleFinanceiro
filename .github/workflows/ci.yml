@@ -12,13 +12,13 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x]
         
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
@@ -32,18 +32,22 @@ jobs:
       working-directory: ./backend
       run: npm run lint --if-present
 
+    - name: Run tests
+      working-directory: ./backend
+      run: npm test
+
   build-and-test-frontend:
     runs-on: ubuntu-latest
     
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x]
         
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
@@ -52,6 +56,10 @@ jobs:
     - name: Install dependencies
       working-directory: ./frontend
       run: npm ci
+      
+    - name: Run tests
+      working-directory: ./frontend
+      run: CI=true npm test
       
     - name: Build
       working-directory: ./frontend

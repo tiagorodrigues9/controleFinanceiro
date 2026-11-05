@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -306,6 +306,26 @@ const Categorias = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
+  // Debounce refs para o color picker - evita re-renders excessivos ao arrastar
+  const grupoColorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const subColorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleGrupoColorInput = useCallback((e: any) => {
+    const newColor = e.target.value;
+    if (grupoColorTimerRef.current) clearTimeout(grupoColorTimerRef.current);
+    grupoColorTimerRef.current = setTimeout(() => {
+      setGrupoData(prev => ({ ...prev, cor: newColor }));
+    }, 50);
+  }, []);
+
+  const handleSubColorInput = useCallback((e: any) => {
+    const newColor = e.target.value;
+    if (subColorTimerRef.current) clearTimeout(subColorTimerRef.current);
+    subColorTimerRef.current = setTimeout(() => {
+      setSubgrupoData(prev => ({ ...prev, cor: newColor }));
+    }, 50);
+  }, []);
+
   useEffect(() => {
     fetchGrupos();
   }, []);
@@ -612,7 +632,8 @@ const Categorias = () => {
                   component="input"
                   type="color"
                   value={grupoData.cor}
-                  onChange={(e: any) => setGrupoData({ ...grupoData, cor: e.target.value })}
+                  onInput={handleGrupoColorInput}
+                  onChange={handleGrupoColorInput}
                   sx={{
                     width: 38,
                     height: 38,
@@ -736,7 +757,8 @@ const Categorias = () => {
                   component="input"
                   type="color"
                   value={subgrupoData.cor}
-                  onChange={(e: any) => setSubgrupoData({ ...subgrupoData, cor: e.target.value })}
+                  onInput={handleSubColorInput}
+                  onChange={handleSubColorInput}
                   sx={{
                     width: 38, height: 38, p: 0, border: 'none', borderRadius: '50%', cursor: 'pointer', outline: 'none', overflow: 'hidden', flexShrink: 0,
                     '&::-webkit-color-swatch-wrapper': { p: 0 }, '&::-webkit-color-swatch': { border: '2px solid #e2e8f0', borderRadius: '50%' },
