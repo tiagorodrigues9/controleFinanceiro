@@ -23,6 +23,7 @@ import Cartoes from './pages/Cartoes';
 import FaturasCartao from './pages/FaturasCartao';
 import Notificacoes from './pages/Notificacoes';
 import Orcamentos from './pages/Orcamentos';
+import Admin from './pages/Admin';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 const theme = createTheme({
   palette: {
@@ -101,6 +102,7 @@ function AppContent() {
                 <Route path="/faturas-cartao" element={<FaturasCartao />} />
                 <Route path="/notificacoes" element={<Notificacoes />} />
                 <Route path="/orcamentos" element={<Orcamentos />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </MainLayout>

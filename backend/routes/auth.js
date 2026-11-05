@@ -29,47 +29,23 @@ const generateRefreshToken = (id) => {
   });
 };
 
-/**
- * @swagger
- * tags:
- *   name: Autenticação
- *   description: Registro, login, refresh token e gerenciamento de perfil
- */
+const formatUserResponse = (user) => {
+  const adminEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.toLowerCase().trim() : '';
+  const isAdmin = Boolean(adminEmail && user.email && user.email.toLowerCase().trim() === adminEmail);
+  return {
+    id: user._id,
+    nome: user.nome,
+    email: user.email,
+    endereco: user.endereco,
+    bairro: user.bairro,
+    cidade: user.cidade,
+    telefone: user.telefone,
+    fotoPerfil: user.fotoPerfil,
+    configuracoes: user.configuracoes,
+    isAdmin
+  };
+};
 
-/**
- * @swagger
- * /api/auth/register:
- *   post:
- *     summary: Registrar novo usuário
- *     tags: [Autenticação]
- *     security: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [nome, email, password]
- *             properties:
- *               nome:
- *                 type: string
- *                 example: João Silva
- *               email:
- *                 type: string
- *                 format: email
- *                 example: joao@email.com
- *               password:
- *                 type: string
- *                 minLength: 6
- *                 example: senha123
- *     responses:
- *       201:
- *         description: Usuário criado com sucesso
- *       400:
- *         description: Dados inválidos ou usuário já existe
- *       500:
- *         description: Erro interno
- */
 router.post('/register', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').isEmail().withMessage('Email inválido'),
@@ -98,17 +74,7 @@ router.post('/register', [
     res.status(201).json({
       token,
       refreshToken,
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error(error);
@@ -178,17 +144,7 @@ router.post('/login', [
     res.json({
       token,
       refreshToken,
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error(error);
@@ -217,17 +173,7 @@ router.get('/me', auth, async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
     res.json({
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error('Erro ao buscar perfil:', error);
@@ -612,17 +558,7 @@ router.put('/profile', auth, [
     }
 
     res.json({
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error('Erro ao atualizar perfil:', error);

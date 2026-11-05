@@ -163,6 +163,7 @@ app.use('/api/cartoes', require('./routes/cartoes'));
 app.use('/api/fatura-cartao', require('./routes/faturaCartao'));
 app.use('/api/dashboard-faturas', require('./routes/dashboardFaturas'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
+app.use('/api/notificacoes-programadas', require('./routes/notificacoesProgramadas'));
 app.use('/api/emails', require('./routes/emails'));
 app.use('/api/email-test', require('./routes/emailTest'));
 app.use('/api/exportar', require('./routes/exportar'));

@@ -37,6 +37,7 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PieChartIcon from '@mui/icons-material/PieChart';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const drawerWidth = 260;
 
@@ -104,6 +105,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
+  const currentMenuItems: MenuItem[] = [
+    ...menuItems,
+    ...(user?.isAdmin ? [{ text: 'Admin', icon: <AdminPanelSettingsIcon color="primary" />, path: '/admin' }] : [])
+  ];
+
   const drawer = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: 'background.paper' }}>
       <Toolbar sx={{ 
@@ -116,59 +122,29 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           Controle Financeiro
         </Typography>
       </Toolbar>
-      
-      <Box sx={{ px: 2, pb: 2 }}>
-        <Divider sx={{ mb: 2 }} />
-        <List sx={{ flexGrow: 1, px: 0 }}>
-          {menuItems.map((item) => {
-            const isSelected = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.8 }}>
-                <ListItemButton
-                  selected={isSelected}
-                  onClick={() => handleNavigate(item.path)}
-                  sx={{
-                    borderRadius: 2,
-                    py: 1,
-                    transition: 'all 0.2s',
-                    '&.Mui-selected': {
-                      bgcolor: 'primary.main',
-                      color: 'primary.contrastText',
-                      '&:hover': {
-                        bgcolor: 'primary.dark',
-                      },
-                      '& .MuiListItemIcon-root': {
-                        color: 'primary.contrastText',
-                      }
-                    },
-                    '&:hover': {
-                      bgcolor: isSelected ? 'primary.dark' : 'rgba(99, 102, 241, 0.08)',
-                      transform: 'translateX(4px)'
-                    }
-                  }}
-                >
-                  <ListItemIcon sx={{ 
-                    minWidth: 40,
-                    color: isSelected ? 'inherit' : 'text.secondary' 
-                  }}>
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    primaryTypographyProps={{ 
-                      fontWeight: isSelected ? 600 : 500,
-                      fontSize: '0.9rem'
-                    }} 
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
-      </Box>
-
-      <Box sx={{ mt: 'auto', p: 2 }}>
-        <Divider sx={{ mb: 2 }} />
+      <Divider />
+      <List>
+        {currentMenuItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              selected={location.pathname === item.path}
+              onClick={() => {
+                navigate(item.path);
+                if (isMobile) setMobileOpen(false);
+              }}
+            >
+              <ListItemIcon>
+                {item.text === 'Perfil' && user?.fotoPerfil ? (
+                  <Avatar src={user.fotoPerfil} sx={{ width: 24, height: 24 }} />
+                ) : (
+                  item.icon
+                )}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+        <Divider sx={{ my: 1 }} />
         <ListItem disablePadding>
           <ListItemButton 
             onClick={handleLogout}

@@ -30,6 +30,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
+        
+        // Atualizar perfil em background para sincronizar permissões (ex: isAdmin)
+        api.get('/auth/me').then(res => {
+          if (res.data && res.data.user) {
+            setUser(res.data.user);
+            if (localStorage.getItem('token')) {
+              localStorage.setItem('user', JSON.stringify(res.data.user));
+            } else if (sessionStorage.getItem('token')) {
+              sessionStorage.setItem('user', JSON.stringify(res.data.user));
+            }
+          }
+        }).catch(() => {});
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');

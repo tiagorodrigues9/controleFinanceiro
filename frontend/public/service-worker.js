@@ -1,19 +1,22 @@
-const CACHE_NAME = 'controle-financeiro-v4-' + Date.now(); // Forçar nova versão
+const CACHE_NAME = 'controle-financeiro-v5';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json',
-  '/logo192.png',
-  '/logo512.png',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/apple-touch-icon.svg',
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg'
 ];
 
 self.addEventListener('install', event => {
   console.log('Service Worker instalado');
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
+      .catch(err => {
+        console.warn('Alguns recursos não foram cacheados no install:', err);
+      })
   );
 });
 
@@ -23,27 +26,25 @@ self.addEventListener('fetch', event => {
     return fetch(event.request);
   }
 
+  // Apenas métodos GET podem ser cacheados
+  if (event.request.method !== 'GET') {
+    return fetch(event.request);
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
 
         return fetch(event.request).then(
           response => {
-            // Check if valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
 
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
             var responseToCache = response.clone();
-
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
@@ -51,7 +52,9 @@ self.addEventListener('fetch', event => {
 
             return response;
           }
-        );
+        ).catch(() => {
+          // Fallback offline se necessário
+        });
       })
   );
 });
@@ -68,30 +71,39 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Push notifications
+// Push notifications recebidas do servidor
 self.addEventListener('push', (event) => {
   if (!event.data) {
     return;
   }
 
-  const data = event.data.json();
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {
+    data = {
+      titulo: 'Controle Financeiro',
+      mensagem: event.data.text()
+    };
+  }
+
   const options = {
-    body: data.mensagem,
-    icon: '/logo192.png',
-    badge: '/logo192.png',
+    body: data.mensagem || 'Você tem uma nova notificação financeira.',
+    icon: data.icon || '/icons/icon-192x192.svg',
+    badge: data.badge || '/icons/icon-192x192.svg',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/notificacoes',
-      timestamp: data.timestamp
+      timestamp: data.timestamp || Date.now()
     },
     actions: [
       {
         action: 'open',
-        title: 'Abrir App'
+        title: 'Abrir'
       },
       {
         action: 'dismiss',
@@ -103,7 +115,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.titulo, options)
+    self.registration.showNotification(data.titulo || 'Controle Financeiro', options)
   );
 });
 
@@ -115,14 +127,15 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const urlToOpen = event.notification.data.url || '/notificacoes';
+  const urlToOpen = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/notificacoes';
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Se já tiver uma janela aberta, focar nela
+        // Se já tiver uma janela aberta, focar nela e navegar
         for (const client of clientList) {
-          if (client.url.includes(urlToOpen)) {
+          if (client.url.includes(self.location.origin)) {
+            client.navigate(urlToOpen);
             return client.focus();
           }
         }
@@ -130,6 +143,27 @@ self.addEventListener('notificationclick', (event) => {
         return clients.openWindow(urlToOpen);
       })
   );
+});
+
+// Receber mensagens da aplicação (ex: teste ou notificação local via Service Worker)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, body, url } = event.data.payload || {};
+    const options = {
+      body: body || '',
+      icon: '/icons/icon-192x192.svg',
+      badge: '/icons/icon-192x192.svg',
+      vibrate: [100, 50, 100],
+      data: {
+        url: url || '/notificacoes',
+        timestamp: Date.now()
+      },
+      requireInteraction: true
+    };
+    event.waitUntil(
+      self.registration.showNotification(title || 'Controle Financeiro', options)
+    );
+  }
 });
 
 // Sincronização em background
@@ -141,7 +175,6 @@ self.addEventListener('sync', (event) => {
 
 async function doBackgroundSync() {
   try {
-    // Sincronizar notificações pendentes
     const response = await fetch('/api/notificacoes/sync', {
       method: 'POST',
       headers: {

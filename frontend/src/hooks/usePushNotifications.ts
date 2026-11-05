@@ -15,7 +15,26 @@ const usePushNotifications = () => {
       
       // Verificar permissão atual
       if ('Notification' in window) {
-        setPermission(Notification.permission);
+        const currentPermission = Notification.permission;
+        setPermission(currentPermission);
+
+        // Se já tiver permissão concedida, sincronizar inscrição
+        if (currentPermission === 'granted') {
+          navigator.serviceWorker.ready.then(async (registration) => {
+            if (registration && registration.pushManager) {
+              try {
+                const existingSub = await registration.pushManager.getSubscription();
+                if (existingSub) {
+                  setSubscription(existingSub);
+                  const payload = existingSub.toJSON ? existingSub.toJSON() : existingSub;
+                  await api.post('/notificacoes/subscribe', payload);
+                }
+              } catch (err) {
+                console.warn('Sincronização de push em background:', err);
+              }
+            }
+          }).catch(() => {});
+        }
       }
     } else {
       setIsSupported(false);
@@ -26,6 +45,7 @@ const usePushNotifications = () => {
   const registerServiceWorker = async () => {
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js');
+      await navigator.serviceWorker.ready;
       return registration;
     } catch (error) {
       console.error('Erro ao registrar Service Worker:', error);
@@ -33,7 +53,7 @@ const usePushNotifications = () => {
     }
   };
 
-  // Pedir permissão de notificação
+  // Pedir permissão de notificação e inscrever no push
   const requestPermission = async () => {
     if (!isSupported) {
       throw new Error('Notificações não são suportadas neste navegador');
@@ -42,10 +62,10 @@ const usePushNotifications = () => {
     setIsLoading(true);
     
     try {
-      // Primeiro, registrar o service worker
+      // 1. Registrar e aguardar o service worker
       const registration = await registerServiceWorker();
       
-      // Pedir permissão de notificação
+      // 2. Pedir permissão ao usuário
       const permissionResult = await Notification.requestPermission();
       setPermission(permissionResult);
       
@@ -53,23 +73,28 @@ const usePushNotifications = () => {
         throw new Error('Permissão de notificação negada');
       }
 
-      // Se suportado, pedir inscrição push
+      // 3. Obter ou criar inscrição push
       let pushSubscription = null;
-      if ('pushManager' in window) {
+      if ('PushManager' in window && registration.pushManager) {
         try {
           const vapidKey = process.env.REACT_APP_VAPID_PUBLIC_KEY || 'BHEqzi9eqU0WRAoVjdRP6o_D3vjdV0FuOxBj5Dg8El3ZTTGXolN8_5J7B0LqQtg6BFULAIyHneqhm72fydqCfjI';
-          pushSubscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlB64ToUint8Array(vapidKey)
-          });
+          
+          pushSubscription = await registration.pushManager.getSubscription();
+          
+          if (!pushSubscription) {
+            pushSubscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlB64ToUint8Array(vapidKey)
+            });
+          }
           
           setSubscription(pushSubscription);
           
-          // Enviar inscrição para o backend
-          await sendSubscriptionToBackend(pushSubscription);
+          // Enviar inscrição serializada para o backend
+          const payload = pushSubscription.toJSON ? pushSubscription.toJSON() : pushSubscription;
+          await sendSubscriptionToBackend(payload);
         } catch (error) {
           console.error('Erro ao criar inscrição push:', error);
-          // Continuar sem push notifications
         }
       }
 
@@ -86,11 +111,10 @@ const usePushNotifications = () => {
   };
 
   // Enviar inscrição para o backend
-  const sendSubscriptionToBackend = async (subscription) => {
+  const sendSubscriptionToBackend = async (subPayload) => {
     try {
-      const response = await api.post('/notificacoes/subscribe', subscription);
-      
-      if (response.status !== 200) {
+      const response = await api.post('/notificacoes/subscribe', subPayload);
+      if (response.status !== 200 && response.status !== 201) {
         throw new Error('Falha ao registrar inscrição no servidor');
       }
     } catch (error) {
@@ -99,55 +123,56 @@ const usePushNotifications = () => {
     }
   };
 
-  // Enviar notificação local (para testes)
+  // Enviar notificação local (para testes ou feedback imediato)
   const sendLocalNotification = (title, body, url = '/notificacoes') => {
     if (permission !== 'granted') {
       return;
     }
 
-    // Tentar mostrar notificação diretamente primeiro
-    if (permission === 'granted' && 'Notification' in window) {
+    // Tentar via Service Worker para comportamento idêntico ao push nativo
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration && registration.active) {
+          registration.active.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            payload: { title, body, url }
+          });
+          return;
+        }
+        mostrarFallback(title, body, url);
+      }).catch(() => {
+        mostrarFallback(title, body, url);
+      });
+    } else {
+      mostrarFallback(title, body, url);
+    }
+  };
+
+  const mostrarFallback = (title, body, url) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
       try {
         const notification = new Notification(title, {
           body: body,
-          icon: '/logo192.png',
-          badge: '/logo192.png',
+          icon: '/icons/icon-192x192.svg',
+          badge: '/icons/icon-192x192.svg',
           tag: 'controle-financeiro',
           requireInteraction: true,
           vibrate: [100, 50, 100],
           data: { url, timestamp: Date.now() }
         });
 
-        // Adicionar evento de clique
         notification.onclick = function() {
           window.focus();
           window.location.href = url;
           this.close();
         };
 
-        // Auto-fechar após 5 segundos
         setTimeout(() => {
           notification.close();
-        }, 5000);
-
-        return;
+        }, 6000);
       } catch (e) {
-        console.error('Erro ao mostrar notificação:', e);
+        console.error('Erro no fallback de notificação:', e);
       }
-    }
-
-    // Fallback: tentar via service worker
-    if (permission === 'granted' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        if (registration.active) {
-          registration.active.postMessage({
-            type: 'SHOW_NOTIFICATION',
-            payload: { title, body, url }
-          });
-        }
-      }).catch(error => {
-      });
-      console.warn('⚠️ Permissão não concedida ou service worker não disponível');
     }
   };
 
