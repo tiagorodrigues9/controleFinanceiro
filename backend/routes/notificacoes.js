@@ -213,6 +213,10 @@ router.post('/subscribe', async (req, res) => {
     const subscription = req.body;
     const usuarioId = req.user._id;
 
+    if (!subscription || !subscription.endpoint || typeof subscription.endpoint !== 'string') {
+      return res.status(400).json({ message: 'Dados de inscrição push inválidos ou endpoint ausente' });
+    }
+
     logger.debug('📱 Registrando inscrição push para usuário:', usuarioId);
     
     // Salvar inscrição no banco de dados no modelo User
@@ -248,25 +252,53 @@ router.post('/subscribe', async (req, res) => {
 });
 
 // @route   POST /api/notificacoes/send-push
-// @desc    Enviar notificação push (para testes)
+// @desc    Enviar notificação push real (para testes do usuário logado)
 // @access  Private
 router.post('/send-push', async (req, res) => {
   try {
     const { titulo, mensagem, url } = req.body;
     const usuarioId = req.user._id;
 
-    logger.debug('📱 Enviando notificação push:', { titulo, mensagem, url });
+    logger.debug('📱 Enviando notificação push para usuário:', usuarioId);
     
-    // Simular envio de notificação push
-    // Em produção, aqui você usaria Web Push Protocol
+    const NotificationService = require('../services/NotificationService');
+    const enviado = await NotificationService.enviarNotificacaoPush(
+      usuarioId,
+      titulo || 'Teste de Notificação Push',
+      mensagem || 'Esta é uma notificação push real enviada pelo servidor!',
+      url || '/notificacoes'
+    );
     
     res.json({ 
-      message: 'Notificação push enviada com sucesso',
-      status: 'sent'
+      message: enviado ? 'Notificação push enviada com sucesso' : 'Não foi possível enviar push (nenhum dispositivo cadastrado ou chaves VAPID ausentes)',
+      status: enviado ? 'sent' : 'failed'
     });
   } catch (error) {
     logger.error('Erro ao enviar notificação push:', error);
     res.status(500).json({ message: 'Erro ao enviar notificação push' });
+  }
+});
+
+// @route   POST /api/notificacoes/verificar-usuario
+// @desc    Verificar contas e limites do usuário autenticado (útil em serverless / on login)
+// @access  Private
+router.post('/verificar-usuario', async (req, res) => {
+  try {
+    const NotificationService = require('../services/NotificationService');
+    const hoje = new Date();
+    const daqui7dias = new Date();
+    daqui7dias.setDate(hoje.getDate() + 7);
+
+    await NotificationService.verificarContasUsuario(req.user._id, hoje, daqui7dias);
+    
+    const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    await NotificationService.verificarCartoesUsuario(req.user._id, primeiroDiaMes, ultimoDiaMes);
+
+    res.json({ message: 'Verificação do usuário concluída com sucesso' });
+  } catch (error) {
+    logger.error('Erro ao verificar notificações do usuário:', error);
+    res.status(500).json({ message: 'Erro ao processar notificações do usuário' });
   }
 });
 

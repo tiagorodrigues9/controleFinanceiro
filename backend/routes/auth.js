@@ -29,6 +29,23 @@ const generateRefreshToken = (id) => {
   });
 };
 
+const formatUserResponse = (user) => {
+  const adminEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.toLowerCase().trim() : '';
+  const isAdmin = Boolean(adminEmail && user.email && user.email.toLowerCase().trim() === adminEmail);
+  return {
+    id: user._id,
+    nome: user.nome,
+    email: user.email,
+    endereco: user.endereco,
+    bairro: user.bairro,
+    cidade: user.cidade,
+    telefone: user.telefone,
+    fotoPerfil: user.fotoPerfil,
+    configuracoes: user.configuracoes,
+    isAdmin
+  };
+};
+
 router.post('/register', [
   body('nome').trim().notEmpty().withMessage('Nome é obrigatório'),
   body('email').isEmail().withMessage('Email inválido'),
@@ -57,17 +74,7 @@ router.post('/register', [
     res.status(201).json({
       token,
       refreshToken,
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error(error);
@@ -105,17 +112,7 @@ router.post('/login', [
     res.json({
       token,
       refreshToken,
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error(error);
@@ -130,17 +127,7 @@ router.get('/me', auth, async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
     res.json({
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error('Erro ao buscar perfil:', error);
@@ -397,17 +384,7 @@ router.put('/profile', auth, [
     }
 
     res.json({
-      user: {
-        id: user._id,
-        nome: user.nome,
-        email: user.email,
-        endereco: user.endereco,
-        bairro: user.bairro,
-        cidade: user.cidade,
-        telefone: user.telefone,
-        fotoPerfil: user.fotoPerfil,
-        configuracoes: user.configuracoes
-      }
+      user: formatUserResponse(user)
     });
   } catch (error) {
     logger.error('Erro ao atualizar perfil:', error);

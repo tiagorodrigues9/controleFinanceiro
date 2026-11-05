@@ -7,6 +7,7 @@ interface User {
   cidade?: string;
   telefone?: string;
   fotoPerfil?: string | null;
+  isAdmin?: boolean;
   configuracoes?: {
     notificacoes: {
       ativo: boolean;

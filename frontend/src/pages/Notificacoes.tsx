@@ -235,6 +235,10 @@ const Notificacoes = () => {
         return <EventIcon color="warning" />;
       case 'limite_cartao':
         return <CreditCardIcon color="warning" />;
+      case 'programada':
+        return <NotificationsIcon color="primary" />;
+      case 'sistema':
+        return <NotificationsIcon color="info" />;
       default:
         return <NotificationsIcon color="info" />;
     }
@@ -248,6 +252,10 @@ const Notificacoes = () => {
         return 'warning';
       case 'limite_cartao':
         return 'warning';
+      case 'programada':
+        return 'primary';
+      case 'sistema':
+        return 'info';
       default:
         return 'default';
     }

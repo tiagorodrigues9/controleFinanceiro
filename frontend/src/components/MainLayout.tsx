@@ -35,6 +35,7 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PieChartIcon from '@mui/icons-material/PieChart';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const drawerWidth = 240;
 
@@ -82,6 +83,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
+  const currentMenuItems: MenuItem[] = [
+    ...menuItems,
+    ...(user?.isAdmin ? [{ text: 'Admin', icon: <AdminPanelSettingsIcon color="primary" />, path: '/admin' }] : [])
+  ];
+
   const drawer = (
     <Box>
       <Toolbar>
@@ -91,7 +97,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Toolbar>
       <Divider />
       <List>
-        {menuItems.map((item) => (
+        {currentMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               selected={location.pathname === item.path}

@@ -105,11 +105,12 @@ class NotificationService {
         console.log(`📅 Contas vencidas encontradas: ${contasVencidas.length}`);
         
         for (const conta of contasVencidas) {
+          const fornecedorTxt = conta.fornecedor?.nome ? ` do fornecedor ${conta.fornecedor.nome}` : '';
           await this.criarNotificacao(
             usuarioId,
             'conta_vencida',
-            'Conta Vencida',
-            `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} está vencida. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
+            `🚨 Conta Vencida: ${conta.nome}`,
+            `Sua conta "${conta.nome}"${fornecedorTxt} está vencida. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
             'Conta',
             conta._id.toString()
           );
@@ -118,28 +119,37 @@ class NotificationService {
         console.log(`❌ Usuário ${usuarioId} tem notificações de contas vencidas desativadas`);
       }
 
-      // Buscar e gerar notificações para contas próximas
+      // Buscar e gerar notificações para contas próximas respeitando antecedência configurada
       if (config?.contasProximas !== false) {
+        const diasConfigurados = config?.diasAntecedencia || 7;
+        const limiteAntecedencia = new Date(hoje);
+        limiteAntecedencia.setDate(hoje.getDate() + diasConfigurados);
+
         const contasProximas = await Conta.find({
           usuario: usuarioId,
           dataVencimento: { 
             $gte: hoje, 
-            $lte: daqui7dias 
+            $lte: limiteAntecedencia 
           },
           status: 'Pendente',
           ativo: { $ne: false }
         }).populate('fornecedor');
 
-        console.log(`⏰ Contas próximas ao vencimento: ${contasProximas.length}`);
+        console.log(`⏰ Contas próximas ao vencimento (${diasConfigurados} dias): ${contasProximas.length}`);
 
         for (const conta of contasProximas) {
           const diasVencimento = Math.ceil((conta.dataVencimento - hoje) / (1000 * 60 * 60 * 24));
-          
+          const fornecedorTxt = conta.fornecedor?.nome ? ` do fornecedor ${conta.fornecedor.nome}` : '';
+          const tituloNotif = diasVencimento === 0 ? `⚠️ Vence Hoje: ${conta.nome}` : `📅 Vencimento Próximo: ${conta.nome}`;
+          const mensagemNotif = diasVencimento === 0
+            ? `Atenção: sua conta "${conta.nome}"${fornecedorTxt} de R$ ${conta.valor.toFixed(2).replace('.', ',')} vence hoje! Não esqueça de pagar.`
+            : `Sua conta "${conta.nome}"${fornecedorTxt} vencerá em ${diasVencimento} dias. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`;
+
           await this.criarNotificacao(
             usuarioId,
             'conta_proxima_vencimento',
-            'Conta Próxima ao Vencimento',
-            `Sua conta "${conta.nome}" do fornecedor ${conta.fornecedor?.nome} vencerá em ${diasVencimento} dias. Valor: R$ ${conta.valor.toFixed(2).replace('.', ',')}`,
+            tituloNotif,
+            mensagemNotif,
             'Conta',
             conta._id.toString()
           );
@@ -345,6 +355,45 @@ class NotificationService {
       console.log(`Limpeza de notificações antigas: ${resultado.deletedCount} notificações removidas`);
     } catch (error) {
       console.error('Erro na limpeza de notificações antigas:', error);
+    }
+  }
+
+  // Enviar broadcast de notificação para todos os usuários (notificações programadas / avisos)
+  static async enviarBroadcast(titulo, mensagem, url = '/gastos-diarios', referenciaId = null) {
+    try {
+      console.log(`📢 Disparando broadcast: "${titulo}"`);
+      const usuarios = await User.find({ 'configuracoes.notificacoes.ativo': { $ne: false } });
+      let totalEnviados = 0;
+      let falhas = 0;
+
+      for (const usuario of usuarios) {
+        try {
+          // Criar notificação in-app para cada usuário
+          await Notificacao.create({
+            usuario: usuario._id,
+            tipo: 'programada',
+            titulo,
+            mensagem,
+            referencia: referenciaId ? { tipo: 'outro', id: referenciaId } : undefined
+          });
+
+          // Disparar Web Push se tiver assinaturas
+          if (usuario.pushSubscriptions && usuario.pushSubscriptions.length > 0) {
+            const enviou = await this.enviarNotificacaoPush(usuario._id, titulo, mensagem, url);
+            if (enviou) totalEnviados++;
+            else falhas++;
+          }
+        } catch (err) {
+          console.error(`Erro ao enviar broadcast para usuário ${usuario._id}:`, err);
+          falhas++;
+        }
+      }
+
+      console.log(`📢 Broadcast concluído. Usuários notificados via push: ${totalEnviados}, Falhas: ${falhas}`);
+      return { totalEnviados, falhas };
+    } catch (error) {
+      console.error('❌ Erro no enviarBroadcast:', error);
+      throw error;
     }
   }
 }
